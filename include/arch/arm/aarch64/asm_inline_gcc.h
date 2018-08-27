@@ -65,6 +65,9 @@ static ALWAYS_INLINE void arch_irq_unlock(unsigned int key)
 			 : "memory", "cc");
 }
 
+/* Used to unconditionally enable interrupts when MULTITHREADING=n */
+#define Z_ARCH_INT_ENABLE() arch_irq_unlock(0)
+
 static ALWAYS_INLINE bool arch_irq_unlocked(unsigned int key)
 {
 	/* We only check the (I)RQ bit on the DAIF register */

@@ -108,6 +108,9 @@ static ALWAYS_INLINE void arch_irq_unlock(unsigned int key)
 #endif /* CONFIG_ARMV6_M_ARMV8_M_BASELINE */
 }
 
+/* Used to unconditionally enable interrupts when MULTITHREADING=n */
+#define Z_ARCH_INT_ENABLE() arch_irq_unlock(0)
+
 static ALWAYS_INLINE bool arch_irq_unlocked(unsigned int key)
 {
 	/* This convention works for both PRIMASK and BASEPRI */

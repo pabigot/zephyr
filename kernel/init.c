@@ -431,6 +431,18 @@ sys_rand_fallback:
 /* defined(CONFIG_ENTROPY_HAS_DRIVER) || defined(CONFIG_TEST_RANDOM_GENERATOR) */
 #endif
 
+#ifndef CONFIG_MULTITHREADING
+static void enable_interrupts(void)
+{
+#ifdef Z_ARCH_INT_ENABLE
+	Z_ARCH_INT_ENABLE();
+#else
+# pragma message "Z_ARCH_INT_ENABLE not defined for this architecture."
+# pragma message "Entry to MULTITHREADING=n app code will be with interrupts disabled."
+#endif
+}
+#endif
+
 /**
  *
  * @brief Initialize kernel
@@ -476,6 +488,7 @@ FUNC_NORETURN void z_cstart(void)
 	prepare_multithreading();
 	switch_to_main_thread();
 #else
+	enable_interrupts();
 	bg_thread_main(NULL, NULL, NULL);
 
 	/* LCOV_EXCL_START

@@ -205,6 +205,8 @@ extern unsigned char _irq_to_interrupt_vector[];
 #define Z_IRQ_TO_INTERRUPT_VECTOR(irq) \
 	((unsigned int) _irq_to_interrupt_vector[irq])
 
+/* Used to unconditionally enable interrupts when MULTITHREADING=n */
+#define Z_ARCH_INT_ENABLE() arch_irq_unlock(0x200)
 
 #endif /* _ASMLANGUAGE */
 
