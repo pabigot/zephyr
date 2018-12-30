@@ -96,7 +96,7 @@ int _abort_timeout(struct _timeout *to)
 	int ret = _INACTIVE;
 
 	LOCKED(&timeout_lock) {
-		if (to->dticks != _INACTIVE) {
+		if (sys_dnode_is_linked(&to->node)) {
 			remove_timeout(to);
 			ret = 0;
 		}
