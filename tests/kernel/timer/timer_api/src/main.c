@@ -15,7 +15,7 @@ struct timer_data {
 
 #define DURATION 100
 #define PERIOD 50
-#define EXPIRE_TIMES 4
+#define EXPIRE_TIMES 64
 #define WITHIN_ERROR(var, target, epsilon)       \
 		(((var) >= (target)) && ((var) <= (target) + (epsilon)))
 
@@ -26,6 +26,8 @@ static void duration_stop(struct k_timer *timer);
 K_TIMER_DEFINE(ktimer, duration_expire, duration_stop);
 static struct k_timer timer;
 static struct timer_data tdata;
+static unsigned int reps;
+static bool failed;
 
 #define TIMER_ASSERT(exp, tmr)			 \
 	do {					 \
@@ -228,16 +230,28 @@ void test_timer_periodicity(void)
 	k_timer_status_sync(&timer);
 	tdata.timestamp = k_uptime_get();
 
+	++reps;
 	for (int i = 0; i < EXPIRE_TIMES; i++) {
 		/** TESTPOINT: expired times returned by status sync */
 		TIMER_ASSERT(k_timer_status_sync(&timer) == 1, &timer);
 
 		delta = k_uptime_delta(&tdata.timestamp);
 
+#if 1
+		if (delta != PERIOD) {
+			k_timer_stop(&timer);
+			failed = true;
+			printk("rep %u iter %d failed at %d delta %d exp %d\n",
+			       reps, i, (s32_t)tdata.timestamp, (s32_t)delta, PERIOD);
+			zassert_true(false, NULL);
+			break;
+		}
+#else
 		/** TESTPOINT: check if timer fired within 1ms of the
 		 *  expected period (firing time)
 		 */
 		TIMER_ASSERT(WITHIN_ERROR(delta, PERIOD, 1), &timer);
+#endif
 	}
 
 	/* cleanup environment */
@@ -469,14 +483,21 @@ void test_timer_user_data(void)
 void test_main(void)
 {
 	ztest_test_suite(timer_api,
+#if 0
 			 ztest_unit_test(test_timer_duration_period),
 			 ztest_unit_test(test_timer_period_0),
+#endif
 			 ztest_unit_test(test_timer_expirefn_null),
 			 ztest_unit_test(test_timer_periodicity),
+#if 0
 			 ztest_unit_test(test_timer_status_get),
 			 ztest_unit_test(test_timer_status_get_anytime),
 			 ztest_unit_test(test_timer_status_sync),
 			 ztest_unit_test(test_timer_k_define),
-			 ztest_unit_test(test_timer_user_data));
-	ztest_run_test_suite(timer_api);
+#endif
+			 ztest_unit_test(test_timer_user_data)
+		);
+	do {
+		ztest_run_test_suite(timer_api);
+	} while (!failed);
 }
