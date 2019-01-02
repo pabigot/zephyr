@@ -342,10 +342,6 @@ static int signal_poll_event(struct k_poll_event *event, u32_t state)
 		goto ready_event;
 	}
 
-	if (_is_thread_timeout_expired(thread)) {
-		return -EAGAIN;
-	}
-
 	_unpend_thread(thread);
 	_set_thread_return_value(thread,
 				 state == K_POLL_STATE_CANCELLED ? -EINTR : 0);
@@ -437,4 +433,3 @@ Z_SYSCALL_HANDLER(k_poll_signal_raise, signal, result)
 Z_SYSCALL_HANDLER1_SIMPLE_VOID(k_poll_signal_reset, K_OBJ_POLL_SIGNAL,
 			       struct k_poll_signal *);
 #endif
-
