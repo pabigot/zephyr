@@ -23,9 +23,6 @@ static struct k_spinlock timeout_lock;
 
 static bool can_wait_forever;
 
-/* Cycles left to process in the currently-executing z_clock_announce() */
-static int announce_remaining;
-
 #if defined(CONFIG_TIMER_READS_ITS_FREQUENCY_AT_RUNTIME)
 int z_clock_hw_cycles_per_sec = CONFIG_SYS_CLOCK_HW_CYCLES_PER_SEC;
 #endif
@@ -54,11 +51,6 @@ static void remove_timeout(struct _timeout *t)
 	t->dticks = 0;
 }
 
-static s32_t elapsed(void)
-{
-	return announce_remaining == 0 ? z_clock_elapsed() : 0;
-}
-
 void _add_timeout(struct _timeout *to, _timeout_func_t fn, s32_t ticks)
 {
 	__ASSERT(!sys_dnode_is_linked(&to->node), "");
@@ -68,10 +60,11 @@ void _add_timeout(struct _timeout *to, _timeout_func_t fn, s32_t ticks)
 	LOCKED(&timeout_lock) {
 		struct _timeout *t;
 
-		to->dticks = ticks + elapsed();
+		// set for rel-current, add to previous for rel-previous
+		// this is why the deadline should be absolute!
+		//to->dticks += ticks;
+		to->dticks = ticks;
 		for (t = first(); t != NULL; t = next(t)) {
-			__ASSERT(t->dticks >= 0, "");
-
 			if (t->dticks > to->dticks) {
 				t->dticks -= to->dticks;
 				sys_dlist_insert_before(&timeout_list,
@@ -134,19 +127,20 @@ void z_clock_announce(s32_t ticks)
 	k_spinlock_key_t key = k_spin_lock(&timeout_lock);
 	struct _timeout *t = first();
 
-	announce_remaining = ticks;
+	curr_tick += ticks;
 
 	if (t) {
 		sys_dlist_t ready;
 		sys_dnode_t *node;
 
-		sys_dlist_init(&ready);
 		while (t) {
 			if (t->dticks > ticks) {
 				break;
 			}
 			t = next(t);
 		}
+
+		sys_dlist_init(&ready);
 		if (t == NULL) {
 			sys_dlist_catenate(&ready, &timeout_list);
 		} else {
@@ -155,22 +149,20 @@ void z_clock_announce(s32_t ticks)
 		}
 
 		node = sys_dlist_peek_head(&ready);
-		while (node) {
-			sys_dlist_remove(node);
-			t = CONTAINER_OF(node, struct _timeout, node);
-			announce_remaining -= t->dticks;
-			curr_tick += t->dticks;
+		if (node) {
 			k_spin_unlock(&timeout_lock, key);
+			while (node) {
+				sys_dlist_remove(node);
+				t = CONTAINER_OF(node, struct _timeout, node);
+				t->dticks -= ticks;
 
-			t->fn(t);
+				t->fn(t);
 
+				node = sys_dlist_peek_head(&ready);
+			}
 			key = k_spin_lock(&timeout_lock);
-			node = sys_dlist_peek_head(&ready);
 		}
 	}
-
-	curr_tick += announce_remaining;
-	announce_remaining = 0;
 
 	z_clock_set_timeout(_get_next_timeout_expiry(), false);
 
@@ -185,7 +177,7 @@ s32_t _get_next_timeout_expiry(void)
 	LOCKED(&timeout_lock) {
 		struct _timeout *to = first();
 
-		ret = to == NULL ? maxw : max(0, to->dticks - elapsed());
+		ret = to == NULL ? maxw : max(0, to->dticks);
 	}
 
 #ifdef CONFIG_TIMESLICING
