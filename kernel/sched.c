@@ -864,7 +864,7 @@ void _impl_k_wakeup(k_tid_t thread)
 		return;
 	}
 
-	if (_abort_thread_timeout(thread) == _INACTIVE) {
+	if (_abort_thread_timeout(thread)) {
 		irq_unlock(key);
 		return;
 	}
