@@ -552,6 +552,32 @@ static inline sys_dnode_t *sys_dlist_get(sys_dlist_t *list)
 	return node;
 }
 
+/**
+ * @brief place the contents of one list at the end of another list.
+ *
+ * The @to and @from lists must be distinct.  On completion @p from
+ * will be empty, all of its elements having been appended in original
+ * order to @p to.
+ *
+ * @param to a list, possibly non-empty, to which from will be appended
+ * @param from the list providing the elements to append
+ *
+ * @return N/A
+ */
+static inline void sys_dlist_catenate(sys_dlist_t *to,
+				      sys_dlist_t *from)
+{
+	if (!sys_dlist_is_empty(from)) {
+		from->head->prev = to->tail;
+		to->tail->next = from->head;
+
+		from->tail->next = to;
+		to->tail = from->tail;
+
+		sys_dlist_init(from);
+	}
+}
+
 #ifdef __cplusplus
 }
 #endif
