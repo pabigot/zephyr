@@ -578,6 +578,42 @@ static inline void sys_dlist_catenate(sys_dlist_t *to,
 	}
 }
 
+/**
+ * @brief split a list at a node
+ *
+ * list will be updated to start at node.  Any nodes before node will
+ * be appended to prefix.
+ *
+ * This and other sys_dlist_*() functions are not thread safe.
+ *
+ * @param list a non-empty list
+ * @param node a node within @p list
+ * @param prefix a list to which items in @p list before @p node
+ * will be appended
+ *
+ * @return N/A
+ */
+static inline void sys_dlist_split(sys_dlist_t *list,
+				   sys_dnode_t *node,
+				   sys_dlist_t *prefix)
+{
+	sys_dnode_t *old_pfx_tail = prefix->tail;
+	sys_dnode_t *new_pfx_tail = node->prev;
+
+	if (sys_dlist_peek_head(list) == node) {
+		return;
+	}
+
+	list->head->prev = old_pfx_tail;
+	old_pfx_tail->next = list->head;
+
+	prefix->tail = new_pfx_tail;
+	new_pfx_tail->next = prefix;
+
+	list->head = node;
+	node->prev = list;
+}
+
 #ifdef __cplusplus
 }
 #endif

@@ -318,8 +318,34 @@ void test_dlist(void)
 	zassert_equal(test_node_2.node.prev, &test_node_1.node,
 		      "node1 not before node2");
 
+	/* Split list at head does nothing */
+	sys_dlist_split(&test_list2, &test_node_1.node, &test_list);
+	zassert_true(sys_dlist_is_empty(&test_list),
+		     "list not empty");
+
+	/* Split list after head moves */
+	sys_dlist_split(&test_list2, &test_node_2.node, &test_list);
+	zassert_true((verify_tail_head(&test_list, &test_node_1.node,
+				       &test_node_1.node, true)),
+		     "test_list head/tail are wrong");
+	zassert_true((verify_tail_head(&test_list2, &test_node_2.node,
+				       &test_node_3.node, false)),
+		     "test_list2 head/tail are wrong");
+
+	/* Split list after head moves */
+	sys_dlist_split(&test_list2, &test_node_3.node, &test_list);
+	zassert_true((verify_tail_head(&test_list, &test_node_1.node,
+				       &test_node_2.node, false)),
+		     "test_list head/tail are wrong");
+	zassert_true((verify_tail_head(&test_list2, &test_node_3.node,
+				       &test_node_3.node, true)),
+		     "test_list2 head/tail are wrong");
+
 	sys_dlist_remove(&test_node_1.node);
 	sys_dlist_remove(&test_node_2.node);
+	zassert_true(sys_dlist_is_empty(&test_list),
+		     "list not empty");
+
 	sys_dlist_remove(&test_node_3.node);
 	zassert_true(sys_dlist_is_empty(&test_list2),
 		     "list2 not empty");
