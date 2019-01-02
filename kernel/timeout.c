@@ -127,42 +127,54 @@ s32_t z_timeout_remaining(struct _timeout *timeout)
 
 void z_clock_announce(s32_t ticks)
 {
-	struct _timeout *t = NULL;
-
 #ifdef CONFIG_TIMESLICING
 	z_time_slice(ticks);
 #endif
 
+	k_spinlock_key_t key = k_spin_lock(&timeout_lock);
+	struct _timeout *t = first();
+
 	announce_remaining = ticks;
-	while (true) {
-		LOCKED(&timeout_lock) {
-			t = first();
-			if (t != NULL) {
-				if (t->dticks <= announce_remaining) {
-					announce_remaining -= t->dticks;
-					curr_tick += t->dticks;
-					t->dticks = 0;
-					remove_timeout(t);
-				} else {
-					t->dticks -= announce_remaining;
-					t = NULL;
-				}
+
+	if (t) {
+		sys_dlist_t ready;
+		sys_dnode_t *node;
+
+		sys_dlist_init(&ready);
+		while (t) {
+			if (t->dticks > ticks) {
+				break;
 			}
+			t = next(t);
 		}
-
 		if (t == NULL) {
-			break;
+			sys_dlist_catenate(&ready, &timeout_list);
+		} else {
+			sys_dlist_split(&timeout_list, &t->node, &ready);
+			t->dticks -= ticks;
 		}
 
-		t->fn(t);
+		node = sys_dlist_peek_head(&ready);
+		while (node) {
+			sys_dlist_remove(node);
+			t = CONTAINER_OF(node, struct _timeout, node);
+			announce_remaining -= t->dticks;
+			curr_tick += t->dticks;
+			k_spin_unlock(&timeout_lock, key);
+
+			t->fn(t);
+
+			key = k_spin_lock(&timeout_lock);
+			node = sys_dlist_peek_head(&ready);
+		}
 	}
 
-	LOCKED(&timeout_lock) {
-		curr_tick += announce_remaining;
-		announce_remaining = 0;
+	curr_tick += announce_remaining;
+	announce_remaining = 0;
 
-		z_clock_set_timeout(_get_next_timeout_expiry(), false);
-	}
+	z_clock_set_timeout(_get_next_timeout_expiry(), false);
+
+	k_spin_unlock(&timeout_lock, key);
 }
 
 s32_t _get_next_timeout_expiry(void)
