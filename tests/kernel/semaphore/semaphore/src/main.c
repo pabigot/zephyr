@@ -138,7 +138,7 @@ void test_simple_sem_from_isr(void)
 
 		signal_count = k_sem_count_get(&simple_sem);
 		zassert_true(signal_count == (i + 1),
-			     "signal count missmatch Expected %d, got %d\n",
+			     "signal count mismatch: expected %d, got %d\n",
 			     (i + 1), signal_count);
 	}
 
@@ -164,7 +164,7 @@ void test_simple_sem_from_task(void)
 
 		signal_count = k_sem_count_get(&simple_sem);
 		zassert_true(signal_count == (i + 1),
-			     "signal count missmatch Expected %d, got %d\n",
+			     "signal count mismatch: expected %d, got %d\n",
 			     (i + 1), signal_count);
 	}
 
@@ -193,7 +193,7 @@ void test_sem_take_no_wait(void)
 
 		signal_count = k_sem_count_get(&simple_sem);
 		zassert_true(signal_count == i,
-			     "signal count missmatch Expected %d, got %d\n",
+			     "signal count mismatch: expected %d, got %d\n",
 			     i, signal_count);
 	}
 
@@ -222,7 +222,7 @@ void test_sem_take_no_wait_fails(void)
 
 		signal_count = k_sem_count_get(&simple_sem);
 		zassert_true(signal_count == 0,
-			     "signal count missmatch Expected 0, got %d\n",
+			     "signal count mismatch: expected 0, got %d\n",
 			     signal_count);
 	}
 
@@ -437,7 +437,7 @@ void test_sem_give_take_from_isr(void)
 
 		signal_count = k_sem_count_get(&simple_sem);
 		zassert_true(signal_count == i + 1,
-			     "signal count missmatch Expected %d, got %d\n",
+			     "signal count mismatch: expected %d, got %d\n",
 			     i + 1, signal_count);
 	}
 
@@ -447,7 +447,7 @@ void test_sem_give_take_from_isr(void)
 
 		signal_count = k_sem_count_get(&simple_sem);
 		zassert_true(signal_count == (i - 1),
-			     "signal count missmatch Expected %d, got %d\n",
+			     "signal count mismatch: expected %d, got %d\n",
 			     (i - 1), signal_count);
 	}
 }
@@ -512,12 +512,12 @@ void test_sem_multiple_threads_wait(void)
 
 		signal_count = k_sem_count_get(&simple_sem);
 		zassert_true(signal_count == 0,
-			     "signal count missmatch Expected 0, got %d\n",
+			     "signal count mismatch: expected 0, got %d\n",
 			     signal_count);
 
 		signal_count = k_sem_count_get(&multiple_thread_sem);
 		zassert_true(signal_count == 0,
-			     "signal count missmatch Expected 0, got %d\n",
+			     "signal count mismatch: expected 0, got %d\n",
 			     signal_count);
 
 		/* Verify a wait q that has been emptied / reset
@@ -550,7 +550,7 @@ void test_sem_measure_timeouts(void)
 		     "k_sem_take failed when its shouldn't have");
 
 	zassert_true((end_ticks - start_ticks >= SECONDS(1)),
-		     "time missmatch expected %d ,got %d\n",
+		     "time mismatch: expected at least %d, got %d\n",
 		     SECONDS(1), end_ticks - start_ticks);
 
 	/* With 0 as the timeout */
@@ -564,7 +564,7 @@ void test_sem_measure_timeouts(void)
 		     "k_sem_take failed when its shouldn't have");
 
 	zassert_true((end_ticks - start_ticks < 1),
-		     "time missmatch expected %d ,got %d\n",
+		     "time mismatch: expected less than %d, got %d\n",
 		     1, end_ticks - start_ticks);
 
 }
@@ -614,7 +614,7 @@ void test_sem_measure_timeout_from_thread(void)
 		     "k_sem_take failed when its shouldn't have");
 
 	zassert_true((end_ticks - start_ticks <= SECONDS(1)),
-		     "time missmatch. expected less than%d ,got %d\n",
+		     "time mismatch: expected at most %d, got %d\n",
 		     SECONDS(1), end_ticks - start_ticks);
 
 }
@@ -633,7 +633,7 @@ void test_sem_multiple_take_and_timeouts_helper(void *timeout,
 	end_ticks = k_uptime_get();
 
 	zassert_true((end_ticks - start_ticks >= (int)timeout),
-		     "time missmatch. expected less than%d ,got %d\n",
+		     "time mismatch: expected at least %d, got %d\n",
 		     timeout, end_ticks - start_ticks);
 
 
@@ -698,7 +698,7 @@ void test_sem_multi_take_timeout_diff_sem_helper(void *timeout,
 	end_ticks = k_uptime_get();
 
 	zassert_true((end_ticks - start_ticks >= (int)timeout),
-		     "time missmatch. expected less than%d ,got %d\n",
+		     "time mismatch: expected at least %d, got %d\n",
 		     timeout, end_ticks - start_ticks);
 
 
