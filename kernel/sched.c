@@ -555,7 +555,9 @@ void _priq_dumb_remove(sys_dlist_t *pq, struct k_thread *thread)
 {
 	__ASSERT_NO_MSG(!_is_idle(thread));
 
-	sys_dlist_remove(&thread->base.qnode_dlist);
+	if (sys_dnode_is_linked(&thread->base.qnode_dlist)) {
+		sys_dlist_remove(&thread->base.qnode_dlist);
+	}
 }
 
 struct k_thread *_priq_dumb_best(sys_dlist_t *pq)
