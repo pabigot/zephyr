@@ -197,6 +197,8 @@ static int _MemoryFaultIsRecoverable(NANO_ESF *esf)
 /* HardFault is used for all fault conditions on ARMv6-M. */
 #elif defined(CONFIG_ARMV7_M_ARMV8_M_MAINLINE)
 
+u32_t volatile _total_bogosity;
+
 /**
  *
  * @brief Dump MPU fault information
@@ -209,7 +211,7 @@ static u32_t _MpuFault(NANO_ESF *esf, int fromHardFault)
 {
 	u32_t reason = _NANO_ERR_HW_EXCEPTION;
 
-	PR_FAULT_INFO("***** MPU FAULT *****\n");
+	PR_FAULT_INFO("***** MPU FAULT %u *****\n", _total_bogosity);
 
 	if (SCB->CFSR & SCB_CFSR_MSTKERR_Msk) {
 		PR_FAULT_INFO("  Stacking error\n");
@@ -291,7 +293,7 @@ static u32_t _MpuFault(NANO_ESF *esf, int fromHardFault)
  */
 static int _BusFault(NANO_ESF *esf, int fromHardFault)
 {
-	PR_FAULT_INFO("***** BUS FAULT *****\n");
+	PR_FAULT_INFO("***** BUS FAULT %u *****\n", _total_bogosity);
 
 	if (SCB->CFSR & SCB_CFSR_STKERR_Msk) {
 		PR_FAULT_INFO("  Stacking error\n");

@@ -179,7 +179,11 @@ static unsigned int bfree_recombine(struct sys_mem_pool_base *p, int level,
 
 		if (block_fits(p, block_ptr(p, lsz, b), lsz)) {
 			clear_free_bit(p, level, b);
+	extern u32_t volatile _total_bogosity;
+
+	_total_bogosity = __LINE__;
 			sys_dlist_remove(block_ptr(p, lsz, b));
+	_total_bogosity = 0;
 		}
 	}
 
@@ -360,4 +364,3 @@ void sys_mem_pool_free(void *ptr)
 	_sys_mem_pool_block_free(&p->base, blk->level, blk->block);
 	k_mutex_unlock(p->mutex);
 }
-

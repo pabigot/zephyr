@@ -50,7 +50,11 @@ static void remove_timeout(struct _timeout *t)
 		next(t)->dticks += t->dticks;
 	}
 
+	extern u32_t volatile _total_bogosity;
+
+	_total_bogosity = __LINE__;
 	sys_dlist_remove(&t->node);
+	_total_bogosity = 0;
 }
 
 static s32_t elapsed(void)

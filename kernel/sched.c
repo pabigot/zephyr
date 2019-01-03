@@ -554,10 +554,19 @@ void _priq_dumb_add(sys_dlist_t *pq, struct k_thread *thread)
 void _priq_dumb_remove(sys_dlist_t *pq, struct k_thread *thread)
 {
 	__ASSERT_NO_MSG(!_is_idle(thread));
+	extern u32_t volatile _total_bogosity;
 
-	if (sys_dnode_is_linked(&thread->base.qnode_dlist)) {
+	if ((thread->base.qnode_dlist.next == &thread->base.qnode_dlist)
+	    || (thread->base.qnode_dlist.prev == &thread->base.qnode_dlist)) {
+		_total_bogosity = __LINE__ + 20000;
+	} else {
+		_total_bogosity = __LINE__ + 10000;
+	}
+	if (thread->base.qnode_dlist.next
+	    && thread->base.qnode_dlist.prev) {
 		sys_dlist_remove(&thread->base.qnode_dlist);
 	}
+	_total_bogosity = 0;
 }
 
 struct k_thread *_priq_dumb_best(sys_dlist_t *pq)
@@ -642,7 +651,11 @@ void _priq_mq_remove(struct _priq_mq *pq, struct k_thread *thread)
 {
 	int priority_bit = thread->base.prio - K_HIGHEST_THREAD_PRIO;
 
+	extern u32_t volatile _total_bogosity;
+
+	_total_bogosity = __LINE__;
 	sys_dlist_remove(&thread->base.qnode_dlist);
+	_total_bogosity = 0;
 	if (sys_dlist_is_empty(&pq->queues[priority_bit])) {
 		pq->bitmask &= ~(1 << priority_bit);
 	}
@@ -777,9 +790,11 @@ void _impl_k_yield(void)
 
 	if (!_is_idle(_current)) {
 		LOCKED(&sched_lock) {
+			if (!_is_idle(_current)) {
 			_priq_run_remove(&_kernel.ready_q.runq, _current);
 			_priq_run_add(&_kernel.ready_q.runq, _current);
 			update_cache(1);
+			}
 		}
 	}
 

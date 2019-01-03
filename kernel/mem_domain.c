@@ -127,7 +127,11 @@ void k_mem_domain_destroy(struct k_mem_domain *domain)
 		struct k_thread *thread =
 			CONTAINER_OF(node, struct k_thread, mem_domain_info);
 
+	extern u32_t volatile _total_bogosity;
+
+	_total_bogosity = __LINE__;
 		sys_dlist_remove(&thread->mem_domain_info.mem_domain_q_node);
+	_total_bogosity = 0;
 		thread->mem_domain_info.mem_domain = NULL;
 	}
 
@@ -240,7 +244,11 @@ void k_mem_domain_remove_thread(k_tid_t thread)
 		_arch_mem_domain_destroy(thread->mem_domain_info.mem_domain);
 	}
 
+	extern u32_t volatile _total_bogosity;
+
+	_total_bogosity = __LINE__;
 	sys_dlist_remove(&thread->mem_domain_info.mem_domain_q_node);
+	_total_bogosity = 0;
 	thread->mem_domain_info.mem_domain = NULL;
 
 	irq_unlock(key);
