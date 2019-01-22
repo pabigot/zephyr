@@ -28,11 +28,31 @@ class DTReg(DTDirective):
 
         node = reduced[node_address]
         node_compat = get_compat(node_address)
+        binding = get_binding(node_address)
 
         reg = reduced[node_address]['props']['reg']
         if type(reg) is not list: reg = [ reg, ]
 
         (nr_address_cells, nr_size_cells) = get_addr_size_cells(node_address)
+
+        if 'parent' in binding:
+            bus = binding['parent']['bus']
+            if bus == 'spi':
+                cs_gpios = None
+
+                try:
+                    cs_gpios = deepcopy(find_parent_prop(node_address, 'cs-gpios'))
+                except:
+                    pass
+
+                if cs_gpios:
+                    # If there's only a single gpio, make it a list
+                    if type(cs_gpios[0]) is not list: cs_gpios = [ cs_gpios, ]
+
+                    cs = cs_gpios[reg[0]]
+
+                    extract_controller(node_address, "cs-gpios", cs, 0, def_label, "cs-gpio")
+                    extract_cells(node_address, "cs-gpios", cs, None, 0, def_label, "cs-gpio")
 
         # generate defines
         l_base = def_label.split('/')
