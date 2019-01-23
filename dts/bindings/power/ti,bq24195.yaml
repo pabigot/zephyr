@@ -1,0 +1,33 @@
+#
+# Copyright (c) 2018 Peter Bigot Consulting, LLC
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+title: Texas Instruments bq124195 Single Cell USB/Adapter Charger
+version: 0.1
+
+description: >
+  switch-mode battery charge management and system power path
+  management devices for single cell Li-Ion and Li-polymer
+  batteries.
+
+inherits:
+  !include [i2c-device.yaml]
+
+properties:
+  compatible:
+    constraint: "ti,bq24195"
+
+  ce-gpios:
+    type: compound
+    category: optional
+    description: CEn pin
+    generation: define, use-prop-name
+  int-gpios:
+    type: compound
+    category: optional
+    description: INT pin
+    generation: define, use-prop-name
+
+...

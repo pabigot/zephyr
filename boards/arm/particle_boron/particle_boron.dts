@@ -19,6 +19,16 @@
 	clock-frequency = <I2C_BITRATE_FAST>;
 	sda-pin = <24>;
 	scl-pin = <41>;
+	max17043: max17043@36 {
+		compatible = "maxim,max1704x";
+		reg = <0x36>;
+		alrt-gpios = <&gpio0 5 0>;
+	};
+	bq24195: bq24195@6b {
+		compatible = "ti,bq24195";
+		reg = <0x6b>;
+		int-gpios = <&gpio0 5 0>;
+	};
 };
 
 &uart1 { /* u-blox SARA-U2 or SARA-R4 */

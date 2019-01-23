@@ -1,0 +1,31 @@
+#
+# Copyright (c) 2018, Makaio GmbH
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+title: Maxim Integrated MAX1704X Fuel Gauge
+version: 0.1
+
+description: >
+  This binding gives a base representation of  MAX1704x Fuel Gauge
+
+inherits:
+  !include [i2c-device.yaml]
+
+properties:
+  compatible:
+    constraint: "maxim,max1704x"
+
+  alrt-gpios:
+    type: compound
+    category: optional
+    description: ALRTn pin
+    generation: define, use-prop-name
+  qstrt-gpios:
+    type: compound
+    category: optional
+    description: QSTRT pin
+    generation: define, use-prop-name
+
+...
