@@ -4511,7 +4511,9 @@ static int hci_init(void)
 	hci_vs_init();
 #endif
 
-	if (!IS_ENABLED(CONFIG_BT_SETTINGS) && !bt_dev.id_count) {
+	if (!bt_dev.id_count
+	    && (!IS_ENABLED(CONFIG_BT_SETTINGS)
+		|| !atomic_test_bit(bt_dev.flags, BT_DEV_PRESET_ID))) {
 		BT_DBG("No public address. Trying to set static random.");
 		err = bt_setup_id_addr();
 		if (err) {
@@ -4674,12 +4676,11 @@ static int bt_init(void)
 #endif
 
 	if (IS_ENABLED(CONFIG_BT_SETTINGS)) {
-		if (!bt_dev.id_count) {
-			BT_WARN("No ID address. App must call settings_load()");
-			return 0;
+		if (bt_dev.id_count) {
+			atomic_set_bit(bt_dev.flags, BT_DEV_PRESET_ID);
+		} else {
+			BT_WARN("No ID address; using default identity.");
 		}
-
-		atomic_set_bit(bt_dev.flags, BT_DEV_PRESET_ID);
 	}
 
 	bt_finalize_init();
