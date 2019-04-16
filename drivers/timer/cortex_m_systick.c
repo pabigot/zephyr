@@ -47,6 +47,28 @@ static u32_t announced_cycles;
 
 static volatile u32_t overflow_cyc;
 
+/* This internal function calculates the amount of HW cycles that have
+ * elapsed since the last time the absolute HW cycles counter has been
+ * updated. 'cycle_count' may be updated either by the ISR, or when we
+ * re-program the SysTick.LOAD register, in z_clock_set_timeout().
+ *
+ * Additionally, the function updates the 'overflow_cyc' counter, that
+ * holds the amount of elapsed HW cycles due to (possibly) multiple
+ * timer wraps.
+ *
+ * Prerequisites:
+ * - reprogramming of SysTick.LOAD must be clearing the SysTick.COUNTER
+ *   register and the 'overflow_cyc' counter.
+ * - ISR must be clearing the 'overflow_cyc' counter.
+ * - no more than one counter-wrap has occurred between
+ *     - the timer reset or the last time the function was called
+ *     - and until the current call of the function.
+ * - the function is invoked with interrupts disabled.
+ *
+ * Note:
+ * The function can tolerate an additional counter wrap while it
+ * calculates the elapsed HW cycles.
+ */
 static u32_t elapsed(void)
 {
 	u32_t val, ctrl1, ctrl2;
@@ -71,6 +93,11 @@ static u32_t elapsed(void)
 	val = SysTick->VAL;
 	ctrl2 = SysTick->CTRL;
 
+	/* overflow_cyc is reset to zero by
+	 * - _init()
+	 * - _isr()
+	 * - _set_timeout()
+	 */
 	overflow_cyc += (ctrl1 & SysTick_CTRL_COUNTFLAG_Msk) ? last_load : 0;
 	if (val > VAL_ABOUT_TO_WRAP) {
 		int wrap = ctrl2 & SysTick_CTRL_COUNTFLAG_Msk;
