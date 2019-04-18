@@ -7,6 +7,9 @@
 
 if SOC_FAMILY_NRF
 
+config ALARM
+	default y
+
 source "soc/arm/nordic_nrf/*/Kconfig.defconfig.series"
 
 config BUILD_OUTPUT_HEX

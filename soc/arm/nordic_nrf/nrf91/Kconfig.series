@@ -13,7 +13,8 @@ config  SOC_SERIES_NRF91X
 	select CPU_HAS_FPU
 	select ARMV8_M_DSP
 	select SOC_FAMILY_NRF
-	select NRF_RTC_TIMER
+	select NRF_RTC_TIMER if !ALARM
+	select NRF_RTC_TIMALARM if ALARM
 	select CLOCK_CONTROL
 	select HAS_SYS_POWER_STATE_DEEP_SLEEP_1
 	select XIP
