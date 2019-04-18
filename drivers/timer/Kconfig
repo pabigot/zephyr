@@ -113,11 +113,21 @@ config NRF_RTC_TIMER
 	default y
 	depends on CLOCK_CONTROL
 	depends on SOC_COMPATIBLE_NRF
+	depends on !NRF_RTC_TIMALARM
 	select TICKLESS_CAPABLE
 	help
 	  This module implements a kernel device driver for the nRF Real Time
 	  Counter NRF_RTC1 and provides the standard "system clock driver"
 	  interfaces.
+
+config NRF_RTC_TIMALARM
+	bool "nRF RTC Timer and Alarm"
+	default n
+	depends on ALARM
+	select TICKLESS_CAPABLE
+	help
+	  Provides the k_alarm infrastructure and implements the system
+	  timer on top of it.
 
 config RISCV_MACHINE_TIMER
 	bool "RISCV Machine Timer"
