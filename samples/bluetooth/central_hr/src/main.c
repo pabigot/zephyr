@@ -6,6 +6,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#define COUNTER_INCR 8
+
 #include <zephyr/types.h>
 #include <stddef.h>
 #include <errno.h>
@@ -19,6 +21,29 @@
 #include <bluetooth/gatt.h>
 #include <misc/byteorder.h>
 
+#if (COUNTER_INCR - 0)
+
+static unsigned int sc_ctr;
+
+static void
+ctr_alarm_handler (struct k_alarm *alarm,
+		   void *ud)
+{
+	sc_ctr += 1;
+
+	/* On both nRF51 and nRF52 we can set the deadline one tick in
+	 * the future and it all works. */
+	(void)k_alarm_schedule(alarm, alarm->deadline + COUNTER_INCR);
+}
+
+static void
+ctr_alarm_stop (struct k_alarm *alarm,
+		void *ud)
+{ }
+
+K_ALARM_DEFINE(ctr_alarm, ctr_alarm_handler, ctr_alarm_stop);
+#endif
+
 static struct bt_conn *default_conn;
 
 static struct bt_uuid_16 uuid = BT_UUID_INIT_16(0);
@@ -29,13 +54,27 @@ static u8_t notify_func(struct bt_conn *conn,
 			   struct bt_gatt_subscribe_params *params,
 			   const void *data, u16_t length)
 {
+#if (COUNTER_INCR - 0)
+	static unsigned int last_ctr;
+	unsigned int ctr = sc_ctr;
+	unsigned int delta_ctr = ctr - last_ctr;
+	last_ctr = ctr;
+#endif
 	if (!data) {
 		printk("[UNSUBSCRIBED]\n");
 		params->value_handle = 0U;
 		return BT_GATT_ITER_STOP;
 	}
 
-	printk("[NOTIFICATION] data %p length %u\n", data, length);
+	printk("[NOTIFICATION] data %p length %u"
+#if (COUNTER_INCR - 0)
+	       " ctr delta %u"
+#endif
+	       "\n", data, length
+#if (COUNTER_INCR - 0)
+	       , delta_ctr
+#endif
+		);
 
 	return BT_GATT_ITER_CONTINUE;
 }
@@ -211,6 +250,13 @@ static struct bt_conn_cb conn_callbacks = {
 void main(void)
 {
 	int err;
+
+#if (COUNTER_INCR - 0)
+	err = k_alarm_schedule(&ctr_alarm, 0U);
+	printk("counter alarm at %u Hz got %d\n", 32768 / COUNTER_INCR, err);
+#endif
+
+
 	err = bt_enable(NULL);
 
 	if (err) {
@@ -219,6 +265,9 @@ void main(void)
 	}
 
 	printk("Bluetooth initialized\n");
+#if (COUNTER_INCR - 0)
+	printk("Counter %u\n", sc_ctr);
+#endif
 
 	bt_conn_cb_register(&conn_callbacks);
 
@@ -230,4 +279,7 @@ void main(void)
 	}
 
 	printk("Scanning successfully started\n");
+#if (COUNTER_INCR - 0)
+	printk("Counter %u\n", sc_ctr);
+#endif
 }
