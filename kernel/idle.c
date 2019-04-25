@@ -19,6 +19,13 @@
 #define IDLE_THRESH 1
 #endif
 
+static u32_t cumulative_idle_cycles;
+
+u32_t k_cycle_cumulative_idle (void)
+{
+	return cumulative_idle_cycles;
+}
+
 #ifdef CONFIG_SYS_POWER_MANAGEMENT
 /*
  * Used to allow _sys_suspend() implementation to control notification
@@ -94,10 +101,14 @@ static void sys_power_save_idle(void)
 	 */
 	if (_sys_suspend(ticks) == SYS_POWER_STATE_ACTIVE) {
 		sys_pm_idle_exit_notify = 0U;
+		u32_t pre = k_cycle_get_32();
 		k_cpu_idle();
+		cumulative_idle_cycles += (k_cycle_get_32() - pre);
 	}
 #else
+	u32_t pre = k_cycle_get_32();
 	k_cpu_idle();
+	cumulative_idle_cycles += (k_cycle_get_32() - pre);
 #endif
 }
 #endif

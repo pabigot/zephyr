@@ -1964,6 +1964,12 @@ static inline u32_t k_uptime_delta_32(s64_t *reftime)
 #define k_cycle_get_32()	z_arch_k_cycle_get_32()
 
 /**
+ * @brief Read the number of hardware clock cycles spent in the system idle task.
+ *
+ * @return Cumulative hardware clock cycles spent in k_cpu_idle(). */
+u32_t k_cycle_cumulative_idle (void);
+
+/**
  * @}
  */
 
