@@ -18,6 +18,7 @@
 #include "hal/debug.h"
 
 #include "nrf_ecb.h"
+#include "hal/cpu.h"
 
 struct ecb_param {
 	u8_t key[16];
@@ -188,9 +189,7 @@ u32_t ecb_ut(void)
 	ecb.context = &context;
 	status = ecb_encrypt_nonblocking(&ecb);
 	do {
-		__WFE();
-		__SEV();
-		__WFE();
+		cpu_sleep();
 	} while (!context.done);
 
 	if (context.status != 0U) {

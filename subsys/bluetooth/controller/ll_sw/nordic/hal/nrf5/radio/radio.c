@@ -14,6 +14,7 @@
 #include "hal/radio.h"
 #include "ll_sw/pdu.h"
 #include "radio_nrf5.h"
+#include "hal/cpu.h"
 
 #include <nrfx/hal/nrf_radio.h>
 #include <nrfx/hal/nrf_rtc.h>
@@ -1061,9 +1062,7 @@ u32_t radio_ccm_is_done(void)
 {
 	nrf_ccm_int_enable(NRF_CCM, CCM_INTENSET_ENDCRYPT_Msk);
 	while (NRF_CCM->EVENTS_ENDCRYPT == 0) {
-		__WFE();
-		__SEV();
-		__WFE();
+		cpu_sleep();
 	}
 	nrf_ccm_int_disable(NRF_CCM, CCM_INTENCLR_ENDCRYPT_Msk);
 	NVIC_ClearPendingIRQ(CCM_AAR_IRQn);
