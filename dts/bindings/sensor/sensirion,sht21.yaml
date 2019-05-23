@@ -1,0 +1,12 @@
+# Copyright (c) 2018, Peter Bigot Consulting, LLC
+# SPDX-License-Identifier: Apache-2.0
+
+description: |
+  The Sensirion Humidity Sensor SHT21 supports measuring temperature and
+  humidity.  Compatibles include meas,htu21 and silabs,si7021.
+
+# meas,htu21
+# silabs,si7021
+compatible: "sensirion,sht21"
+
+include: i2c-device.yaml

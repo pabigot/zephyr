@@ -1,0 +1,12 @@
+#
+# Copyright (c) 2018 Peter Bigot Consulting, LLC
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+menuconfig SENSPLE_SHT21
+	bool "SHT21 Temperature and Humidity Simplified Sensor"
+	depends on I2C
+	help
+	  Enable sensple driver for SHT21-compatible temperature and
+	  humidity sensors, including HTU21D and Si7021.

@@ -1,0 +1,19 @@
+/*
+ * Copyright (c) 2018 Peter Bigot Consulting, LLC
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+	aliases {
+		sht21-0 = &sht21;
+	};
+};
+
+&i2c0 {
+	sht21: sht21@40 {
+		compatible = "sensirion,sht21";
+		reg = <0x40>;
+		label = "SHT21";
+	};
+};

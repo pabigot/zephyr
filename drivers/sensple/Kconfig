@@ -25,4 +25,6 @@ config SENSPLE_INIT_PRIORITY
 
 comment "Device Drivers"
 
+source "drivers/sensple/sht21/Kconfig"
+
 endif # SENSOR
