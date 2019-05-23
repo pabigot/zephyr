@@ -1,0 +1,28 @@
+# Kconfig - sensple configuration options
+
+#
+# Copyright (c) 2019 Peter Bigot Consulting, LLC
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+menuconfig SENSPLE
+	bool "Simplified Sensor Drivers"
+	help
+	  Include sensple drivers in system config
+
+if SENSPLE
+
+module = SENSPLE
+module-str = sensple
+source "subsys/logging/Kconfig.template.log_config"
+
+config SENSPLE_INIT_PRIORITY
+	int "Sensple init priority"
+	default 90
+	help
+	  Sensple initialization priority.
+
+comment "Device Drivers"
+
+endif # SENSOR
