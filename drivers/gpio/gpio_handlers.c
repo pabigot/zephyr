@@ -27,6 +27,38 @@ Z_SYSCALL_HANDLER(gpio_read, port, access_op, pin, value)
 			       (u32_t *)value);
 }
 
+Z_SYSCALL_HANDLER(gpio_port_get_raw, port, value)
+{
+	Z_OOPS(Z_SYSCALL_DRIVER_GPIO(port, port_get_raw));
+	return z_impl_gpio_port_get_raw((struct device *)port,
+					(gpio_port_value_t *)value);
+}
+
+Z_SYSCALL_HANDLER(gpio_port_set_masked_raw, port, mask, value)
+{
+	Z_OOPS(Z_SYSCALL_DRIVER_GPIO(port, port_set_masked_raw));
+	return z_impl_gpio_port_set_masked_raw((struct device *)port, mask,
+						value);
+}
+
+Z_SYSCALL_HANDLER(gpio_port_set_bits_raw, port, value)
+{
+	Z_OOPS(Z_SYSCALL_DRIVER_GPIO(port, port_set_bits_raw));
+	return z_impl_gpio_port_set_bits_raw((struct device *)port, value);
+}
+
+Z_SYSCALL_HANDLER(gpio_port_clear_bits_raw, port, value)
+{
+	Z_OOPS(Z_SYSCALL_DRIVER_GPIO(port, port_clear_bits_raw));
+	return z_impl_gpio_port_clear_bits_raw((struct device *)port, value);
+}
+
+Z_SYSCALL_HANDLER(gpio_port_toggle_bits, port, value)
+{
+	Z_OOPS(Z_SYSCALL_DRIVER_GPIO(port, port_toggle_bits));
+	return z_impl_gpio_port_toggle_bits((struct device *)port, value);
+}
+
 Z_SYSCALL_HANDLER(gpio_enable_callback, port, access_op, pin)
 {
 	return z_impl_gpio_enable_callback((struct device *)port, access_op,
