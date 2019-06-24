@@ -1,0 +1,23 @@
+# Copyright (c) 2019 Peter Bigot Consulting, LLC
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+config APP_SET_ALIGNED_CLOCK
+	bool "Option to align RTC with time-since-boot"
+	help
+	  If enabled this reads the RTC then sets it so that uptime
+	  shows as being relative to the start of the next hour.
+
+config APP_ALIGNED_CLOCK_POSIX
+	int "Optional time to use when aligning the RTC"
+	depends on APP_SET_ALIGNED_CLOCK
+	help
+	  If provided this value, rather than the current RTC value,
+	  will be used when aligning the RTC with time-since boot.
+
+	  The value should be the number of seconds since
+	  1970-01-01T00:00:00Z.  For example, 1546300800 corresponds
+	  to 2019-01-01T00:00:00Z.
+
+source "$ZEPHYR_BASE/Kconfig"
