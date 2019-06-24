@@ -37,4 +37,6 @@ source "drivers/counter/Kconfig.sam0"
 
 source "drivers/counter/Kconfig.cmos"
 
+source "drivers/counter/Kconfig.ds3231"
+
 endif # COUNTER
