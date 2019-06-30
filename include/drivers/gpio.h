@@ -427,35 +427,19 @@ struct gpio_callback {
 /**
  * @cond INTERNAL_HIDDEN
  *
- * GPIO driver API definition and system call entry points
- *
- * (Internal use only.)
+ * For internal use only, skip these in public documentation.
  */
-typedef int (*gpio_config_t)(struct device *port, int access_op,
-			     u32_t pin, int flags);
-typedef int (*gpio_write_t)(struct device *port, int access_op,
-			    u32_t pin, u32_t value);
-typedef int (*gpio_read_t)(struct device *port, int access_op,
-			   u32_t pin, u32_t *value);
-typedef int (*gpio_manage_callback_t)(struct device *port,
-				      struct gpio_callback *callback,
-				      bool set);
-typedef int (*gpio_enable_callback_t)(struct device *port,
-				      int access_op,
-				      u32_t pin);
-typedef int (*gpio_disable_callback_t)(struct device *port,
-				       int access_op,
-				       u32_t pin);
-typedef u32_t (*gpio_api_get_pending_int)(struct device *dev);
-
 struct gpio_driver_api {
-	gpio_config_t config;
-	gpio_write_t write;
-	gpio_read_t read;
-	gpio_manage_callback_t manage_callback;
-	gpio_enable_callback_t enable_callback;
-	gpio_disable_callback_t disable_callback;
-	gpio_api_get_pending_int get_pending_int;
+	int (*config)(struct device *port, int access_op, u32_t pin, int flags);
+	int (*write)(struct device *port, int access_op, u32_t pin,
+		     u32_t value);
+	int (*read)(struct device *port, int access_op, u32_t pin,
+		    u32_t *value);
+	int (*manage_callback)(struct device *port, struct gpio_callback *cb,
+			       bool set);
+	int (*enable_callback)(struct device *port, int access_op, u32_t pin);
+	int (*disable_callback)(struct device *port, int access_op, u32_t pin);
+	u32_t (*get_pending_int)(struct device *dev);
 };
 
 __syscall int gpio_config(struct device *port, int access_op, u32_t pin,
@@ -531,14 +515,28 @@ static inline int z_impl_gpio_disable_callback(struct device *port,
 
 /**
  * @brief Configure a single pin.
+ *
  * @param port Pointer to device structure for the driver instance.
  * @param pin Pin number to configure.
- * @param flags Flags for pin configuration. IN/OUT, interrupt ...
- * @return 0 if successful, negative errno code on failure.
+ * @param flags Flags for pin configuration: 'GPIO input/output configuration
+ *        flags', 'GPIO drive strength flags', 'GPIO pin drive flags', 'GPIO pin
+ *        bias flags', GPIO_INT_DEBOUNCE.
+ *
+ * @retval 0 If successful.
+ * @retval -ENOTSUP if any of the configuration options is not supported.
+ * @retval -EINVAL Invalid argument.
  */
 static inline int gpio_pin_configure(struct device *port, u32_t pin,
 				     int flags)
 {
+	__ASSERT((flags & (GPIO_PULL_UP | GPIO_PULL_DOWN)) !=
+		 (GPIO_PULL_UP | GPIO_PULL_DOWN),
+		 "Pull Up and Pull Down should not be enabled simultaneously");
+
+	__ASSERT((flags & (GPIO_OUTPUT_INIT_LOW | GPIO_OUTPUT_INIT_HIGH)) == 0
+		 || (flags & GPIO_OUTPUT) != 0,
+		 "Output needs to be enabled to be initialized low or high");
+
 	return gpio_config(port, GPIO_ACCESS_BY_PIN, pin, flags);
 }
 
