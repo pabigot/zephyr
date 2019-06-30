@@ -59,6 +59,13 @@ Z_SYSCALL_HANDLER(gpio_port_toggle_bits, port, value)
 	return z_impl_gpio_port_toggle_bits((struct device *)port, value);
 }
 
+Z_SYSCALL_HANDLER(gpio_pin_interrupt_configure, port, pin, flags)
+{
+	Z_OOPS(Z_SYSCALL_DRIVER_GPIO(port, pin_interrupt_configure));
+	return z_impl_gpio_pin_interrupt_configure((struct device *)port, pin,
+						   flags);
+}
+
 Z_SYSCALL_HANDLER(gpio_enable_callback, port, access_op, pin)
 {
 	return z_impl_gpio_enable_callback((struct device *)port, access_op,
