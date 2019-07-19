@@ -62,6 +62,20 @@ which can be used as an interrupt source.
 
      reel board back (Credit: PHYTEC)
 
+.. note::
+   From summer 2019, the boards are equipped with a new display E0213A22.
+   New display has the same resolution but is not completely software compatible.
+   The name of the display is printed on the ribbon cable, also the new display
+   has an extra dot on the top right that can help to distinguish the boards
+   faster. The designation for the board with a new display is reel board v2.
+
+.. figure:: img/e0213a22.png
+     :width: 221px
+     :align: center
+     :alt: reel board back
+
+     new display E0213A22 (Credit: PHYTEC)
+
 Power supply
 ============
 
@@ -412,6 +426,15 @@ Then build and flash the application in the usual way.
 .. zephyr-app-commands::
    :zephyr-app: samples/hello_world
    :board: reel_board
+   :goals: build flash
+
+.. note::
+   Please use reel_board_v2 to build a application for the board equipped with
+   the new display E0213A22.
+
+.. zephyr-app-commands::
+   :zephyr-app: samples/hello_world
+   :board: reel_board_v2
    :goals: build flash
 
 Debugging
