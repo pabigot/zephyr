@@ -38,12 +38,12 @@ properties:
 
     gdv:
       type: uint8-array
-      category: required
+      category: optional
       description: Gate driving voltage values
 
     sdv:
       type: uint8-array
-      category: required
+      category: optional
       description: Source driving voltage values
 
     vcom:
@@ -78,10 +78,20 @@ properties:
       type: compound
       category: required
 
+    lut-from-otp:
+      type: boolean
+      category: optional
+      description: Set if the display has pre-programmed LUT content
+
+    has_mode2:
+      type: boolean
+      category: optional
+      description: Set if the display supports a third color
+
     lut-initial:
       type: uint8-array
-      category: required
+      category: optional
 
     lut-default:
       type: uint8-array
-      category: required
+      category: optional

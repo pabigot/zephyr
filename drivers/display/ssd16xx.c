@@ -62,20 +62,28 @@ struct ssd16xx_data {
 	u8_t scan_mode;
 };
 
+#ifdef DT_INST_0_SOLOMON_SSD16XXFB_LUT_INITIAL
 static u8_t ssd16xx_lut_initial[] = DT_INST_0_SOLOMON_SSD16XXFB_LUT_INITIAL;
-static u8_t ssd16xx_lut_default[] = DT_INST_0_SOLOMON_SSD16XXFB_LUT_DEFAULT;
-#if defined(DT_INST_0_SOLOMON_SSD16XXFB_SOFTSTART)
-static u8_t ssd16xx_softstart[] = DT_INST_0_SOLOMON_SSD16XXFB_SOFTSTART;
-#endif
-static u8_t ssd16xx_gdv[] = DT_INST_0_SOLOMON_SSD16XXFB_GDV;
-static u8_t ssd16xx_sdv[] = DT_INST_0_SOLOMON_SSD16XXFB_SDV;
-
-#ifndef DT_INST_0_SOLOMON_SSD16XXFB_LUT_INITIAL
+#elif !(DT_INST_0_SOLOMON_SSD16XXFB_LUT_FROM_OTP - 0)
 #error "No initial waveform look up table (LUT) selected!"
 #endif
 
-#ifndef DT_INST_0_SOLOMON_SSD16XXFB_LUT_DEFAULT
+#ifdef DT_INST_0_SOLOMON_SSD16XXFB_LUT_DEFAULT
+static u8_t ssd16xx_lut_default[] = DT_INST_0_SOLOMON_SSD16XXFB_LUT_DEFAULT;
+#elif !(DT_INST_0_SOLOMON_SSD16XXFB_LUT_FROM_OTP - 0)
 #error "No default waveform look up table (LUT) selected!"
+#endif
+
+#if defined(DT_INST_0_SOLOMON_SSD16XXFB_SOFTSTART)
+static u8_t ssd16xx_softstart[] = DT_INST_0_SOLOMON_SSD16XXFB_SOFTSTART;
+#endif
+
+#if defined(DT_INST_0_SOLOMON_SSD16XXFB_GDV)
+static u8_t ssd16xx_gdv[] = DT_INST_0_SOLOMON_SSD16XXFB_GDV;
+#endif
+
+#if defined(DT_INST_0_SOLOMON_SSD16XXFB_SDV)
+static u8_t ssd16xx_sdv[] = DT_INST_0_SOLOMON_SSD16XXFB_SDV;
 #endif
 
 static inline int ssd16xx_write_cmd(struct ssd16xx_data *driver,
@@ -475,17 +483,21 @@ static int ssd16xx_controller_init(struct device *dev)
 	}
 #endif
 
+#if defined(DT_INST_0_SOLOMON_SSD16XXFB_GDV)
 	err = ssd16xx_write_cmd(driver, SSD16XX_CMD_GDV_CTRL, ssd16xx_gdv,
 				sizeof(ssd16xx_gdv));
 	if (err < 0) {
 		return err;
 	}
+#endif
 
+#if defined(DT_INST_0_SOLOMON_SSD16XXFB_SDV)
 	err = ssd16xx_write_cmd(driver, SSD16XX_CMD_SDV_CTRL, ssd16xx_sdv,
 				sizeof(ssd16xx_sdv));
 	if (err < 0) {
 		return err;
 	}
+#endif
 
 	tmp[0] = DT_INST_0_SOLOMON_SSD16XXFB_VCOM;
 	err = ssd16xx_write_cmd(driver, SSD16XX_CMD_VCOM_VOLTAGE, tmp, 1);
@@ -513,11 +525,51 @@ static int ssd16xx_controller_init(struct device *dev)
 
 	ssd16xx_set_orientation_internall(driver);
 
-	err = ssd16xx_write_cmd(driver, SSD16XX_CMD_UPDATE_LUT,
-				ssd16xx_lut_initial,
-				sizeof(ssd16xx_lut_initial));
-	if (err < 0) {
-		return err;
+	if (IS_ENABLED(DT_INST_0_SOLOMON_SSD16XXFB_LUT_FROM_OTP)) {
+		tmp[0] = SSD16XX_VAL_TSENS_SEL;
+		err = ssd16xx_write_cmd(driver, SSD16XX_CMD_TSENS_SEL, tmp, 1);
+		if (err < 0) {
+			return err;
+		}
+
+		tmp[0] = (SSD16XX_CTRL2_ENABLE_CLK
+			  | SSD16XX_CTRL2_LOAD_TEMP
+			  | SSD16XX_CTRL2_LOAD_LUT
+			  | SSD16XX_CTRL2_DISABLE_CLK);
+		err = ssd16xx_write_cmd(driver, SSD16XX_CMD_UPDATE_CTRL2, tmp, 1);
+		if (err < 0) {
+			return err;
+		}
+
+		ssd16xx_write_cmd(driver, SSD16XX_CMD_MASTER_ACTIVATION, NULL, 0);
+
+		ssd16xx_busy_wait(driver);
+
+		if (IS_ENABLED(DT_INST_0_SOLOMON_SSD16XXFB_HAS_MODE2)) {
+			tmp[0] = (SSD16XX_CTRL2_ENABLE_CLK
+				  | SSD16XX_CTRL2_LOAD_TEMP
+				  | SSD16XX_CTRL2_LOAD_LUT
+				  | SSD16XX_CTRL2_TO_INITIAL
+				  | SSD16XX_CTRL2_DISABLE_CLK);
+			err = ssd16xx_write_cmd(driver, SSD16XX_CMD_UPDATE_CTRL2, tmp, 1);
+			if (err < 0) {
+				return err;
+			}
+
+			ssd16xx_write_cmd(driver, SSD16XX_CMD_MASTER_ACTIVATION, NULL, 0);
+
+			ssd16xx_busy_wait(driver);
+		}
+	} else {
+
+#ifdef DT_INST_0_SOLOMON_SSD16XXFB_LUT_INITIAL
+		err = ssd16xx_write_cmd(driver, SSD16XX_CMD_UPDATE_LUT,
+					ssd16xx_lut_initial,
+					sizeof(ssd16xx_lut_initial));
+		if (err < 0) {
+			return err;
+		}
+#endif
 	}
 
 	err = ssd16xx_clear_and_write_buffer(dev, SSD16XX_CMD_WRITE_RAM, true);
@@ -535,11 +587,15 @@ static int ssd16xx_controller_init(struct device *dev)
 
 	ssd16xx_busy_wait(driver);
 
-	err = ssd16xx_write_cmd(driver, SSD16XX_CMD_UPDATE_LUT,
-				ssd16xx_lut_default,
-				sizeof(ssd16xx_lut_default));
-	if (err < 0) {
-		return err;
+	if (!IS_ENABLED(DT_INST_0_SOLOMON_SSD16XXFB_LUT_FROM_OTP)) {
+#ifdef DT_INST_0_SOLOMON_SSD16XXFB_LUT_INITIAL
+		err = ssd16xx_write_cmd(driver, SSD16XX_CMD_UPDATE_LUT,
+					ssd16xx_lut_default,
+					sizeof(ssd16xx_lut_default));
+		if (err < 0) {
+			return err;
+		}
+#endif
 	}
 
 	return ssd16xx_clear_and_write_buffer(dev, SSD16XX_CMD_WRITE_RAM, true);
