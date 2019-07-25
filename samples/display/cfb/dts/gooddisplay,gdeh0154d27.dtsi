@@ -1,0 +1,20 @@
+compatible = "solomon,ssd16xxfb", "solomon,ssd1608", "gooddisplay,gde0154d27", "hink,e0154a05";
+width = <200>;
+height = <200>;
+pp-width-bits = <8>;
+pp-height-bits = <16>;
+vcom = <0xa8>;
+border-waveform = <0x01>;
+dummy-line = <0x1A>;
+lut-initial = [
+	02 02 01 11 12 12 22 22
+	66 69 69 59 58 99 99 88
+	00 00 00 00 F8 B4 13 51
+	35 51 51 19 01 00
+];
+lut-default = [
+	10 18 18 08 18 18 08 00
+	00 00 00 00 00 00 00 00
+	00 00 00 00 13 14 44 12
+	00 00 00 00 00 00
+];

@@ -1,0 +1,29 @@
+/*
+ * Copyright (c) 2019 Peter Bigot Consulting, LLC
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include "mesh_feather_spi_spi1.dtsi"
+
+&spi1 { /* */
+	/* Override MISO to undefined pin */
+	miso-pin = <63>; /* not connected */
+	display@0 {
+		reg = <0>;
+
+		label = "SSD16XX";
+		spi-max-frequency = <4000000>;
+
+		busy-gpios = <&gpio1 1 0>;
+		reset-gpios = <&gpio1 2 0>;
+		dc-gpios = <&gpio1 8 0>;
+
+#if 0 /* gdeh0154d27 */
+#include "gooddisplay,gdeh0154d27.dtsi"
+#elif 1 /* gdeh0154d67 */
+#include "gooddisplay,gdeh0154d67.dtsi"
+#endif /* edp */
+	};
+
+};

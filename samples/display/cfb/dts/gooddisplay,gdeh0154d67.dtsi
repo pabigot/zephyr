@@ -1,0 +1,10 @@
+compatible = "solomon,ssd16xxfb", "solomon,ssd1675", "gooddisplay,gde0154d67", "hink,e0154a07";
+width = <200>;
+height = <200>;
+pp-width-bits = <8>;
+pp-height-bits = <16>;
+vcom = <0xa8>;
+border-waveform = <0x01>;
+dummy-line = <0x1A>;
+lut-from-otp;
+has-mode2;
