@@ -27,4 +27,6 @@ comment "Device Drivers"
 
 source "drivers/sensple/sht21/Kconfig"
 
+source "drivers/sensple/sdp8xx/Kconfig"
+
 endif # SENSOR

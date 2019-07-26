@@ -1,0 +1,13 @@
+/*
+ * Copyright (c) 2018 Peter Bigot Consulting, LLC
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+&i2c0 {
+	sdp810: sdp810@25 {
+		compatible = "sensirion,sdp8xx";
+		reg = <0x25>;
+		label = "SDP810";
+	};
+};
