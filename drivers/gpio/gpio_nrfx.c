@@ -11,6 +11,7 @@
 #include "gpio_utils.h"
 
 struct gpio_nrfx_data {
+	struct gpio_driver_data general;
 	sys_slist_t callbacks;
 
 	/* Mask holding information about which pins have been configured to
@@ -18,21 +19,18 @@ struct gpio_nrfx_data {
 	 */
 	u32_t pin_int_en;
 
-	/* Mask holding information about which pins have enabled callbacks
-	 * using gpio_nrfx_enable_callback function.
-	 */
-	u32_t int_en;
-
-	u32_t active_level;
+	u32_t int_active_level;
 	u32_t trig_edge;
 	u32_t double_edge;
-	u32_t inverted;
 };
 
 struct gpio_nrfx_cfg {
 	NRF_GPIO_Type *port;
 	u8_t port_num;
 };
+
+static int gpio_nrfx_pin_interrupt_configure(struct device *port, u32_t pin,
+					     unsigned int flags);
 
 static inline struct gpio_nrfx_data *get_port_data(struct device *port)
 {
@@ -79,7 +77,7 @@ static void gpiote_channel_free(u32_t abs_pin)
 static inline u32_t sense_for_pin(const struct gpio_nrfx_data *data,
 				  u32_t pin)
 {
-	if ((BIT(pin) & (data->active_level ^ data->inverted)) != 0) {
+	if ((BIT(pin) & data->int_active_level) != 0U) {
 		return NRF_GPIO_PIN_SENSE_HIGH;
 	}
 	return NRF_GPIO_PIN_SENSE_LOW;
@@ -98,15 +96,14 @@ static int gpiote_pin_int_cfg(struct device *port, u32_t pin)
 	/* Pins trigger interrupts only if pin has been configured to do so
 	 * and callback has been enabled for that pin.
 	 */
-	if ((data->pin_int_en & BIT(pin)) && (data->int_en & BIT(pin))) {
+	if (data->pin_int_en & BIT(pin)) {
 		if (data->trig_edge & BIT(pin)) {
 		/* For edge triggering we use GPIOTE channels. */
 			nrf_gpiote_polarity_t pol;
 
 			if (data->double_edge & BIT(pin)) {
 				pol = NRF_GPIOTE_POLARITY_TOGGLE;
-			} else if (((data->active_level & BIT(pin)) != 0U)
-				   ^ ((BIT(pin) & data->inverted) != 0)) {
+			} else if ((data->int_active_level & BIT(pin)) != 0U) {
 				pol = NRF_GPIOTE_POLARITY_LOTOHI;
 			} else {
 				pol = NRF_GPIOTE_POLARITY_HITOLO;
@@ -126,6 +123,7 @@ static int gpiote_pin_int_cfg(struct device *port, u32_t pin)
 static int gpio_nrfx_config(struct device *port, int access_op,
 			    u32_t pin, int flags)
 {
+	NRF_GPIO_Type *reg = get_port_cfg(port)->port;
 	struct gpio_nrfx_data *data = get_port_data(port);
 	nrf_gpio_pin_pull_t pull;
 	nrf_gpio_pin_drive_t drive;
@@ -134,14 +132,15 @@ static int gpio_nrfx_config(struct device *port, int access_op,
 	u8_t from_pin;
 	u8_t to_pin;
 
-	switch (flags & (GPIO_DS_LOW_MASK | GPIO_DS_HIGH_MASK)) {
+	switch (flags & (GPIO_DS_LOW_MASK | GPIO_DS_HIGH_MASK |
+			 GPIO_OPEN_DRAIN)) {
 	case GPIO_DS_DFLT_LOW | GPIO_DS_DFLT_HIGH:
 		drive = NRF_GPIO_PIN_S0S1;
 		break;
 	case GPIO_DS_DFLT_LOW | GPIO_DS_ALT_HIGH:
 		drive = NRF_GPIO_PIN_S0H1;
 		break;
-	case GPIO_DS_DFLT_LOW | GPIO_DS_DISCONNECT_HIGH:
+	case GPIO_DS_DFLT_LOW | GPIO_OPEN_DRAIN:
 		drive = NRF_GPIO_PIN_S0D1;
 		break;
 
@@ -151,14 +150,14 @@ static int gpio_nrfx_config(struct device *port, int access_op,
 	case GPIO_DS_ALT_LOW | GPIO_DS_ALT_HIGH:
 		drive = NRF_GPIO_PIN_H0H1;
 		break;
-	case GPIO_DS_ALT_LOW | GPIO_DS_DISCONNECT_HIGH:
+	case GPIO_DS_ALT_LOW | GPIO_OPEN_DRAIN:
 		drive = NRF_GPIO_PIN_H0D1;
 		break;
 
-	case GPIO_DS_DISCONNECT_LOW | GPIO_DS_DFLT_HIGH:
+	case GPIO_DS_DFLT_HIGH | GPIO_OPEN_SOURCE:
 		drive = NRF_GPIO_PIN_D0S1;
 		break;
-	case GPIO_DS_DISCONNECT_LOW | GPIO_DS_ALT_HIGH:
+	case GPIO_DS_ALT_HIGH | GPIO_OPEN_SOURCE:
 		drive = NRF_GPIO_PIN_D0H1;
 		break;
 
@@ -166,19 +165,19 @@ static int gpio_nrfx_config(struct device *port, int access_op,
 		return -EINVAL;
 	}
 
-	if ((flags & GPIO_PUD_MASK) == GPIO_PUD_PULL_UP) {
+	if ((flags & GPIO_PULL_UP) != 0) {
 		pull = NRF_GPIO_PIN_PULLUP;
-	} else if ((flags & GPIO_PUD_MASK) == GPIO_PUD_PULL_DOWN) {
+	} else if ((flags & GPIO_PULL_DOWN) != 0) {
 		pull = NRF_GPIO_PIN_PULLDOWN;
 	} else {
 		pull = NRF_GPIO_PIN_NOPULL;
 	}
 
-	dir = ((flags & GPIO_DIR_MASK) == GPIO_DIR_OUT)
+	dir = ((flags & GPIO_OUTPUT) != 0)
 	      ? NRF_GPIO_PIN_DIR_OUTPUT
 	      : NRF_GPIO_PIN_DIR_INPUT;
 
-	input = (dir == NRF_GPIO_PIN_DIR_INPUT)
+	input = ((flags & GPIO_INPUT) != 0)
 		? NRF_GPIO_PIN_INPUT_CONNECT
 		: NRF_GPIO_PIN_INPUT_DISCONNECT;
 
@@ -193,19 +192,22 @@ static int gpio_nrfx_config(struct device *port, int access_op,
 	for (u8_t curr_pin = from_pin; curr_pin <= to_pin; ++curr_pin) {
 		int res;
 
+		if ((flags & GPIO_OUTPUT) != 0) {
+			if ((flags & GPIO_OUTPUT_INIT_HIGH) != 0) {
+				nrf_gpio_port_out_set(reg, BIT(pin));
+			} else if ((flags & GPIO_OUTPUT_INIT_LOW) != 0) {
+				nrf_gpio_port_out_clear(reg, BIT(pin));
+			}
+		}
+
 		nrf_gpio_cfg(NRF_GPIO_PIN_MAP(get_port_cfg(port)->port_num,
 					      curr_pin),
 			     dir, input, pull, drive, NRF_GPIO_PIN_NOSENSE);
 
-		WRITE_BIT(data->pin_int_en, curr_pin, flags & GPIO_INT);
-		WRITE_BIT(data->trig_edge, curr_pin, flags & GPIO_INT_EDGE);
-		WRITE_BIT(data->double_edge, curr_pin,
-			  flags & GPIO_INT_DOUBLE_EDGE);
-		WRITE_BIT(data->active_level, curr_pin,
-			  flags & GPIO_INT_ACTIVE_HIGH);
-		WRITE_BIT(data->inverted, curr_pin, flags & GPIO_POL_INV);
+		WRITE_BIT(data->general.invert, curr_pin,
+			  flags & GPIO_ACTIVE_LOW);
 
-		res = gpiote_pin_int_cfg(port, curr_pin);
+		res = gpio_nrfx_pin_interrupt_configure(port, curr_pin, flags);
 		if (res != 0) {
 			return res;
 		}
@@ -221,9 +223,9 @@ static int gpio_nrfx_write(struct device *port, int access_op,
 	struct gpio_nrfx_data *data = get_port_data(port);
 
 	if (access_op == GPIO_ACCESS_BY_PORT) {
-		nrf_gpio_port_out_write(reg, value ^ data->inverted);
+		nrf_gpio_port_out_write(reg, value ^ data->general.invert);
 	} else {
-		if ((value > 0) ^ ((BIT(pin) & data->inverted) != 0)) {
+		if ((value > 0) ^ ((BIT(pin) & data->general.invert) != 0)) {
 			nrf_gpio_port_out_set(reg, BIT(pin));
 		} else {
 			nrf_gpio_port_out_clear(reg, BIT(pin));
@@ -242,7 +244,7 @@ static int gpio_nrfx_read(struct device *port, int access_op,
 	u32_t dir = nrf_gpio_port_dir_read(reg);
 	u32_t port_in = nrf_gpio_port_in_read(reg) & ~dir;
 	u32_t port_out = nrf_gpio_port_out_read(reg) & dir;
-	u32_t port_val = (port_in | port_out) ^ data->inverted;
+	u32_t port_val = (port_in | port_out) ^ data->general.invert;
 
 	if (access_op == GPIO_ACCESS_BY_PORT) {
 		*value = port_val;
@@ -251,6 +253,77 @@ static int gpio_nrfx_read(struct device *port, int access_op,
 	}
 
 	return 0;
+}
+
+static int gpio_nrfx_port_get_raw(struct device *port, u32_t *value)
+{
+	NRF_GPIO_Type *reg = get_port_cfg(port)->port;
+
+	*value = nrf_gpio_port_in_read(reg);
+
+	return 0;
+}
+
+static int gpio_nrfx_port_set_masked_raw(struct device *port, u32_t mask,
+					 u32_t value)
+{
+	NRF_GPIO_Type *reg = get_port_cfg(port)->port;
+	u32_t value_tmp;
+
+	value_tmp = nrf_gpio_port_out_read(reg) & ~mask;
+	nrf_gpio_port_out_write(reg, value_tmp | (mask & value));
+
+	return 0;
+}
+
+static int gpio_nrfx_port_set_bits_raw(struct device *port, u32_t mask)
+{
+	NRF_GPIO_Type *reg = get_port_cfg(port)->port;
+
+	nrf_gpio_port_out_set(reg, mask);
+
+	return 0;
+}
+
+static int gpio_nrfx_port_clear_bits_raw(struct device *port, u32_t mask)
+{
+	NRF_GPIO_Type *reg = get_port_cfg(port)->port;
+
+	nrf_gpio_port_out_clear(reg, mask);
+
+	return 0;
+}
+
+static int gpio_nrfx_port_toggle_bits(struct device *port, u32_t mask)
+{
+	NRF_GPIO_Type *reg = get_port_cfg(port)->port;
+	u32_t value;
+
+	value = nrf_gpio_port_out_read(reg);
+	nrf_gpio_port_out_write(reg, value ^ mask);
+
+	return 0;
+}
+
+static int gpio_nrfx_pin_interrupt_configure(struct device *port,
+		unsigned int pin, unsigned int flags)
+{
+	struct gpio_nrfx_data *data = get_port_data(port);
+
+	WRITE_BIT(data->pin_int_en, pin, flags & GPIO_INT_ENABLE);
+	WRITE_BIT(data->trig_edge, pin, flags & GPIO_INT_EDGE);
+	WRITE_BIT(data->double_edge, pin, (flags & GPIO_INT_LOW_0) &&
+					  (flags & GPIO_INT_HIGH_1));
+
+	bool active_high = ((flags & GPIO_INT_HIGH_1) != 0);
+
+	if (((flags & GPIO_INT_LEVELS_LOGICAL) != 0) &&
+	    ((data->general.invert & BIT(pin)) != 0)) {
+		active_high = !active_high;
+	}
+	WRITE_BIT(data->int_active_level, pin, active_high);
+
+	return gpiote_pin_int_cfg(port, pin);
 }
 
 static int gpio_nrfx_manage_callback(struct device *port,
@@ -280,7 +353,7 @@ static int gpio_nrfx_pin_manage_callback(struct device *port,
 	}
 
 	for (u8_t curr_pin = from_pin; curr_pin <= to_pin; ++curr_pin) {
-		WRITE_BIT(data->int_en, curr_pin, enable);
+		WRITE_BIT(data->pin_int_en, curr_pin, enable);
 
 		res = gpiote_pin_int_cfg(port, curr_pin);
 		if (res != 0) {
@@ -309,6 +382,12 @@ static const struct gpio_driver_api gpio_nrfx_drv_api_funcs = {
 	.config = gpio_nrfx_config,
 	.write = gpio_nrfx_write,
 	.read = gpio_nrfx_read,
+	.port_get_raw = gpio_nrfx_port_get_raw,
+	.port_set_masked_raw = gpio_nrfx_port_set_masked_raw,
+	.port_set_bits_raw = gpio_nrfx_port_set_bits_raw,
+	.port_clear_bits_raw = gpio_nrfx_port_clear_bits_raw,
+	.port_toggle_bits = gpio_nrfx_port_toggle_bits,
+	.pin_interrupt_configure = gpio_nrfx_pin_interrupt_configure,
 	.manage_callback = gpio_nrfx_manage_callback,
 	.enable_callback = gpio_nrfx_pin_enable_callback,
 	.disable_callback = gpio_nrfx_pin_disable_callback
@@ -321,7 +400,7 @@ static inline u32_t get_level_pins(struct device *port)
 	/* Take into consideration only pins that were configured to
 	 * trigger interrupts and have callback enabled.
 	 */
-	u32_t out = data->int_en & data->pin_int_en;
+	u32_t out = data->pin_int_en;
 
 	/* Exclude pins that trigger interrupts by edge. */
 	out &= ~data->trig_edge & ~data->double_edge;
@@ -369,10 +448,9 @@ static u32_t check_level_trigger_pins(struct device *port)
 	u32_t level_pins = get_level_pins(port);
 	u32_t port_in = nrf_gpio_port_in_read(cfg->port);
 
-	/* Extract which pins after inversion, have logic level same as
-	 * interrupt trigger level.
+	/* Extract which pins have logic level same as interrupt trigger level.
 	 */
-	u32_t pin_states = ~(port_in ^ data->inverted ^ data->active_level);
+	u32_t pin_states = ~(port_in ^ data->int_active_level);
 
 	/* Discard pins that aren't configured for level. */
 	u32_t out = pin_states & level_pins;
@@ -414,7 +492,7 @@ static inline void fire_callbacks(struct device *port, u32_t pins)
 		 * iteration, as some callbacks may get disabled also in any
 		 * of the handlers called here.
 		 */
-		if ((cb->pin_mask & pins) & data->int_en) {
+		if ((cb->pin_mask & pins) & data->pin_int_en) {
 			__ASSERT(cb->handler, "No callback handler!");
 			cb->handler(port, cb, pins);
 		}
