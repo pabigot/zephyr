@@ -51,6 +51,11 @@ properties:
       category: optional
       description: Scan direction is from last COM output to first COM output
 
+    inverse-display:
+      type: boolean
+      category: optional
+      description: RAM data 0 indicates on ON pixel
+
     prechargep:
       type: int
       category: required
