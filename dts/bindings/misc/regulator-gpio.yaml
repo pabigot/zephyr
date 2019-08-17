@@ -1,0 +1,37 @@
+#
+# Copyright (c) 2019, Peter Bigot Consulting, LLC
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+title: GPIO-controlled regulators
+
+description: A definition for a GPIO-controlled switch.
+
+compatible: "regulator-gpio"
+
+include: regulator.yaml
+
+# NOTE: GPIO polarity is defined by the enable-gpios flags, as
+# Zephyr does not have the legacy devicetree problem that requires
+# Linux to use a separate enable-active-high property.
+#
+# Also Zephyr uses label instead of regulator-name.
+properties:
+  label:
+    required: true
+
+  enable-gpios:
+    type: phandle-array
+    required: true
+    description: The GPIO that controls the switch.
+    
+  startup-delay-us:
+    type: int
+    required: false
+    default: 0
+    description: Startup time, in microseconds.
+
+  gpio-waits:
+    type: boolean
+    description: Indicates GPIO setting operation waits.
