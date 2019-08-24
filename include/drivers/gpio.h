@@ -1093,8 +1093,12 @@ static inline int gpio_remove_callback(struct device *port,
  * Note: Depending on the driver implementation, this function will enable
  *       the pin to trigger an interruption. So as a semantic detail, if no
  *       callback is registered, of course none will be called.
+ *
+ * @deprecated Replace with ``gpio_pin_interrupt_configure()`` with
+ * ``GPIO_INT_ENABLE``.
  */
-static inline int gpio_pin_enable_callback(struct device *port, u32_t pin)
+__deprecated static inline int gpio_pin_enable_callback(struct device *port,
+							u32_t pin)
 {
 	return gpio_enable_callback(port, GPIO_ACCESS_BY_PIN, pin);
 }
@@ -1104,8 +1108,12 @@ static inline int gpio_pin_enable_callback(struct device *port, u32_t pin)
  * @param port Pointer to the device structure for the driver instance.
  * @param pin Pin number where the callback function is disabled.
  * @return 0 if successful, negative errno code on failure.
+ *
+ * @deprecated Replace with ``gpio_pin_interrupt_configure()`` with
+ * ``GPIO_INT_DISABLE``.
  */
-static inline int gpio_pin_disable_callback(struct device *port, u32_t pin)
+__deprecated static inline int gpio_pin_disable_callback(struct device *port,
+							 u32_t pin)
 {
 	return gpio_disable_callback(port, GPIO_ACCESS_BY_PIN, pin);
 }
