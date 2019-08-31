@@ -949,8 +949,11 @@ static inline int gpio_pin_toggle(struct device *port, unsigned int pin)
  * @param pin Pin number where the data is written.
  * @param value Value set on the pin.
  * @return 0 if successful, negative errno code on failure.
+ *
+ * @deprecated This function has been deprecated, please use gpio_pin_set(),
+ * gpio_pin_set_raw() instead.
  */
-static inline int gpio_pin_write(struct device *port, u32_t pin,
+__deprecated static inline int gpio_pin_write(struct device *port, u32_t pin,
 				 u32_t value)
 {
 	return gpio_write(port, GPIO_ACCESS_BY_PIN, pin, value);
@@ -965,8 +968,11 @@ static inline int gpio_pin_write(struct device *port, u32_t pin,
  * @param pin Pin number where data is read.
  * @param value Integer pointer to receive the data values from the pin.
  * @return 0 if successful, negative errno code on failure.
+ *
+ * @deprecated This function has been deprecated, please use gpio_pin_get(),
+ * gpio_pin_get_raw() instead.
  */
-static inline int gpio_pin_read(struct device *port, u32_t pin,
+__deprecated static inline int gpio_pin_read(struct device *port, u32_t pin,
 				u32_t *value)
 {
 	return gpio_read(port, GPIO_ACCESS_BY_PIN, pin, value);
