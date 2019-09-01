@@ -13,20 +13,6 @@ Z_SYSCALL_HANDLER(gpio_config, port, access_op, pin, flags)
 	return z_impl_gpio_config((struct device *)port, access_op, pin, flags);
 }
 
-Z_SYSCALL_HANDLER(gpio_write, port, access_op, pin, value)
-{
-	Z_OOPS(Z_SYSCALL_DRIVER_GPIO(port, write));
-	return z_impl_gpio_write((struct device *)port, access_op, pin, value);
-}
-
-Z_SYSCALL_HANDLER(gpio_read, port, access_op, pin, value)
-{
-	Z_OOPS(Z_SYSCALL_DRIVER_GPIO(port, read));
-	Z_OOPS(Z_SYSCALL_MEMORY_WRITE(value, sizeof(u32_t)));
-	return z_impl_gpio_read((struct device *)port, access_op, pin,
-			       (u32_t *)value);
-}
-
 Z_SYSCALL_HANDLER(gpio_port_get_raw, port, value)
 {
 	Z_OOPS(Z_SYSCALL_DRIVER_GPIO(port, port_get_raw));
