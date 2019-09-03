@@ -633,7 +633,8 @@ static inline int z_impl_gpio_port_get_raw(struct device *port,
  */
 static inline int gpio_port_get(struct device *port, gpio_port_value_t *value)
 {
-	struct gpio_driver_data *const data = port->driver_data;
+	const struct gpio_driver_data *data =
+		(const struct gpio_driver_data *)port->driver_data;
 	int ret;
 
 	ret = gpio_port_get_raw(port, value);
@@ -694,7 +695,8 @@ static inline int z_impl_gpio_port_set_masked_raw(struct device *port,
 static inline int gpio_port_set_masked(struct device *port, gpio_port_pins_t mask,
 				       gpio_port_value_t value)
 {
-	struct gpio_driver_data *const data = port->driver_data;
+	const struct gpio_driver_data *data =
+		(const struct gpio_driver_data *)port->driver_data;
 
 	value ^= data->invert;
 
@@ -939,7 +941,8 @@ static inline int gpio_pin_set_raw(struct device *port, unsigned int pin,
  */
 static inline int gpio_pin_set(struct device *port, unsigned int pin, int value)
 {
-	struct gpio_driver_data *const data = port->driver_data;
+	const struct gpio_driver_data *data =
+		(const struct gpio_driver_data *)port->driver_data;
 
 	__ASSERT(pin < GPIO_MAX_PINS_PER_PORT, "Invalid pin number");
 
