@@ -132,6 +132,12 @@ static int gpio_nrfx_config(struct device *port, int access_op,
 	u8_t from_pin;
 	u8_t to_pin;
 
+	/* Open Source is not supported on this platform */
+	if (((flags & GPIO_SINGLE_ENDED) != 0)
+	    && ((flags & GPIO_LINE_OPEN_DRAIN) == GPIO_LINE_OPEN_SOURCE)) {
+		return -ENOTSUP;
+	}
+
 	switch (flags & (GPIO_DS_LOW_MASK | GPIO_DS_HIGH_MASK |
 			 GPIO_OPEN_DRAIN)) {
 	case GPIO_DS_DFLT_LOW | GPIO_DS_DFLT_HIGH:
