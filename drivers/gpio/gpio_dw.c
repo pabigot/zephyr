@@ -47,7 +47,7 @@ static inline void dw_write(u32_t base_addr, u32_t offset,
 }
 
 static void dw_set_bit(u32_t base_addr, u32_t offset,
-		       u32_t bit, u8_t value)
+		       u32_t bit, bool value)
 {
 	if (!value) {
 		sys_io_clear_bit(base_addr + offset, bit);
@@ -68,7 +68,7 @@ static inline void dw_write(u32_t base_addr, u32_t offset,
 }
 
 static void dw_set_bit(u32_t base_addr, u32_t offset,
-		       u32_t bit, u8_t value)
+		       u32_t bit, bool value)
 {
 	if (!value) {
 		sys_clear_bit(base_addr + offset, bit);
