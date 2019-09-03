@@ -1,0 +1,5 @@
+tests:
+  peripheral.gpio:
+    tags: drivers gpio
+    depends_on: gpio
+    filter: DT_ALIAS_LED0_GPIOS_CONTROLLER
