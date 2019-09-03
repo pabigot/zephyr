@@ -21,6 +21,15 @@
 #include <device.h>
 #include <dt-bindings/gpio/gpio.h>
 
+#ifdef CONFIG_GPIO_TEMPORARY_DISABLE_DEPRECATION
+#define GPIO_DEPRECATED
+#define GPIO_DEPRECATED_MACRO
+#else
+#define GPIO_DEPRECATED __deprecated
+#define GPIO_DEPRECATED_MACRO __DEPRECATED_MACRO
+#endif
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -263,26 +272,26 @@ extern "C" {
  *
  * @deprecated Replace with `GPIO_INPUT`.
  */
-#define GPIO_DIR_IN             __DEPRECATED_MACRO GPIO_INPUT
+#define GPIO_DIR_IN             GPIO_DEPRECATED_MACRO GPIO_INPUT
 
 /** Legacy flag indicating pin is configured as output.
  *
  * @deprecated Replace with `GPIO_OUTPUT`.
  */
 #undef GPIO_DIR_OUT
-#define GPIO_DIR_OUT            __DEPRECATED_MACRO GPIO_OUTPUT
+#define GPIO_DIR_OUT            GPIO_DEPRECATED_MACRO GPIO_OUTPUT
 
 /** Legacy flag indicating pin is disconnected when GPIO pin output is low.
  *
  * @deprecated Replace with `GPIO_OPEN_SOURCE`.
  */
-#define GPIO_DS_DISCONNECT_LOW  __DEPRECATED_MACRO GPIO_OPEN_SOURCE
+#define GPIO_DS_DISCONNECT_LOW  GPIO_DEPRECATED_MACRO GPIO_OPEN_SOURCE
 
 /** Legacy flag indicating pin is disconnected when GPIO pin output is high.
  *
  * @deprecated Replace with `GPIO_OPEN_DRAIN`.
  */
-#define GPIO_DS_DISCONNECT_HIGH __DEPRECATED_MACRO GPIO_OPEN_DRAIN
+#define GPIO_DS_DISCONNECT_HIGH GPIO_DEPRECATED_MACRO GPIO_OPEN_DRAIN
 
 /** @cond INTERNAL_HIDDEN */
 #define GPIO_PUD_SHIFT		4
@@ -293,27 +302,27 @@ extern "C" {
  *
  * @deprecated Not used any more
  */
-#define GPIO_PUD_NORMAL		__DEPRECATED_MACRO 0
+#define GPIO_PUD_NORMAL		GPIO_DEPRECATED_MACRO 0
 
 /** Enable GPIO pin pull-up.
  *
  * @deprecated Replace with `GPIO_PULL_UP`.
  */
 #undef GPIO_PUD_PULL_UP
-#define GPIO_PUD_PULL_UP	__DEPRECATED_MACRO GPIO_PULL_UP
+#define GPIO_PUD_PULL_UP	GPIO_DEPRECATED_MACRO GPIO_PULL_UP
 
 /** Enable GPIO pin pull-down.
  *
  * @deprecated Replace with `GPIO_PULL_DOWN`.
  */
 #undef GPIO_PUD_PULL_DOWN
-#define GPIO_PUD_PULL_DOWN	__DEPRECATED_MACRO GPIO_PULL_DOWN
+#define GPIO_PUD_PULL_DOWN	GPIO_DEPRECATED_MACRO GPIO_PULL_DOWN
 
 /** Legacy flag indicating that interrupt is enabled.
  *
  * @deprecated Replace with `GPIO_INT_ENABLE`.
  */
-#define GPIO_INT                __DEPRECATED_MACRO GPIO_INT_ENABLE
+#define GPIO_INT                GPIO_DEPRECATED_MACRO GPIO_INT_ENABLE
 
 /** Legacy flag setting indicating signal or interrupt active level.
  *
@@ -328,7 +337,7 @@ extern "C" {
  * depending on intent.
  */
 #undef GPIO_INT_ACTIVE_LOW
-#define GPIO_INT_ACTIVE_LOW     __DEPRECATED_MACRO GPIO_INT_LOW_0
+#define GPIO_INT_ACTIVE_LOW     GPIO_DEPRECATED_MACRO GPIO_INT_LOW_0
 
 /** Legacy flag setting indicating signal or interrupt active level.
  *
@@ -343,13 +352,13 @@ extern "C" {
  * depending on intent.
  */
 #undef GPIO_INT_ACTIVE_HIGH
-#define GPIO_INT_ACTIVE_HIGH    __DEPRECATED_MACRO GPIO_INT_HIGH_1
+#define GPIO_INT_ACTIVE_HIGH    GPIO_DEPRECATED_MACRO GPIO_INT_HIGH_1
 
 /** Legacy flag indicating interrupt triggers on both rising and falling edge.
  *
  * @deprecated Replace with `GPIO_INT_EDGE_BOTH`.
  */
-#define GPIO_INT_DOUBLE_EDGE    __DEPRECATED_MACRO GPIO_INT_EDGE_BOTH
+#define GPIO_INT_DOUBLE_EDGE    GPIO_DEPRECATED_MACRO GPIO_INT_EDGE_BOTH
 
 /** @cond INTERNAL_HIDDEN */
 #define GPIO_POL_SHIFT		0
@@ -360,13 +369,13 @@ extern "C" {
  *
  * @deprecated Replace with `GPIO_ACTIVE_HIGH`.
  */
-#define GPIO_POL_NORMAL		__DEPRECATED_MACRO GPIO_ACTIVE_HIGH
+#define GPIO_POL_NORMAL		GPIO_DEPRECATED_MACRO GPIO_ACTIVE_HIGH
 
 /** Legacy flag indicating that GPIO pin polarity is inverted.
  *
  * @deprecated Replace with `GPIO_ACTIVE_LOW`.
  */
-#define GPIO_POL_INV		__DEPRECATED_MACRO GPIO_ACTIVE_LOW
+#define GPIO_POL_INV		GPIO_DEPRECATED_MACRO GPIO_ACTIVE_LOW
 
 /** @} */
 
@@ -967,7 +976,7 @@ static inline int gpio_pin_toggle(struct device *port, unsigned int pin)
  * @deprecated This function has been deprecated, please use gpio_pin_set(),
  * gpio_pin_set_raw() instead.
  */
-__deprecated static inline int gpio_pin_write(struct device *port, u32_t pin,
+GPIO_DEPRECATED static inline int gpio_pin_write(struct device *port, u32_t pin,
 				 u32_t value)
 {
 	return gpio_write(port, GPIO_ACCESS_BY_PIN, pin, value);
@@ -986,7 +995,7 @@ __deprecated static inline int gpio_pin_write(struct device *port, u32_t pin,
  * @deprecated This function has been deprecated, please use gpio_pin_get(),
  * gpio_pin_get_raw() instead.
  */
-__deprecated static inline int gpio_pin_read(struct device *port, u32_t pin,
+GPIO_DEPRECATED static inline int gpio_pin_read(struct device *port, u32_t pin,
 				u32_t *value)
 {
 	return gpio_read(port, GPIO_ACCESS_BY_PIN, pin, value);
@@ -1109,7 +1118,7 @@ static inline int gpio_remove_callback(struct device *port,
  * @deprecated Replace with ``gpio_pin_interrupt_configure()`` with
  * ``GPIO_INT_ENABLE``.
  */
-__deprecated static inline int gpio_pin_enable_callback(struct device *port,
+GPIO_DEPRECATED static inline int gpio_pin_enable_callback(struct device *port,
 							u32_t pin)
 {
 	return gpio_enable_callback(port, GPIO_ACCESS_BY_PIN, pin);
@@ -1124,7 +1133,7 @@ __deprecated static inline int gpio_pin_enable_callback(struct device *port,
  * @deprecated Replace with ``gpio_pin_interrupt_configure()`` with
  * ``GPIO_INT_DISABLE``.
  */
-__deprecated static inline int gpio_pin_disable_callback(struct device *port,
+GPIO_DEPRECATED static inline int gpio_pin_disable_callback(struct device *port,
 							 u32_t pin)
 {
 	return gpio_disable_callback(port, GPIO_ACCESS_BY_PIN, pin);

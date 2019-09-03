@@ -17,6 +17,15 @@ module = GPIO
 module-str = gpio
 source "subsys/logging/Kconfig.template.log_config"
 
+config GPIO_TEMPORARY_DISABLE_DEPRECATION
+	bool "Disable newly deprecated GPIO API functions"
+	default y
+	help
+	  Flag that controls disable of legacy GPI API functions that
+	  are to be replaced with new API.  This allows sanitycheck to
+	  pass without gratuitous warnings while drivers and
+	  applications are updated.
+
 config GPIO_SHELL
 	bool "Enable GPIO Shell"
 	help
