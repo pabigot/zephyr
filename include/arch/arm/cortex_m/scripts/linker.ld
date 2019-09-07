@@ -276,6 +276,8 @@ SECTIONS
 	. = ALIGN(4);
 	} GROUP_LINK_IN(ROMABLE_REGION)
 
+#include <linker/cplusplus-rom.ld>
+
 	_image_rodata_end = .;
 	MPU_ALIGN(_image_rodata_end -_image_rom_start);
 	_image_rom_end = .;
@@ -414,6 +416,7 @@ SECTIONS
 #include <linker/kobject.ld>
 
 #include <linker/priv_stacks-noinit.ld>
+#include <linker/cplusplus-ram.ld>
 
     __data_ram_end = .;
 
