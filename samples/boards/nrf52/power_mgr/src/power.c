@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#if 0
+
 #include "sample.h"
 
 /*
@@ -93,3 +95,4 @@ void sys_pm_notify_power_state_exit(enum power_states state)
 		break;
 	}
 }
+#endif

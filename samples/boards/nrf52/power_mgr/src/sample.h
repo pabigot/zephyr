@@ -12,6 +12,8 @@
 #include <drivers/gpio.h>
 #include <sys/printk.h>
 
+#if 0
+
 #define GPIO_CFG_SENSE_LOW (GPIO_PIN_CNF_SENSE_Low << GPIO_PIN_CNF_SENSE_Pos)
 
 /* change this to use another GPIO port */
@@ -25,5 +27,6 @@
 #define HIGH		1
 #define LED_ON		LOW
 #define LED_OFF		HIGH
+#endif
 
 extern struct device *gpio_port;

@@ -22,6 +22,13 @@ struct device *gpio_port;
 /* Application main Thread */
 void main(void)
 {
+#if 1
+	printk("ICACHE %x\n", NRF_NVMC->ICACHE_CNF);
+	while (true) {
+	}
+
+	k_sleep(K_FOREVER);
+#else
 	u32_t level = 0U;
 
 	printk("\n\n*** Power Management Demo on %s ***\n", CONFIG_BOARD);
@@ -111,4 +118,5 @@ void main(void)
 		}
 		k_busy_wait(1000);
 	}
+#endif
 }
