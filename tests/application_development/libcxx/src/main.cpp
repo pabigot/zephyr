@@ -86,6 +86,33 @@ static void test_make_unique(void)
 	zassert_equal(make_unique_data::dtors, 1, "dtor count not incremented");
 }
 
+struct abstract {
+	virtual ~abstract () = default;
+	virtual const std::string& name () = 0;
+};
+
+class concrete : public abstract {
+	const std::string id;
+public:
+	concrete (const char* s) :
+		id{s}
+	{ }
+
+	const std::string& name () override
+	{
+		return id;
+	}
+};
+
+static void test_virtual(void)
+{
+	const char *name = "test";
+	std::unique_ptr<abstract> ap = std::make_unique<concrete>(name);
+	zassert_true(ap->name() == name, "name mismatch");
+	ap.reset();
+	zassert_false(ap, "reset failed");
+}
+
 void test_main(void)
 {
 	TC_PRINT("version %u\n", (u32_t)__cplusplus);
@@ -93,7 +120,8 @@ void test_main(void)
 			 ztest_unit_test(test_array),
 			 ztest_unit_test(test_exceptions),
 			 ztest_unit_test(test_make_unique),
-			 ztest_unit_test(test_vector)
+			 ztest_unit_test(test_vector),
+			 ztest_unit_test(test_virtual)
 		);
 
 	ztest_run_test_suite(libcxx_tests);
