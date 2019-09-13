@@ -35,11 +35,31 @@ static void test_vector(void)
 	zassert_equal(vector.size(), array.size(), "vector store failed");
 }
 
+static void test_exceptions(void)
+{
+	if (!IS_ENABLED(CONFIG_EXCEPTIONS)) {
+		TC_PRINT("Feature not enabled\n");
+		return;
+	}
+
+#ifdef CONFIG_EXCEPTIONS
+	/* Presence of this code, even if it's "unreachable", produces
+	 * compiler errors from G++ with default -fno-exceptions. */
+	try {
+		throw std::exception();
+		zassert_unreachable("Passed throw");
+	} catch (const std::exception& e) {
+		TC_PRINT("Caught\n");
+	}
+#endif
+}
+
 void test_main(void)
 {
 	TC_PRINT("version %u\n", (u32_t)__cplusplus);
 	ztest_test_suite(libcxx_tests,
 			 ztest_unit_test(test_array),
+			 ztest_unit_test(test_exceptions),
 			 ztest_unit_test(test_vector)
 		);
 
