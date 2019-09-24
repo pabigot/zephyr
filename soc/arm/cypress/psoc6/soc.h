@@ -14,14 +14,13 @@
 #ifndef _SOC__H_
 #define _SOC__H_
 
+#include <sys/util.h>
+
 #ifndef _ASMLANGUAGE
 #include <cy_device_headers.h>
 
-/* ARM CMSIS definitions must be included before kernel_includes.h.
- * Therefore, it is essential to include kernel_includes.h after including
- * core SOC-specific headers.
- */
-#include <kernel_includes.h>
+/* Add include for DTS generated information */
+#include <generated_dts_board.h>
 
 #endif /* !_ASMLANGUAGE */
 
