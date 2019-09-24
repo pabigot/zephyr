@@ -91,13 +91,12 @@
 #define _BEETLE_PPB_BASE  0xE0000000
 #define _BEETLE_PPB_SIZE  0x100000
 
+#include <sys/util.h>
+
 #ifndef _ASMLANGUAGE
 
-/* ARM CMSIS definitions must be included before kernel_includes.h.
- * Therefore, it is essential to include kernel_includes.h after including
- * core SOC-specific headers.
- */
-#include <kernel_includes.h>
+/* Add include for DTS generated information */
+#include <generated_dts_board.h>
 
 #include "soc_pins.h"
 #include "soc_power.h"
