@@ -189,7 +189,7 @@ void main(void)
 {
 	int ret;
 
-	k_sleep(500);
+	k_msleep(500);
 
 #ifdef CONFIG_ESPI_GPIO_DEV_NEEDED
 	gpio_dev = device_get_binding(CONFIG_ESPI_GPIO_DEV);
@@ -219,7 +219,7 @@ void main(void)
 	espi_init();
 
 #ifdef CONFIG_ESPI_GPIO_DEV_NEEDED
-	k_sleep(1000);
+	k_msleep(1000);
 	ret = gpio_pin_write(gpio_dev, CONFIG_ESPI_INIT_PIN, 1);
 	if (ret) {
 		printk("Failed to write %x %d", CONFIG_ESPI_INIT_PIN, ret);
