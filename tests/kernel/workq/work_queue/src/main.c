@@ -38,7 +38,7 @@ struct delayed_test_item {
 
 struct triggered_test_item {
 	int key;
-	struct k_work_triggered work;
+	struct k_work_poll work;
 	struct k_poll_signal signal;
 	struct k_poll_event event;
 };
@@ -453,7 +453,7 @@ static void triggered_work_handler(struct k_work *work)
  *
  * @ingroup kernel_workqueue_triggered_tests
  *
- * @see k_work_triggered_init()
+ * @see k_work_poll_init()
  */
 static void test_triggered_init(void)
 {
@@ -461,8 +461,8 @@ static void test_triggered_init(void)
 
 	for (i = 0; i < NUM_TEST_ITEMS; i++) {
 		triggered_tests[i].key = i + 1;
-		k_work_triggered_init(&triggered_tests[i].work,
-				      triggered_work_handler);
+		k_work_poll_init(&triggered_tests[i].work,
+				 triggered_work_handler);
 
 		k_poll_signal_init(&triggered_tests[i].signal);
 		k_poll_event_init(&triggered_tests[i].event,
@@ -477,7 +477,7 @@ static void test_triggered_init(void)
  *
  * @ingroup kernel_workqueue_triggered_tests
  *
- * @see k_work_triggered_init(), k_work_triggered_submit()
+ * @see k_work_poll_init(), k_work_poll_submit()
  */
 static void test_triggered_submit(s32_t timeout)
 {
@@ -485,9 +485,9 @@ static void test_triggered_submit(s32_t timeout)
 
 	for (i = 0; i < NUM_TEST_ITEMS; i++) {
 		TC_PRINT(" - Submitting triggered work %d\n", i + 1);
-		zassert_true(k_work_triggered_submit(&triggered_tests[i].work,
-						     &triggered_tests[i].event,
-						     1, timeout) == 0, NULL);
+		zassert_true(k_work_poll_submit(&triggered_tests[i].work,
+						&triggered_tests[i].event,
+						1, timeout) == 0, NULL);
 	}
 }
 
@@ -512,7 +512,7 @@ static void test_triggered_trigger(void)
  *
  * @ingroup kernel_workqueue_triggered_tests
  *
- * @see k_work_triggered_init(), k_work_triggered_submit()
+ * @see k_work_poll_init(), k_work_poll_submit()
  */
 static void test_triggered(void)
 {
@@ -543,7 +543,7 @@ static void test_triggered(void)
  *
  * @ingroup kernel_workqueue_triggered_tests
  *
- * @see k_work_triggered_init(), k_work_triggered_submit()
+ * @see k_work_poll_init(), k_work_poll_submit()
  */
 static void test_already_triggered(void)
 {
@@ -581,9 +581,9 @@ static void triggered_resubmit_work_handler(struct k_work *work)
 		TC_PRINT(" - Resubmitting triggered work\n");
 
 		k_poll_signal_reset(&triggered_tests[0].signal);
-		zassert_true(k_work_triggered_submit(&triggered_tests[0].work,
-						     &triggered_tests[0].event,
-						     1, K_FOREVER) == 0, NULL);
+		zassert_true(k_work_poll_submit(&triggered_tests[0].work,
+						&triggered_tests[0].event,
+						1, K_FOREVER) == 0, NULL);
 	}
 }
 
@@ -592,7 +592,7 @@ static void triggered_resubmit_work_handler(struct k_work *work)
  *
  * @ingroup kernel_workqueue_triggered_tests
  *
- * @see k_work_triggered_init(), k_work_triggered_submit()
+ * @see k_work_poll_init(), k_work_poll_submit()
  */
 static void test_triggered_resubmit(void)
 {
@@ -604,8 +604,8 @@ static void test_triggered_resubmit(void)
 	expected_expiry_status = false;
 
 	triggered_tests[0].key = 1;
-	k_work_triggered_init(&triggered_tests[0].work,
-			      triggered_resubmit_work_handler);
+	k_work_poll_init(&triggered_tests[0].work,
+			 triggered_resubmit_work_handler);
 
 	k_poll_signal_init(&triggered_tests[0].signal);
 	k_poll_event_init(&triggered_tests[0].event,
@@ -614,9 +614,9 @@ static void test_triggered_resubmit(void)
 			  &triggered_tests[0].signal);
 
 	TC_PRINT(" - Submitting triggered work\n");
-	zassert_true(k_work_triggered_submit(&triggered_tests[0].work,
-					     &triggered_tests[0].event,
-					     1, K_FOREVER) == 0, NULL);
+	zassert_true(k_work_poll_submit(&triggered_tests[0].work,
+					&triggered_tests[0].event,
+					1, K_FOREVER) == 0, NULL);
 
 	for (i = 0; i < NUM_TEST_ITEMS; i++) {
 		TC_PRINT(" - Triggering test item execution (iteration: %d)\n",
@@ -636,7 +636,7 @@ static void test_triggered_resubmit(void)
  *
  * @ingroup kernel_workqueue_triggered_tests
  *
- * @see k_work_triggered_init(), k_work_triggered_submit()
+ * @see k_work_poll_init(), k_work_poll_submit()
  */
 static void test_triggered_no_wait(void)
 {
@@ -667,7 +667,7 @@ static void test_triggered_no_wait(void)
  *
  * @ingroup kernel_workqueue_triggered_tests
  *
- * @see k_work_triggered_init(), k_work_triggered_submit()
+ * @see k_work_poll_init(), k_work_poll_submit()
  */
 static void test_triggered_no_wait_expired(void)
 {
@@ -695,7 +695,7 @@ static void test_triggered_no_wait_expired(void)
  *
  * @ingroup kernel_workqueue_triggered_tests
  *
- * @see k_work_triggered_init(), k_work_triggered_submit()
+ * @see k_work_poll_init(), k_work_poll_submit()
  */
 static void test_triggered_wait(void)
 {
@@ -726,7 +726,7 @@ static void test_triggered_wait(void)
  *
  * @ingroup kernel_workqueue_triggered_tests
  *
- * @see k_work_triggered_init(), k_work_triggered_submit()
+ * @see k_work_poll_init(), k_work_poll_submit()
  */
 static void test_triggered_wait_expired(void)
 {

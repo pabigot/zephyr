@@ -26,10 +26,10 @@ static struct k_work_q user_workq;
 static ZTEST_BMEM struct k_work work[NUM_OF_WORK];
 static struct k_delayed_work new_work;
 static struct k_delayed_work delayed_work[NUM_OF_WORK], delayed_work_sleepy;
-static struct k_work_triggered triggered_work[NUM_OF_WORK];
+static struct k_work_poll triggered_work[NUM_OF_WORK];
 static struct k_poll_event triggered_work_event[NUM_OF_WORK];
 static struct k_poll_signal triggered_work_signal[NUM_OF_WORK];
-static struct k_work_triggered triggered_work_sleepy;
+static struct k_work_poll triggered_work_sleepy;
 static struct k_poll_event triggered_work_sleepy_event;
 static struct k_poll_signal triggered_work_sleepy_signal;
 static struct k_sem sync_sema;
@@ -221,20 +221,20 @@ static void ttriggered_work_submit(void *data)
 				  K_POLL_MODE_NOTIFY_ONLY,
 				  &triggered_work_signal[i]);
 
-		/**TESTPOINT: init via k_work_triggered_init*/
-		k_work_triggered_init(&triggered_work[i], work_handler);
+		/**TESTPOINT: init via k_work_poll_init*/
+		k_work_poll_init(&triggered_work[i], work_handler);
 		/**TESTPOINT: check pending after triggered work init*/
 		zassert_false(k_work_pending(
 			     (struct k_work *)&triggered_work[i]), NULL);
 		if (work_q) {
 			/**TESTPOINT: triggered work submit to queue*/
-			zassert_true(k_work_triggered_submit_to_queue(work_q,
+			zassert_true(k_work_poll_submit_to_queue(work_q,
 				    &triggered_work[i],
 				    &triggered_work_event[i], 1,
 				    K_FOREVER) == 0, NULL);
 		} else {
 			/**TESTPOINT: triggered work submit to system queue*/
-			zassert_true(k_work_triggered_submit(
+			zassert_true(k_work_poll_submit(
 				    &triggered_work[i],
 				    &triggered_work_event[i], 1,
 				    K_FOREVER) == 0, NULL);
@@ -267,7 +267,7 @@ static void ttriggered_work_cancel(void *data)
 				  K_POLL_MODE_NOTIFY_ONLY,
 				  &triggered_work_signal[i]);
 
-		k_work_triggered_init(&triggered_work[i], work_handler);
+		k_work_poll_init(&triggered_work[i], work_handler);
 	}
 
 	k_poll_signal_init(&triggered_work_sleepy_signal);
@@ -276,31 +276,31 @@ static void ttriggered_work_cancel(void *data)
 			  K_POLL_MODE_NOTIFY_ONLY,
 			  &triggered_work_sleepy_signal);
 
-	k_work_triggered_init(&triggered_work_sleepy, work_sleepy);
+	k_work_poll_init(&triggered_work_sleepy, work_sleepy);
 
 	if (work_q) {
-		ret = k_work_triggered_submit_to_queue(work_q,
+		ret = k_work_poll_submit_to_queue(work_q,
 		      &triggered_work_sleepy, &triggered_work_sleepy_event, 1,
 		      K_FOREVER);
-		ret |= k_work_triggered_submit_to_queue(work_q,
+		ret |= k_work_poll_submit_to_queue(work_q,
 		       &triggered_work[0], &triggered_work_event[0], 1,
 		       K_FOREVER);
-		ret |= k_work_triggered_submit_to_queue(work_q,
+		ret |= k_work_poll_submit_to_queue(work_q,
 		       &triggered_work[1], &triggered_work_event[1], 1,
 		       K_FOREVER);
 	} else {
-		ret = k_work_triggered_submit(&triggered_work_sleepy,
+		ret = k_work_poll_submit(&triggered_work_sleepy,
 				&triggered_work_sleepy_event, 1, K_FOREVER);
-		ret |= k_work_triggered_submit(&triggered_work[0],
+		ret |= k_work_poll_submit(&triggered_work[0],
 				&triggered_work_event[0], 1, K_FOREVER);
-		ret |= k_work_triggered_submit(&triggered_work[1],
+		ret |= k_work_poll_submit(&triggered_work[1],
 				&triggered_work_event[1], 1, K_FOREVER);
 	}
 	/* Check if all submission succeeded */
 	zassert_true(ret == 0, NULL);
 
 	/**TESTPOINT: triggered work cancel when waiting for event*/
-	ret = k_work_triggered_cancel(&triggered_work[0]);
+	ret = k_work_poll_cancel(&triggered_work[0]);
 	zassert_true(ret == 0, NULL);
 
 	/**TESTPOINT: check pending after triggerd work cancel*/
@@ -316,7 +316,7 @@ static void ttriggered_work_cancel(void *data)
 	zassert_true(ret != 0, NULL);
 
 	/**TESTPOINT: triggered work cancel when pending for event*/
-	ret = k_work_triggered_cancel(&triggered_work[1]);
+	ret = k_work_poll_cancel(&triggered_work[1]);
 	zassert_true(ret == -EINVAL, NULL);
 
 	/* Trigger sleepy work */
@@ -332,7 +332,7 @@ static void ttriggered_work_cancel(void *data)
 		zassert_true(ret == 0, NULL);
 
 		/**TESTPOINT: delayed work cancel when completed*/
-		ret = k_work_triggered_cancel(&triggered_work_sleepy);
+		ret = k_work_poll_cancel(&triggered_work_sleepy);
 		zassert_true(ret == -EINVAL, NULL);
 
 	}
@@ -651,9 +651,9 @@ void test_delayed_work_cancel_isr(void)
  *
  * @ingroup kernel_workqueue_tests
  *
- * @see k_work_triggered_init(), k_work_pending(),
- * k_work_triggered_submit_to_queue(),
- * k_work_triggered_submit()
+ * @see k_work_poll_init(), k_work_pending(),
+ * k_work_poll_submit_to_queue(),
+ * k_work_poll_submit()
  */
 void test_triggered_work_submit_to_queue_thread(void)
 {
@@ -669,9 +669,9 @@ void test_triggered_work_submit_to_queue_thread(void)
  *
  * @ingroup kernel_workqueue_tests
  *
- * @see k_work_triggered_init(), k_work_pending(),
- * k_work_triggered_submit_to_queue(),
- * k_work_triggered_submit()
+ * @see k_work_poll_init(), k_work_pending(),
+ * k_work_poll_submit_to_queue(),
+ * k_work_poll_submit()
  */
 void test_triggered_work_submit_to_queue_isr(void)
 {
@@ -687,9 +687,9 @@ void test_triggered_work_submit_to_queue_isr(void)
  *
  * @ingroup kernel_workqueue_tests
  *
- * @see k_work_triggered_init(), k_work_pending(),
- * k_work_triggered_submit_to_queue(),
- * k_work_triggered_submit()
+ * @see k_work_poll_init(), k_work_pending(),
+ * k_work_poll_submit_to_queue(),
+ * k_work_poll_submit()
  */
 void test_triggered_work_submit_thread(void)
 {
@@ -705,9 +705,9 @@ void test_triggered_work_submit_thread(void)
  *
  * @ingroup kernel_workqueue_tests
  *
- * @see k_work_triggered_init(), k_work_pending(),
- * k_work_triggered_submit_to_queue(),
- * k_work_triggered_submit()
+ * @see k_work_poll_init(), k_work_pending(),
+ * k_work_poll_submit_to_queue(),
+ * k_work_poll_submit()
  */
 void test_triggered_work_submit_isr(void)
 {
@@ -723,7 +723,7 @@ void test_triggered_work_submit_isr(void)
  *
  * @ingroup kernel_workqueue_tests
  *
- * @see k_work_triggered_cancel(), k_work_pending()
+ * @see k_work_poll_cancel(), k_work_pending()
  */
 void test_triggered_work_cancel_from_queue_thread(void)
 {
@@ -740,7 +740,7 @@ void test_triggered_work_cancel_from_queue_thread(void)
  *
  * @ingroup kernel_workqueue_tests
  *
- * @see k_work_triggered_cancel(), k_work_pending()
+ * @see k_work_poll_cancel(), k_work_pending()
  */
 void test_triggered_work_cancel_from_queue_isr(void)
 {
@@ -757,7 +757,7 @@ void test_triggered_work_cancel_from_queue_isr(void)
  *
  * @ingroup kernel_workqueue_tests
  *
- * @see k_work_triggered_cancel(), k_work_pending()
+ * @see k_work_poll_cancel(), k_work_pending()
  */
 void test_triggered_work_cancel_thread(void)
 {
@@ -774,7 +774,7 @@ void test_triggered_work_cancel_thread(void)
  *
  * @ingroup kernel_workqueue_tests
  *
- * @see k_work_triggered_cancel(), k_work_pending()
+ * @see k_work_poll_cancel(), k_work_pending()
  */
 void test_triggered_work_cancel_isr(void)
 {

@@ -485,11 +485,11 @@ static inline void z_vrfy_k_poll_signal_reset(struct k_poll_signal *signal)
 static void triggered_work_handler(struct k_work *work)
 {
 	k_work_handler_t handler;
-	struct k_work_triggered *twork =
-			CONTAINER_OF(work, struct k_work_triggered, work);
+	struct k_work_poll *twork =
+			CONTAINER_OF(work, struct k_work_poll, work);
 
 	/*
-	 * If callback is not set, the k_work_triggered_submit_to_queue()
+	 * If callback is not set, the k_work_poll_submit_to_queue()
 	 * already cleared event registrations.
 	 */
 	if (twork->poller.cb != NULL) {
@@ -509,8 +509,8 @@ static void triggered_work_handler(struct k_work *work)
 
 static void triggered_work_expiration_handler(struct _timeout *timeout)
 {
-	struct k_work_triggered *twork =
-		CONTAINER_OF(timeout, struct k_work_triggered, timeout);
+	struct k_work_poll *twork =
+		CONTAINER_OF(timeout, struct k_work_poll, timeout);
 	struct k_work_q *work_q =
 		CONTAINER_OF(twork->poller.thread, struct k_work_q, thread);
 
@@ -525,8 +525,8 @@ static int triggered_work_poller_cb(struct k_poll_event *event, u32_t status)
 	struct _poller *poller = event->poller;
 
 	if (poller->is_polling && poller->thread) {
-		struct k_work_triggered *twork =
-			CONTAINER_OF(poller, struct k_work_triggered, poller);
+		struct k_work_poll *twork =
+			CONTAINER_OF(poller, struct k_work_poll, poller);
 		struct k_work_q *work_q =
 			CONTAINER_OF(poller->thread, struct k_work_q, thread);
 
@@ -537,7 +537,7 @@ static int triggered_work_poller_cb(struct k_poll_event *event, u32_t status)
 	return 0;
 }
 
-static int triggered_work_cancel(struct k_work_triggered *work,
+static int triggered_work_cancel(struct k_work_poll *work,
 				 k_spinlock_key_t key)
 {
 	/* Check if the work waits for event. */
@@ -559,7 +559,7 @@ static int triggered_work_cancel(struct k_work_triggered *work,
 
 	/*
 	 * If we reached here, the work is either being registered in
-	 * the k_work_triggered_submit_to_queue(), executed or is pending.
+	 * the k_work_poll_submit_to_queue(), executed or is pending.
 	 * Only in the last case we have a chance to cancel it, but
 	 * unfortunately there is no public API performing this task.
 	 */
@@ -567,8 +567,8 @@ static int triggered_work_cancel(struct k_work_triggered *work,
 	return -EINVAL;
 }
 
-void k_work_triggered_init(struct k_work_triggered *work,
-			   k_work_handler_t handler)
+void k_work_poll_init(struct k_work_poll *work,
+		      k_work_handler_t handler)
 {
 	k_work_init(&work->work, triggered_work_handler);
 	work->events = NULL;
@@ -577,11 +577,11 @@ void k_work_triggered_init(struct k_work_triggered *work,
 	z_init_timeout(&work->timeout, triggered_work_expiration_handler);
 }
 
-int k_work_triggered_submit_to_queue(struct k_work_q *work_q,
-				     struct k_work_triggered *work,
-				     struct k_poll_event *events,
-				     int num_events,
-				     s32_t timeout)
+int k_work_poll_submit_to_queue(struct k_work_q *work_q,
+				struct k_work_poll *work,
+				struct k_poll_event *events,
+				int num_events,
+				s32_t timeout)
 {
 	int events_registered;
 	k_spinlock_key_t key;
@@ -671,7 +671,7 @@ int k_work_triggered_submit_to_queue(struct k_work_q *work_q,
 	return 0;
 }
 
-int k_work_triggered_cancel(struct k_work_triggered *work)
+int k_work_poll_cancel(struct k_work_poll *work)
 {
 	k_spinlock_key_t key;
 	int retval;

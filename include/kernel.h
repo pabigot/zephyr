@@ -2686,9 +2686,9 @@ __syscall int k_stack_pop(struct k_stack *stack, stack_data_t *data, s32_t timeo
 /** @} */
 
 struct k_work;
-struct k_work_triggered;
+struct k_work_poll;
 
-/* private, used by k_poll and k_work_triggered */
+/* private, used by k_poll and k_work_poll */
 typedef int (*_poller_cb_t)(struct k_poll_event *event, u32_t state);
 struct _poller {
 	volatile bool is_polling;
@@ -2740,7 +2740,7 @@ struct k_delayed_work {
 	struct k_work_q *work_q;
 };
 
-struct k_work_triggered {
+struct k_work_poll {
 	struct k_work work;
 	struct _poller poller;
 	struct k_poll_event *events;
@@ -3093,8 +3093,8 @@ static inline s32_t k_delayed_work_remaining_get(struct k_delayed_work *work)
  *
  * @return N/A
  */
-extern void k_work_triggered_init(struct k_work_triggered *work,
-				  k_work_handler_t handler);
+extern void k_work_poll_init(struct k_work_poll *work,
+			     k_work_handler_t handler);
 
 /**
  * @brief Submit a triggered work item.
@@ -3130,11 +3130,11 @@ extern void k_work_triggered_init(struct k_work_triggered *work,
  * @retval -EINVAL Work item is being processed or has completed its work.
  * @retval -EADDRINUSE Work item is pending on a different workqueue.
  */
-extern int k_work_triggered_submit_to_queue(struct k_work_q *work_q,
-					    struct k_work_triggered *work,
-					    struct k_poll_event *events,
-					    int num_events,
-					    s32_t timeout);
+extern int k_work_poll_submit_to_queue(struct k_work_q *work_q,
+				       struct k_work_poll *work,
+				       struct k_poll_event *events,
+				       int num_events,
+				       s32_t timeout);
 
 /**
  * @brief Submit a triggered work item to the system workqueue.
@@ -3167,12 +3167,12 @@ extern int k_work_triggered_submit_to_queue(struct k_work_q *work_q,
  * @retval -EINVAL Work item is being processed or has completed its work.
  * @retval -EADDRINUSE Work item is pending on a different workqueue.
  */
-static inline int k_work_triggered_submit(struct k_work_triggered *work,
-					  struct k_poll_event *events,
-					  int num_events,
-					  s32_t timeout)
+static inline int k_work_poll_submit(struct k_work_poll *work,
+				     struct k_poll_event *events,
+				     int num_events,
+				     s32_t timeout)
 {
-	return k_work_triggered_submit_to_queue(&k_sys_work_q, work,
+	return k_work_poll_submit_to_queue(&k_sys_work_q, work,
 						events, num_events, timeout);
 }
 
@@ -3190,7 +3190,7 @@ static inline int k_work_triggered_submit(struct k_work_triggered *work,
  * @retval 0 Work tiem canceled.
  * @retval -EINVAL Work item is being processed or has completed its work.
  */
-extern int k_work_triggered_cancel(struct k_work_triggered *work);
+extern int k_work_poll_cancel(struct k_work_poll *work);
 
 /** @} */
 /**

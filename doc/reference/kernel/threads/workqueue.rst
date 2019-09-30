@@ -125,7 +125,7 @@ the work item is always processed by the workqueue and cannot be canceled.
 Triggered Work
 **************
 
-The :cpp:func:`k_work_triggered()` interface schedules a triggered work
+The :cpp:func:`k_work_poll()` interface schedules a triggered work
 item in response to a **poll event** (see :ref:`polling_v2`), that will
 call a user-defined function when the monitored resource becomes available
 or a poll signal is raised. In contrast to :cpp:func:`k_poll()`,
