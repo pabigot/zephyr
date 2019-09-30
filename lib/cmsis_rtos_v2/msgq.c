@@ -43,7 +43,7 @@ osMessageQueueId_t osMessageQueueNew(uint32_t msg_count, uint32_t msg_size,
 		attr = &init_msgq_attrs;
 	}
 
-	if (k_mem_slab_alloc(&cv2_msgq_slab, (void **)&msgq, 100) == 0) {
+	if (k_mem_slab_alloc(&cv2_msgq_slab, (void **)&msgq, K_MSEC(100)) == 0) {
 		(void)memset(msgq, 0, sizeof(struct cv2_msgq));
 	} else {
 		return NULL;
@@ -103,7 +103,7 @@ osStatus_t osMessageQueuePut(osMessageQueueId_t msgq_id, const void *msg_ptr,
 		retval = k_msgq_put(&msgq->z_msgq, (void *)msg_ptr, K_FOREVER);
 	} else {
 		retval = k_msgq_put(&msgq->z_msgq, (void *)msg_ptr,
-				    __ticks_to_ms(timeout));
+				    K_MSEC(__ticks_to_ms(timeout)));
 	}
 
 	if (retval == 0) {

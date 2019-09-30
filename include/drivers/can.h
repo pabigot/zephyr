@@ -235,7 +235,7 @@ typedef int (*can_configure_t)(struct device *dev, enum can_mode mode,
 				u32_t bitrate);
 
 typedef int (*can_send_t)(struct device *dev, const struct zcan_frame *msg,
-			  s32_t timeout, can_tx_callback_t callback_isr,
+			  k_timeout_t timeout, can_tx_callback_t callback_isr,
 			  void *callback_arg);
 
 
@@ -296,12 +296,12 @@ struct can_driver_api {
  * @retval CAN_TX_* on failure.
  */
 __syscall int can_send(struct device *dev, const struct zcan_frame *msg,
-		       s32_t timeout, can_tx_callback_t callback_isr,
+		       k_timeout_t timeout, can_tx_callback_t callback_isr,
 		       void *callback_arg);
 
 static inline int z_impl_can_send(struct device *dev,
 				 const struct zcan_frame *msg,
-				 s32_t timeout, can_tx_callback_t callback_isr,
+				 k_timeout_t timeout, can_tx_callback_t callback_isr,
 				 void *callback_arg)
 {
 	const struct can_driver_api *api =
@@ -331,7 +331,7 @@ static inline int z_impl_can_send(struct device *dev,
  * @retval -EINVAL if length > 8.
  */
 static inline int can_write(struct device *dev, const u8_t *data, u8_t length,
-			    u32_t id, enum can_rtr rtr, s32_t timeout)
+			    u32_t id, enum can_rtr rtr, k_timeout_t timeout)
 {
 	struct zcan_frame msg;
 

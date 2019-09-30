@@ -401,7 +401,7 @@ static int _modem_cmd_send(struct modem_iface *iface,
 	}
 
 	k_sem_reset(sem);
-	ret = k_sem_take(sem, timeout);
+	ret = k_sem_take(sem, K_MSEC(timeout));
 
 	if (ret == 0) {
 		ret = data->last_error;

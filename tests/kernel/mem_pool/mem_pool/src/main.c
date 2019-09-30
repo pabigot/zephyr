@@ -337,10 +337,10 @@ static void test_pool_malloc(void)
 }
 
 K_THREAD_DEFINE(t_alternate, STACKSIZE, alternate_task, NULL, NULL, NULL,
-		6, 0, 0);
+		6, 0, K_NO_WAIT);
 
 K_THREAD_DEFINE(t_helper, STACKSIZE, helper_task, NULL, NULL, NULL,
-		7, 0, 0);
+		7, 0, K_NO_WAIT);
 
 void test_main(void)
 {

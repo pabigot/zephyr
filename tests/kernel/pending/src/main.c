@@ -445,8 +445,7 @@ void test_main(void)
 }
 
 K_THREAD_DEFINE(TASK_LOW, PREEM_STACKSIZE, task_low, NULL, NULL, NULL,
-		7, 0, 0);
+		7, 0, K_NO_WAIT);
 
 K_THREAD_DEFINE(TASK_HIGH, PREEM_STACKSIZE, task_high, NULL, NULL, NULL,
-		5, 0, 0);
-
+		5, 0, K_NO_WAIT);

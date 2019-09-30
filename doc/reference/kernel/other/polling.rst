@@ -142,9 +142,9 @@ In case of success, :cpp:func:`k_poll()` returns 0. If it times out, it returns
         rc = k_poll(events, 2, 1000);
         if (rc == 0) {
             if (events[0].state == K_POLL_STATE_SEM_AVAILABLE) {
-                k_sem_take(events[0].sem, 0);
+                k_sem_take(events[0].sem, K_NO_WAIT);
             } else if (events[1].state == K_POLL_STATE_FIFO_DATA_AVAILABLE) {
-                data = k_fifo_get(events[1].fifo, 0);
+                data = k_fifo_get(events[1].fifo, K_NO_WAIT);
                 // handle data
             }
         } else {
@@ -162,9 +162,9 @@ to :c:macro:`K_POLL_STATE_NOT_READY` by the user.
         for(;;) {
             rc = k_poll(events, 2, K_FOREVER);
             if (events[0].state == K_POLL_STATE_SEM_AVAILABLE) {
-                k_sem_take(events[0].sem, 0);
+                k_sem_take(events[0].sem, K_NO_WAIT);
             } else if (events[1].state == K_POLL_STATE_FIFO_DATA_AVAILABLE) {
-                data = k_fifo_get(events[1].fifo, 0);
+                data = k_fifo_get(events[1].fifo, K_NO_WAIT);
                 // handle data
             }
             events[0].state = K_POLL_STATE_NOT_READY;

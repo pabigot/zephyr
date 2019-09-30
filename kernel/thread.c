@@ -756,9 +756,9 @@ void z_init_static_threads(void)
 		 * in MS.  We can't easily convert to a timeout_t for
 		 * use in static data
 		 */
-		if (!K_TIMEOUT_EQ(K_TIMEOUT_TICKS(thread_data->init_delay),
+		if (!K_TIMEOUT_EQ(thread_data->init_delay,
 				  K_FOREVER)) {
-			k_timeout_t to = K_TIMEOUT_MS(thread_data->init_delay);
+			k_timeout_t to = thread_data->init_delay;
 
 			schedule_new_thread(thread_data->init_thread, to);
 		}

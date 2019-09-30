@@ -13,14 +13,14 @@
 #define INIT_COOP_P2 ((void *)0xCDEF)
 #define INIT_COOP_P3 ((void *)0x1234)
 #define INIT_COOP_OPTION (K_USER | K_INHERIT_PERMS)
-#define INIT_COOP_DELAY 2000
+#define INIT_COOP_DELAY K_MSEC(2000)
 #define INIT_PREEMPT_PRIO 1
 #define INIT_PREEMPT_STACK_SIZE (499 + CONFIG_TEST_EXTRA_STACKSIZE)
 #define INIT_PREEMPT_P1 ((void *)5)
 #define INIT_PREEMPT_P2 ((void *)6)
 #define INIT_PREEMPT_P3 ((void *)7)
 #define INIT_PREEMPT_OPTION (K_USER | K_INHERIT_PERMS)
-#define INIT_PREEMPT_DELAY 0
+#define INIT_PREEMPT_DELAY K_MSEC(0)
 
 static void thread_entry(void *p1, void *p2, void *p3);
 
@@ -47,7 +47,7 @@ static struct k_thread thread_preempt;
 static ZTEST_BMEM u64_t t_create;
 static ZTEST_BMEM struct thread_data {
 	int init_prio;
-	s32_t init_delay;
+	k_timeout_t init_delay;
 	void *init_p1;
 	void *init_p2;
 	void *init_p3;
@@ -59,7 +59,7 @@ static void thread_entry(void *p1, void *p2, void *p3)
 	if (t_create) {
 		u64_t t_delay = k_uptime_get() - t_create;
 		/**TESTPOINT: check delay start*/
-		zassert_true(t_delay >= expected.init_delay,
+		zassert_true(t_delay >= K_TIMEOUT_GET(expected.init_delay),
 			     "k_thread_create delay start failed");
 	}
 

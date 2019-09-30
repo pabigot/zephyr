@@ -48,7 +48,7 @@ void *osMailAlloc(osMailQId queue_id, uint32_t millisec)
 	} else {
 		retval = k_mem_slab_alloc(
 				(struct k_mem_slab *)(queue_def->pool),
-				(void **)&ptr, millisec);
+				(void **)&ptr, K_MSEC(millisec));
 	}
 
 	if (retval == 0) {
@@ -82,7 +82,7 @@ void *osMailCAlloc(osMailQId queue_id, uint32_t millisec)
 	} else {
 		retval = k_mem_slab_alloc(
 				(struct k_mem_slab *)(queue_def->pool),
-				(void **)&ptr, millisec);
+				(void **)&ptr, K_MSEC(millisec));
 	}
 
 	if (retval == 0) {
@@ -142,7 +142,7 @@ osEvent osMailGet(osMailQId queue_id, uint32_t millisec)
 	} else if (millisec == osWaitForever) {
 		retval = k_mbox_get(queue_def->mbox, &mmsg, NULL, K_FOREVER);
 	} else {
-		retval = k_mbox_get(queue_def->mbox, &mmsg, NULL, millisec);
+		retval = k_mbox_get(queue_def->mbox, &mmsg, NULL, K_MSEC(millisec));
 	}
 
 	if (retval == 0) {

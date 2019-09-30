@@ -283,7 +283,7 @@ static int mcux_get_tx_alloc(struct mcux_flexcan_data *data)
 }
 
 static int mcux_flexcan_send(struct device *dev, const struct zcan_frame *msg,
-			     s32_t timeout, can_tx_callback_t callback_isr,
+			     k_timeout_t timeout, can_tx_callback_t callback_isr,
 			     void *callback_arg)
 {
 	const struct mcux_flexcan_config *config = dev->config->config_info;

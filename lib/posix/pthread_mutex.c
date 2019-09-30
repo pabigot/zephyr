@@ -45,12 +45,12 @@ static int acquire_mutex(pthread_mutex_t *m, int timeout)
 		return rc;
 	}
 
-	if (timeout == K_NO_WAIT) {
+	if (timeout == 0) {
 		irq_unlock(key);
 		return EINVAL;
 	}
 
-	rc = z_pend_curr_irqlock(key, &m->wait_q, timeout);
+	rc = z_pend_curr_irqlock(key, &m->wait_q, K_MSEC(timeout));
 	if (rc != 0) {
 		rc = ETIMEDOUT;
 	}
@@ -65,7 +65,7 @@ static int acquire_mutex(pthread_mutex_t *m, int timeout)
  */
 int pthread_mutex_trylock(pthread_mutex_t *m)
 {
-	return acquire_mutex(m, K_NO_WAIT);
+	return acquire_mutex(m, 0);
 }
 
 /**
@@ -111,7 +111,7 @@ int pthread_mutex_init(pthread_mutex_t *m,
  */
 int pthread_mutex_lock(pthread_mutex_t *m)
 {
-	return acquire_mutex(m, K_FOREVER);
+	return acquire_mutex(m, -1);
 }
 
 /**

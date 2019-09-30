@@ -25,7 +25,7 @@ osMutexId osMutexCreate(const osMutexDef_t *mutex_def)
 		return NULL;
 	}
 
-	if (k_mem_slab_alloc(&cmsis_mutex_slab, (void **)&mutex, 100) == 0) {
+	if (k_mem_slab_alloc(&cmsis_mutex_slab, (void **)&mutex, K_MSEC(100)) == 0) {
 		(void)memset(mutex, 0, sizeof(struct k_mutex));
 	} else {
 		return NULL;
@@ -57,7 +57,7 @@ osStatus osMutexWait(osMutexId mutex_id, uint32_t timeout)
 	} else if (timeout == 0U) {
 		status = k_mutex_lock(mutex, K_NO_WAIT);
 	} else {
-		status = k_mutex_lock(mutex, timeout);
+		status = k_mutex_lock(mutex, K_MSEC(timeout));
 	}
 
 	if (status == -EBUSY) {

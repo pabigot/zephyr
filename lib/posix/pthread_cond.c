@@ -20,7 +20,7 @@ static int cond_wait(pthread_cond_t *cv, pthread_mutex_t *mut, int timeout)
 	mut->lock_count = 0U;
 	mut->owner = NULL;
 	_ready_one_thread(&mut->wait_q);
-	ret = z_pend_curr_irqlock(key, &cv->wait_q, timeout);
+	ret = z_pend_curr_irqlock(key, &cv->wait_q, K_MSEC(timeout));
 
 	/* FIXME: this extra lock (and the potential context switch it
 	 * can cause) could be optimized out.  At the point of the
@@ -71,7 +71,7 @@ int pthread_cond_broadcast(pthread_cond_t *cv)
 
 int pthread_cond_wait(pthread_cond_t *cv, pthread_mutex_t *mut)
 {
-	return cond_wait(cv, mut, K_FOREVER);
+	return cond_wait(cv, mut, K_FOREVER_TICKS);
 }
 
 int pthread_cond_timedwait(pthread_cond_t *cv, pthread_mutex_t *mut,
@@ -80,4 +80,3 @@ int pthread_cond_timedwait(pthread_cond_t *cv, pthread_mutex_t *mut,
 	s32_t timeout = (s32_t)timespec_to_timeoutms(abstime);
 	return cond_wait(cv, mut, timeout);
 }
-

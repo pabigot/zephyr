@@ -385,7 +385,7 @@ static int can_stm32_init(struct device *dev)
 }
 
 int can_stm32_send(struct device *dev, const struct zcan_frame *msg,
-		   s32_t timeout, can_tx_callback_t callback, void *callback_arg)
+		   k_timeout_t timeout, can_tx_callback_t callback, void *callback_arg)
 {
 	const struct can_stm32_config *cfg = DEV_CFG(dev);
 	struct can_stm32_data *data = DEV_DATA(dev);
@@ -417,7 +417,7 @@ int can_stm32_send(struct device *dev, const struct zcan_frame *msg,
 	while (!(transmit_status_register & CAN_TSR_TME)) {
 		k_mutex_unlock(tx_mutex);
 		LOG_DBG("Transmit buffer full. Wait with timeout (%dms)",
-			    timeout);
+			(int)K_TIMEOUT_GET(timeout));
 		if (k_sem_take(&data->tx_int_sem, timeout)) {
 			return CAN_TIMEOUT;
 		}

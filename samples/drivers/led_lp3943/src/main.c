@@ -47,7 +47,7 @@ void main(void)
 				return;
 			}
 
-			k_msleep(DELAY_TIME);
+			k_sleep(DELAY_TIME);
 		}
 
 		/* Turn off LEDs one by one */
@@ -57,7 +57,7 @@ void main(void)
 				return;
 			}
 
-			k_msleep(DELAY_TIME);
+			k_sleep(DELAY_TIME);
 		}
 	}
 }

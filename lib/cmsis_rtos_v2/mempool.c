@@ -45,7 +45,7 @@ osMemoryPoolId_t osMemoryPoolNew(uint32_t block_count, uint32_t block_size,
 		attr = &init_mslab_attrs;
 	}
 
-	if (k_mem_slab_alloc(&cv2_mem_slab, (void **)&mslab, 100) == 0) {
+	if (k_mem_slab_alloc(&cv2_mem_slab, (void **)&mslab, K_MSEC(100)) == 0) {
 		(void)memset(mslab, 0, sizeof(struct cv2_mslab));
 	} else {
 		return NULL;
@@ -108,7 +108,7 @@ void *osMemoryPoolAlloc(osMemoryPoolId_t mp_id, uint32_t timeout)
 	} else {
 		retval = k_mem_slab_alloc(
 			(struct k_mem_slab *)(&mslab->z_mslab),
-			(void **)&ptr, __ticks_to_ms(timeout));
+			(void **)&ptr, K_MSEC(__ticks_to_ms(timeout)));
 	}
 
 	if (retval == 0) {

@@ -940,7 +940,7 @@ struct _static_thread_data {
 	void *init_p3;
 	int init_prio;
 	u32_t init_options;
-	s32_t init_delay;
+	k_timeout_t init_delay;
 	void (*init_abort)(void);
 	const char *init_name;
 };
