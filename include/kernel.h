@@ -2747,7 +2747,7 @@ struct k_work_poll {
 	int num_events;
 	k_work_handler_t real_handler;
 	struct _timeout timeout;
-	bool expired;
+	int poll_result;
 };
 
 extern struct k_work_q k_sys_work_q;

@@ -515,7 +515,7 @@ static void triggered_work_expiration_handler(struct _timeout *timeout)
 		CONTAINER_OF(twork->poller.thread, struct k_work_q, thread);
 
 	twork->poller.is_polling = false;
-	twork->expired = true;
+	twork->poll_result = -EAGAIN;
 
 	k_work_submit_to_queue(work_q, &twork->work);
 }
@@ -531,6 +531,7 @@ static int triggered_work_poller_cb(struct k_poll_event *event, u32_t status)
 			CONTAINER_OF(poller->thread, struct k_work_q, thread);
 
 		z_abort_timeout(&twork->timeout);
+		twork->poll_result = 0;
 		k_work_submit_to_queue(work_q, &twork->work);
 	}
 
@@ -617,8 +618,8 @@ int k_work_poll_submit_to_queue(struct k_work_q *work_q,
 	work->events = events;
 	work->num_events = num_events;
 
-	/* Clear expiration status */
-	work->expired = false;
+	/* Clear result */
+	work->poll_result = -EINPROGRESS;
 
 	/* Register events */
 	events_registered = register_events(events, num_events,
@@ -658,7 +659,9 @@ int k_work_poll_submit_to_queue(struct k_work_q *work_q,
 	 */
 	if (work->poller.is_polling) {
 		work->poller.is_polling = false;
-		work->expired = true;
+		work->poll_result = -EAGAIN;
+	} else {
+		work->poll_result = 0;
 	}
 
 	/* Clear registrations. */

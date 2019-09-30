@@ -52,7 +52,7 @@ static struct triggered_test_item triggered_tests[NUM_TEST_ITEMS];
 
 static int results[NUM_TEST_ITEMS];
 static int num_results;
-static bool expected_expiry_status;
+static int expected_poll_result;
 
 static void work_handler(struct k_work *work)
 {
@@ -443,7 +443,8 @@ static void triggered_work_handler(struct k_work *work)
 
 	TC_PRINT(" - Running triggered test item %d\n", ti->key);
 
-	zassert_true(ti->work.expired == expected_expiry_status, NULL);
+	zassert_equal(ti->work.poll_result, expected_poll_result,
+		     "res %d expect %d", ti->work.poll_result, expected_poll_result);
 
 	results[num_results++] = ti->key;
 }
@@ -518,8 +519,8 @@ static void test_triggered(void)
 {
 	TC_PRINT("Starting triggered test\n");
 
-	/* As work items are triggered, they should be not marked as expired. */
-	expected_expiry_status = false;
+	/* As work items are triggered, they should indicate an event. */
+	expected_poll_result = 0;
 
 	TC_PRINT(" - Initializing triggered test items\n");
 	test_triggered_init();
@@ -549,8 +550,8 @@ static void test_already_triggered(void)
 {
 	TC_PRINT("Starting triggered test\n");
 
-	/* As work items are triggered, they should be not marked as expired. */
-	expected_expiry_status = false;
+	/* As work items are triggered, they should indicate an event. */
+	expected_poll_result = 0;
 
 	TC_PRINT(" - Initializing triggered test items\n");
 	test_triggered_init();
@@ -600,8 +601,8 @@ static void test_triggered_resubmit(void)
 
 	TC_PRINT("Starting triggered resubmit test\n");
 
-	/* As work items are triggered, they should be not marked as expired. */
-	expected_expiry_status = false;
+	/* As work items are triggered, they should indicate an event. */
+	expected_poll_result = 0;
 
 	triggered_tests[0].key = 1;
 	k_work_poll_init(&triggered_tests[0].work,
@@ -642,8 +643,8 @@ static void test_triggered_no_wait(void)
 {
 	TC_PRINT("Starting triggered test\n");
 
-	/* As work items are triggered, they should be not marked as expired. */
-	expected_expiry_status = false;
+	/* As work items are triggered, they should indicate an event. */
+	expected_poll_result = 0;
 
 	TC_PRINT(" - Initializing triggered test items\n");
 	test_triggered_init();
@@ -674,7 +675,7 @@ static void test_triggered_no_wait_expired(void)
 	TC_PRINT("Starting triggered test\n");
 
 	/* As work items are not triggered, they should be marked as expired. */
-	expected_expiry_status = true;
+	expected_poll_result = -EAGAIN;
 
 	TC_PRINT(" - Initializing triggered test items\n");
 	test_triggered_init();
@@ -701,8 +702,8 @@ static void test_triggered_wait(void)
 {
 	TC_PRINT("Starting triggered test\n");
 
-	/* As work items are triggered, they should be not marked as expired. */
-	expected_expiry_status = false;
+	/* As work items are triggered, they should indicate an event. */
+	expected_poll_result = 0;
 
 	TC_PRINT(" - Initializing triggered test items\n");
 	test_triggered_init();
@@ -732,8 +733,8 @@ static void test_triggered_wait_expired(void)
 {
 	TC_PRINT("Starting triggered test\n");
 
-	/* As work items are not triggered, they should be marked as expired. */
-	expected_expiry_status = true;
+	/* As work items are not triggered, they should time out. */
+	expected_poll_result = -EAGAIN;
 
 	TC_PRINT(" - Initializing triggered test items\n");
 	test_triggered_init();
