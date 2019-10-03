@@ -57,10 +57,10 @@ static void thread_time_slice(void *p1, void *p2, void *p3)
 		 * Other threads are sliced with tick granulity. Here, we
 		 * also expecting task switch time below 1 ms.
 		 */
-		expected_slice_min = (z_ms_to_ticks(SLICE_SIZE) - 1) *
-				     sys_clock_hw_cycles_per_tick();
-		expected_slice_max = (z_ms_to_ticks(SLICE_SIZE) *
-				     sys_clock_hw_cycles_per_tick()) +
+		expected_slice_min = (k_ms_to_ticks_ceil32(SLICE_SIZE) - 1) *
+				     k_ticks_to_cyc_floor32(1);
+		expected_slice_max = (k_ms_to_ticks_ceil32(SLICE_SIZE) *
+				     k_ticks_to_cyc_floor32(1)) +
 				     (sys_clock_hw_cycles_per_sec() / 1000);
 	}
 
