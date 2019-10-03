@@ -9,7 +9,7 @@
 
 #define NUM_RANDOM 100
 
-enum units { UNIT_ticks, UNIT_cyc, UNIT_ms, UNIT_us };
+enum units { UNIT_ticks, UNIT_cyc, UNIT_ms, UNIT_us, UNIT_ns };
 
 enum round { ROUND_floor, ROUND_ceil, ROUND_near };
 
@@ -75,6 +75,18 @@ static struct test_rec tests[] = {
 	 TESTREC(ticks, cyc, near, 64),
 	 TESTREC(ticks, cyc, ceil, 32),
 	 TESTREC(ticks, cyc, ceil, 64),
+	 TESTREC(ns, cyc, floor, 64),
+	 TESTREC(ns, cyc, near, 64),
+	 TESTREC(ns, cyc, ceil, 64),
+	 TESTREC(ns, ticks, floor, 64),
+	 TESTREC(ns, ticks, near, 64),
+	 TESTREC(ns, ticks, ceil, 64),
+	 TESTREC(cyc, ns, floor, 64),
+	 TESTREC(cyc, ns, near, 64),
+	 TESTREC(cyc, ns, ceil, 64),
+	 TESTREC(ticks, ns, floor, 64),
+	 TESTREC(ticks, ns, near, 64),
+	 TESTREC(ticks, ns, ceil, 64),
 	};
 
 u32_t get_hz(enum units u)
@@ -87,6 +99,8 @@ u32_t get_hz(enum units u)
 		return 1000;
 	} else if (u == UNIT_us) {
 		return 1000000;
+	} else if (u == UNIT_ns) {
+		return 1000000000;
 	}
 	__ASSERT(0, "");
 	return 0;
