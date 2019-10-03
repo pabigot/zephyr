@@ -119,17 +119,20 @@ static ALWAYS_INLINE u64_t z_tmcvt(u64_t t, u32_t from_hz, u32_t to_hz,
  *
  * my %human = ("ms" => "milliseconds",
  *              "us" => "microseconds",
+ *              "ns" => "nanoseconds",
  *              "cyc" => "hardware cycles",
  *              "ticks" => "ticks");
  *
- * for my $from_unit ("ms", "us", "cyc", "ticks") {
- *     for my $to_unit ("ms", "us", "cyc", "ticks") {
+ * sub big { return $_[0] eq "us" || $_[0] eq "ns"; }
+ * sub prefix { return $_[0] eq "ms" || $_[0] eq "us" || $_[0] eq "ns"; }
+ *
+ * for my $from_unit ("ms", "us", "ns", "cyc", "ticks") {
+ *     for my $to_unit ("ms", "us", "ns", "cyc", "ticks") {
  *         next if $from_unit eq $to_unit;
- *         next if $from_unit eq "us" and $to_unit eq "ms";
- *         next if $from_unit eq "ms" and $to_unit eq "us";
+ *         next if prefix($from_unit) && prefix($to_unit);
  *         for my $round ("floor", "near", "ceil") {
  *             for(my $big=0; $big <= 1; $big++) {
- *                 next if !$big && ($from_unit eq "us" || $to_unit eq "us");
+ *                 next if !$big && (big($from_unit) || big($to_unit));
  *                 my $sz = $big ? 64 : 32;
  *                 my $sym = "k_${from_unit}_to_${to_unit}_$round$sz";
  *                 my $type = "u${sz}_t";
@@ -172,6 +175,7 @@ static ALWAYS_INLINE u64_t z_tmcvt(u64_t t, u32_t from_hz, u32_t to_hz,
  */
 #define Z_HZ_ms 1000
 #define Z_HZ_us 1000000
+#define Z_HZ_ns 1000000000
 #define Z_HZ_cyc sys_clock_hw_cycles_per_sec()
 #define Z_HZ_ticks CONFIG_SYS_CLOCK_TICKS_PER_SEC
 #define Z_CCYC (!IS_ENABLED(CONFIG_TIMER_READS_ITS_FREQUENCY_AT_RUNTIME))
@@ -428,6 +432,90 @@ static inline u64_t k_us_to_ticks_ceil64(u64_t t)
 	return z_tmcvt(t, Z_HZ_us, Z_HZ_ticks, true, false, true, false);
 }
 
+/** @brief Convert nanoseconds to hardware cycles
+ *
+ * Converts time values in nanoseconds to hardware cycles.
+ * Computes result in 64 bit precision.
+ * Truncates to the next lowest output unit.
+ *
+ * @return The converted time value
+ */
+static inline u64_t k_ns_to_cyc_floor64(u64_t t)
+{
+	/* Generated.  Do not edit.  See above. */
+	return z_tmcvt(t, Z_HZ_ns, Z_HZ_cyc, Z_CCYC, false, false, false);
+}
+
+/** @brief Convert nanoseconds to hardware cycles
+ *
+ * Converts time values in nanoseconds to hardware cycles.
+ * Computes result in 64 bit precision.
+ * Rounds to the nearest output unit.
+ *
+ * @return The converted time value
+ */
+static inline u64_t k_ns_to_cyc_near64(u64_t t)
+{
+	/* Generated.  Do not edit.  See above. */
+	return z_tmcvt(t, Z_HZ_ns, Z_HZ_cyc, Z_CCYC, false, false, true);
+}
+
+/** @brief Convert nanoseconds to hardware cycles
+ *
+ * Converts time values in nanoseconds to hardware cycles.
+ * Computes result in 64 bit precision.
+ * Rounds up to the next highest output unit.
+ *
+ * @return The converted time value
+ */
+static inline u64_t k_ns_to_cyc_ceil64(u64_t t)
+{
+	/* Generated.  Do not edit.  See above. */
+	return z_tmcvt(t, Z_HZ_ns, Z_HZ_cyc, Z_CCYC, false, true, false);
+}
+
+/** @brief Convert nanoseconds to ticks
+ *
+ * Converts time values in nanoseconds to ticks.
+ * Computes result in 64 bit precision.
+ * Truncates to the next lowest output unit.
+ *
+ * @return The converted time value
+ */
+static inline u64_t k_ns_to_ticks_floor64(u64_t t)
+{
+	/* Generated.  Do not edit.  See above. */
+	return z_tmcvt(t, Z_HZ_ns, Z_HZ_ticks, true, false, false, false);
+}
+
+/** @brief Convert nanoseconds to ticks
+ *
+ * Converts time values in nanoseconds to ticks.
+ * Computes result in 64 bit precision.
+ * Rounds to the nearest output unit.
+ *
+ * @return The converted time value
+ */
+static inline u64_t k_ns_to_ticks_near64(u64_t t)
+{
+	/* Generated.  Do not edit.  See above. */
+	return z_tmcvt(t, Z_HZ_ns, Z_HZ_ticks, true, false, false, true);
+}
+
+/** @brief Convert nanoseconds to ticks
+ *
+ * Converts time values in nanoseconds to ticks.
+ * Computes result in 64 bit precision.
+ * Rounds up to the next highest output unit.
+ *
+ * @return The converted time value
+ */
+static inline u64_t k_ns_to_ticks_ceil64(u64_t t)
+{
+	/* Generated.  Do not edit.  See above. */
+	return z_tmcvt(t, Z_HZ_ns, Z_HZ_ticks, true, false, true, false);
+}
+
 /** @brief Convert hardware cycles to milliseconds
  *
  * Converts time values in hardware cycles to milliseconds.
@@ -552,6 +640,48 @@ static inline u64_t k_cyc_to_us_ceil64(u64_t t)
 {
 	/* Generated.  Do not edit.  See above. */
 	return z_tmcvt(t, Z_HZ_cyc, Z_HZ_us, Z_CCYC, false, true, false);
+}
+
+/** @brief Convert hardware cycles to nanoseconds
+ *
+ * Converts time values in hardware cycles to nanoseconds.
+ * Computes result in 64 bit precision.
+ * Truncates to the next lowest output unit.
+ *
+ * @return The converted time value
+ */
+static inline u64_t k_cyc_to_ns_floor64(u64_t t)
+{
+	/* Generated.  Do not edit.  See above. */
+	return z_tmcvt(t, Z_HZ_cyc, Z_HZ_ns, Z_CCYC, false, false, false);
+}
+
+/** @brief Convert hardware cycles to nanoseconds
+ *
+ * Converts time values in hardware cycles to nanoseconds.
+ * Computes result in 64 bit precision.
+ * Rounds to the nearest output unit.
+ *
+ * @return The converted time value
+ */
+static inline u64_t k_cyc_to_ns_near64(u64_t t)
+{
+	/* Generated.  Do not edit.  See above. */
+	return z_tmcvt(t, Z_HZ_cyc, Z_HZ_ns, Z_CCYC, false, false, true);
+}
+
+/** @brief Convert hardware cycles to nanoseconds
+ *
+ * Converts time values in hardware cycles to nanoseconds.
+ * Computes result in 64 bit precision.
+ * Rounds up to the next highest output unit.
+ *
+ * @return The converted time value
+ */
+static inline u64_t k_cyc_to_ns_ceil64(u64_t t)
+{
+	/* Generated.  Do not edit.  See above. */
+	return z_tmcvt(t, Z_HZ_cyc, Z_HZ_ns, Z_CCYC, false, true, false);
 }
 
 /** @brief Convert hardware cycles to ticks
@@ -762,6 +892,48 @@ static inline u64_t k_ticks_to_us_ceil64(u64_t t)
 {
 	/* Generated.  Do not edit.  See above. */
 	return z_tmcvt(t, Z_HZ_ticks, Z_HZ_us, true, false, true, false);
+}
+
+/** @brief Convert ticks to nanoseconds
+ *
+ * Converts time values in ticks to nanoseconds.
+ * Computes result in 64 bit precision.
+ * Truncates to the next lowest output unit.
+ *
+ * @return The converted time value
+ */
+static inline u64_t k_ticks_to_ns_floor64(u64_t t)
+{
+	/* Generated.  Do not edit.  See above. */
+	return z_tmcvt(t, Z_HZ_ticks, Z_HZ_ns, true, false, false, false);
+}
+
+/** @brief Convert ticks to nanoseconds
+ *
+ * Converts time values in ticks to nanoseconds.
+ * Computes result in 64 bit precision.
+ * Rounds to the nearest output unit.
+ *
+ * @return The converted time value
+ */
+static inline u64_t k_ticks_to_ns_near64(u64_t t)
+{
+	/* Generated.  Do not edit.  See above. */
+	return z_tmcvt(t, Z_HZ_ticks, Z_HZ_ns, true, false, false, true);
+}
+
+/** @brief Convert ticks to nanoseconds
+ *
+ * Converts time values in ticks to nanoseconds.
+ * Computes result in 64 bit precision.
+ * Rounds up to the next highest output unit.
+ *
+ * @return The converted time value
+ */
+static inline u64_t k_ticks_to_ns_ceil64(u64_t t)
+{
+	/* Generated.  Do not edit.  See above. */
+	return z_tmcvt(t, Z_HZ_ticks, Z_HZ_ns, true, false, true, false);
 }
 
 /** @brief Convert ticks to hardware cycles
