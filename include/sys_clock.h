@@ -73,12 +73,12 @@ extern void z_enable_sys_clock(void);
 #endif
 
 #define __ticks_to_ms(t) k_ticks_to_ms_floor64(t)
-#define z_ms_to_ticks(t) k_ms_to_ticks_ceil32(t)
-#define __ticks_to_us(t) k_ticks_to_us_floor64(t)
-#define z_us_to_ticks(t) k_us_to_ticks_ceil64(t)
-#define sys_clock_hw_cycles_per_tick() k_ticks_to_cyc_floor32(1)
-#define SYS_CLOCK_HW_CYCLES_TO_NS64(t) (1000 * k_cyc_to_us_floor64(t))
-#define SYS_CLOCK_HW_CYCLES_TO_NS(t) ((u32_t)(1000 * k_cyc_to_us_floor64(t)))
+#define z_ms_to_ticks(t) (s32_t)k_ms_to_ticks_ceil32(t)
+#define __ticks_to_us(t) (s32_t)k_ticks_to_us_floor32(t)
+#define z_us_to_ticks(t) (s32_t)k_us_to_ticks_ceil64(t)
+#define sys_clock_hw_cycles_per_tick() (int)k_ticks_to_cyc_floor32(1)
+#define SYS_CLOCK_HW_CYCLES_TO_NS64(t) k_cyc_to_ns_floor64(t)
+#define SYS_CLOCK_HW_CYCLES_TO_NS(t) k_cyc_to_ns_floor32(t)
 
 /* added tick needed to account for tick in progress */
 #define _TICK_ALIGN 1
