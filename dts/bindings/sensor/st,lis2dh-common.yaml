@@ -1,0 +1,9 @@
+# Copyright (c) 2018 STMicroelectronics
+# SPDX-License-Identifier: Apache-2.0
+
+# Material common to st,lis2dh ; st,lis2dh12 ; st,lis3dh
+
+properties:
+    irq-gpios:
+      type: phandle-array
+      required: false
