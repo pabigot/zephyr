@@ -20,8 +20,21 @@
 
 #include "gpio_utils.h"
 
-#define GET_GPIO_PIN_REG(pin) ((u32_t *)(GPIO_PIN0_REG + pin * 4))
-#define GPIO_CPU0_INT_ENABLE ((1 << 2) << GPIO_PIN_INT_ENA_S)
+#define GET_GPIO_PIN_REG(pin) ((u32_t *)GPIO_REG(pin))
+
+/* ESP3 TRM v4.0 and gpio_reg.h header both incorrectly identify bit3
+ * as being the bit selecting PRO CPU interrupt enable. It's actually
+ * bit2.  bit4 and bit5 are also shifted.
+ */
+#define GPIO_CPU0_INT_ENABLE (BIT(2) << GPIO_PIN_INT_ENA_S)
+
+/* ESP3 TRM table 8: CPU Interrupts
+ *
+ * Edge-triggered are: 10, 22, 28, 30
+ * Level-triggered are: 0-5, 8, 9, 12, 13, 17-21, 23-27, 31
+ */
+#define ESP32_IRQ_EDGE_TRIG 0x50400400
+#define ESP32_IRQ_LEVEL_TRIG 0x8fbe333f
 
 struct gpio_esp32_data {
 	/* gpio_driver_data needs to be first */
@@ -209,6 +222,9 @@ static int convert_int_type(enum gpio_int_mode mode,
 	}
 
 	if (mode == GPIO_INT_MODE_LEVEL) {
+		if ((ESP32_IRQ_LEVEL_TRIG & BIT(CONFIG_GPIO_ESP32_IRQ)) == 0) {
+			return -ENOTSUP;
+		}
 		switch (trig) {
 		case GPIO_INT_TRIG_LOW:
 			return 4;
@@ -218,13 +234,17 @@ static int convert_int_type(enum gpio_int_mode mode,
 			return -EINVAL;
 		}
 	} else { /* edge interrupts */
+		if ((ESP32_IRQ_EDGE_TRIG & BIT(CONFIG_GPIO_ESP32_IRQ)) == 0) {
+			return -ENOTSUP;
+		}
 		switch (trig) {
 		case GPIO_INT_TRIG_HIGH:
 			return 1;
 		case GPIO_INT_TRIG_LOW:
 			return 2;
 		case GPIO_INT_TRIG_BOTH:
-			return 3;
+			/* This is supposed to work but doesn't */
+			return -ENOTSUP; /* 3 == any edge */
 		default:
 			return -EINVAL;
 		}
@@ -313,11 +333,10 @@ static void gpio_esp32_fire_callbacks(struct device *device)
 	struct gpio_esp32_data *data = device->driver_data;
 	u32_t values = *data->port.irq.status_reg;
 
+	*data->port.irq.ack_reg = values;
 	if (values & data->cb_pins) {
 		gpio_fire_callbacks(&data->cb, device, values);
 	}
-
-	*data->port.irq.ack_reg = values;
 }
 
 static void gpio_esp32_isr(void *param);
