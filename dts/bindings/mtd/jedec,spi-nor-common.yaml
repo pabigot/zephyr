@@ -2,18 +2,44 @@
 # Copyright (c) 2019 Nordic Semiconductor ASA
 # SPDX-License-Identifier: Apache-2.0
 
-title: SPI NOR flash devices (M25P80 interface)
-
-description: |
-  Properties supporting Zephyr spi-nor flash driver (over the Zephyr SPI
-  API) control of serial flash memories using the standard M25P80-based
-  command set.
-
-compatible: "jedec,spi-nor"
-
-include: [spi-device.yaml, "jedec,spi-nor-common.yaml"]
+# Common properties used by nodes describing M25P80-compatible SPI NOR
+# serial flash devices.
 
 properties:
+  jedec-id:
+    type: uint8-array
+    required: true
+    description: JEDEC ID as manufacturer ID, memory type, memory density
+
+  has-be32k:
+    type: boolean
+    required: false
+    description: Indicates the device supports the BE32K (0xD8) command
+
+  requires-ulbpr:
+    type: boolean
+    required: false
+    description: |
+      Indicates the device requires the ULBPR (0x98) command.
+
+      Some flash chips such as the Microchip SST26VF series have a block
+      protection register that initializes to write-protected.  Use this
+      property to indicate that the BPR must be unlocked before write
+      operations can proceed.
+
+  has-dpd:
+    type: boolean
+    required: false
+    description: |
+      Indicates the device supports the DPD (0xB9) command.
+
+      Use this property to indicate the flash chip supports the Deep
+      Power-Down mode that is entered by command 0xB9 to reduce power
+      consumption below normal standby levels.  Use of this property
+      implies that the RDPD (0xAB) Release from Deep Power Down command
+      is also supported.  (On some chips this command functions as Read
+      Electronic Signature; see t-enter-dpd).
+
   dpd-wakeup-sequence:
     type: array
     required: false
@@ -55,15 +81,7 @@ properties:
 
       If not provided the driver does not enforce a delay.
 
-  wp-gpios:
-    type: phandle-array
-    required: false
-    description: WPn pin
-  hold-gpios:
-    type: phandle-array
-    required: false
-    description: HOLDn pin
-  reset-gpios:
-    type: phandle-array
-    required: false
-    description: RESETn pin
+  size:
+    type: int
+    required: true
+    description: flash capacity in bits
