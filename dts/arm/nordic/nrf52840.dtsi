@@ -39,6 +39,7 @@
 		pwm-2 = &pwm2;
 		pwm-3 = &pwm3;
 		qdec-0 = &qdec;
+		qspi = &qspi;
 		rtc-0 = &rtc0;
 		rtc-1 = &rtc1;
 		rtc-2 = &rtc2;
@@ -210,6 +211,16 @@
 			interrupts = <18 1>;
 			status = "disabled";
 			label = "QDEC";
+		};
+
+		qspi: qspi@40029000 {
+			compatible = "nordic,nrf-qspi";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0x40029000 0x1000>;
+			interrupts = <41 1>;
+			status = "disabled";
+			label = "QSPI";
 		};
 
 		spi0: spi@40003000 {
