@@ -31,6 +31,9 @@ typedef bool (*nrf_clock_handler_t)(struct device *dev);
 
 /* Clock instance structure */
 struct nrf_clock_control {
+	/* Lock protecting ref and list contents */
+	struct k_spinlock lock;
+
 	sys_slist_t list;	/* List of users requesting callback */
 	u8_t ref;		/* Users counter */
 	bool started;		/* Indicated that clock is started */
@@ -62,44 +65,22 @@ static bool clock_event_check_and_clean(nrf_clock_event_t evt, u32_t intmask)
 	return ret;
 }
 
-static void clock_irqs_disable(void)
-{
-	nrf_clock_int_disable(NRF_CLOCK,
-			(NRF_CLOCK_INT_HF_STARTED_MASK |
-			 NRF_CLOCK_INT_LF_STARTED_MASK |
-			 COND_CODE_1(CONFIG_USB_NRFX,
-				(NRF_POWER_INT_USBDETECTED_MASK |
-				 NRF_POWER_INT_USBREMOVED_MASK |
-				 NRF_POWER_INT_USBPWRRDY_MASK),
-				(0))));
-}
-
-static void clock_irqs_enable(void)
-{
-	nrf_clock_int_enable(NRF_CLOCK,
-			(NRF_CLOCK_INT_HF_STARTED_MASK |
-			 NRF_CLOCK_INT_LF_STARTED_MASK |
-			 COND_CODE_1(CONFIG_USB_NRFX,
-				(NRF_POWER_INT_USBDETECTED_MASK |
-				 NRF_POWER_INT_USBREMOVED_MASK |
-				 NRF_POWER_INT_USBPWRRDY_MASK),
-				(0))));
-}
-
 static enum clock_control_status get_status(struct device *dev,
 					    clock_control_subsys_t sys)
 {
 	struct nrf_clock_control *data = dev->driver_data;
+	enum clock_control_status rv = CLOCK_CONTROL_STATUS_OFF;
+	k_spinlock_key_t key = k_spin_lock(&data->lock);
 
 	if (data->started) {
-		return CLOCK_CONTROL_STATUS_ON;
+		rv = CLOCK_CONTROL_STATUS_ON;
+	} else if (data->ref > 0) {
+		rv = CLOCK_CONTROL_STATUS_STARTING;
 	}
 
-	if (data->ref > 0) {
-		return CLOCK_CONTROL_STATUS_STARTING;
-	}
+	k_spin_unlock(&data->lock, key);
 
-	return CLOCK_CONTROL_STATUS_OFF;
+	return rv;
 }
 
 static int clock_stop(struct device *dev, clock_control_subsys_t sub_system)
@@ -108,22 +89,21 @@ static int clock_stop(struct device *dev, clock_control_subsys_t sub_system)
 						dev->config->config_info;
 	struct nrf_clock_control *data = dev->driver_data;
 	int err = 0;
-	int key;
+	k_spinlock_key_t key = k_spin_lock(&data->lock);
 
-	key = irq_lock();
 	if (data->ref == 0) {
 		err = -EALREADY;
 		goto out;
 	}
 	data->ref--;
+
 	if (data->ref == 0) {
-		bool do_stop;
+		bool do_stop = true;
 
 		DBG(dev, "Stopping");
-		sys_slist_init(&data->list);
-
-		do_stop =  (config->stop_handler) ?
-				config->stop_handler(dev) : true;
+		if (config->stop_handler) {
+			do_stop = config->stop_handler(dev);
+		}
 
 		if (do_stop) {
 			nrf_clock_task_trigger(NRF_CLOCK, config->stop_tsk);
@@ -136,52 +116,16 @@ static int clock_stop(struct device *dev, clock_control_subsys_t sub_system)
 			nrf_clock_event_clear(NRF_CLOCK, config->started_evt);
 		}
 
+		/* TBD: Is this the right reaction if the stop_handler
+		 * returned false?
+		 */
 		data->started = false;
 	}
 
 out:
-	irq_unlock(key);
+	k_spin_unlock(&data->lock, key);
 
 	return err;
-}
-
-static bool is_in_list(sys_slist_t *list, sys_snode_t *node)
-{
-	sys_snode_t *item = sys_slist_peek_head(list);
-
-	do {
-		if (item == node) {
-			return true;
-		}
-
-		item = sys_slist_peek_next(item);
-	} while (item);
-
-	return false;
-}
-
-static void list_append(sys_slist_t *list, sys_snode_t *node)
-{
-	int key;
-
-	key = irq_lock();
-	sys_slist_append(list, node);
-	irq_unlock(key);
-}
-
-static struct clock_control_async_data *list_get(sys_slist_t *list)
-{
-	struct clock_control_async_data *async_data;
-	sys_snode_t *node;
-	int key;
-
-	key = irq_lock();
-	node = sys_slist_get(list);
-	irq_unlock(key);
-	async_data = CONTAINER_OF(node,
-		struct clock_control_async_data, node);
-
-	return async_data;
 }
 
 static int clock_async_start(struct device *dev,
@@ -191,45 +135,28 @@ static int clock_async_start(struct device *dev,
 	const struct nrf_clock_control_config *config =
 						dev->config->config_info;
 	struct nrf_clock_control *clk_data = dev->driver_data;
-	int key;
-	u8_t ref;
+	k_spinlock_key_t key;
+	int ret = 0;
 
 	__ASSERT_NO_MSG((data == NULL) ||
 			((data != NULL) && (data->cb != NULL)));
 
-	/* if node is in the list it means that it is scheduled for
-	 * the second time.
-	 */
-	if ((data != NULL)
-	    && is_in_list(&clk_data->list, &data->node)) {
-		return -EBUSY;
-	}
+	key = k_spin_lock(&clk_data->lock);
 
-	key = irq_lock();
-	ref = ++clk_data->ref;
+	bool first_request = (clk_data->ref == 0);
+	bool do_restart = false;
+	bool already_started = clk_data->started;
+
+	++clk_data->ref;
 	__ASSERT_NO_MSG(clk_data->ref > 0);
-	irq_unlock(key);
 
-	if (data) {
-		bool already_started;
+	if (first_request) {
+		bool do_start = true;
 
-		clock_irqs_disable();
-		already_started = clk_data->started;
-		if (!already_started) {
-			list_append(&clk_data->list, &data->node);
+		if (config->start_handler) {
+			do_start = config->start_handler(dev);
 		}
-		clock_irqs_enable();
 
-		if (already_started) {
-			data->cb(dev, data->user_data);
-		}
-	}
-
-	if (ref == 1) {
-		bool do_start;
-
-		do_start =  (config->start_handler) ?
-				config->start_handler(dev) : true;
 		if (do_start) {
 			DBG(dev, "Triggering start task");
 			nrf_clock_task_trigger(NRF_CLOCK,
@@ -243,11 +170,47 @@ static int clock_async_start(struct device *dev,
 			 * completed. In that case clock is still running and
 			 * we can notify enlisted requests.
 			 */
-			clkstarted_handle(dev);
+			do_restart = true;
 		}
 	}
 
-	return 0;
+	/* Handle callback registration if necessary */
+	if (data) {
+		struct clock_control_async_data *user;
+
+		/* Reject registration from already-registered user */
+		SYS_SLIST_FOR_EACH_CONTAINER(&clk_data->list, user, node) {
+			if (user == data) {
+				ret = -EBUSY;
+				goto out;
+			}
+		}
+
+		/* Register callback if not already started */
+		if (!already_started) {
+			sys_slist_append(&clk_data->list, &data->node);
+		}
+	}
+
+
+out:
+	/* Failed requests do not count as references */
+	if (ret != 0) {
+		--clk_data->ref;
+	}
+
+	k_spin_unlock(&clk_data->lock, key);
+
+	if (ret == 0) {
+		if (do_restart) {
+			clkstarted_handle(dev);
+		}
+		if (already_started && (data != NULL)) {
+			data->cb(dev, data->user_data);
+		}
+	}
+
+	return ret;
 }
 
 static int clock_start(struct device *dev, clock_control_subsys_t sub_system)
@@ -279,15 +242,20 @@ static int hfclk_init(struct device *dev)
 		z_nrf_clock_calibration_init(dev);
 	}
 
-	clock_irqs_enable();
-	sys_slist_init(&((struct nrf_clock_control *)dev->driver_data)->list);
+	nrf_clock_int_enable(NRF_CLOCK,
+			(NRF_CLOCK_INT_HF_STARTED_MASK |
+			 NRF_CLOCK_INT_LF_STARTED_MASK |
+			 COND_CODE_1(CONFIG_USB_NRFX,
+				(NRF_POWER_INT_USBDETECTED_MASK |
+				 NRF_POWER_INT_USBREMOVED_MASK |
+				 NRF_POWER_INT_USBPWRRDY_MASK),
+				(0))));
 
 	return 0;
 }
 
 static int lfclk_init(struct device *dev)
 {
-	sys_slist_init(&((struct nrf_clock_control *)dev->driver_data)->list);
 	return 0;
 }
 
@@ -333,13 +301,26 @@ DEVICE_AND_API_INIT(clock_nrf5_k32src,
 
 static void clkstarted_handle(struct device *dev)
 {
-	struct clock_control_async_data *async_data;
 	struct nrf_clock_control *data = dev->driver_data;
 
 	DBG(dev, "Clock started");
-	data->started = true;
 
-	while ((async_data = list_get(&data->list)) != NULL) {
+	/* Under lock set the started flag and swap out the list of
+	 * callbacks */
+	k_spinlock_key_t key = k_spin_lock(&data->lock);
+	sys_slist_t notify = data->list;
+
+	data->started = true;
+	sys_slist_init(&data->list);
+
+	k_spin_unlock(&data->lock, key);
+
+	/* Notify all registered users the start event */
+	sys_snode_t *node = sys_slist_get(&notify);
+	while (node != NULL) {
+		struct clock_control_async_data *async_data =
+			CONTAINER_OF(node, struct clock_control_async_data, node);
+
 		async_data->cb(dev, async_data->user_data);
 	}
 }

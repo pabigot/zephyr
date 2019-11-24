@@ -72,12 +72,11 @@ bool z_nrf_clock_calibration_start(struct device *dev)
 	bool ret;
 	int key = irq_lock();
 
-	if (cal_state != CAL_ACTIVE_OFF) {
-		ret = true;
-	} else {
-		ret = false;
-	}
+	ret = (cal_state != CAL_ACTIVE_OFF);
 
+	/* TODO: Is it really safe to abruptly override the current
+	 * state just because somebody invoked
+	 * clock_control_async_on() for the LFCLK? */
 	cal_state = CAL_IDLE;
 
 	irq_unlock(key);
