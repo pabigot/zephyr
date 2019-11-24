@@ -197,6 +197,14 @@ static int clock_async_start(struct device *dev,
 	__ASSERT_NO_MSG((data == NULL) ||
 			((data != NULL) && (data->cb != NULL)));
 
+	/* if node is in the list it means that it is scheduled for
+	 * the second time.
+	 */
+	if ((data != NULL)
+	    && is_in_list(&clk_data->list, &data->node)) {
+		return -EBUSY;
+	}
+
 	key = irq_lock();
 	ref = ++clk_data->ref;
 	__ASSERT_NO_MSG(clk_data->ref > 0);
@@ -204,13 +212,6 @@ static int clock_async_start(struct device *dev,
 
 	if (data) {
 		bool already_started;
-
-		/* if node is in the list it means that it is scheduled for
-		 * the second time.
-		 */
-		if (is_in_list(&clk_data->list, &data->node)) {
-			return -EALREADY;
-		}
 
 		clock_irqs_disable();
 		already_started = clk_data->started;
