@@ -321,11 +321,11 @@ struct bt_le_adv_param {
   * @param _int_max   Maximum advertising interval
   */
 #define BT_LE_ADV_PARAM(_options, _int_min, _int_max) \
-		(&(struct bt_le_adv_param) { \
-			.options = (_options), \
-			.interval_min = (_int_min), \
-			.interval_max = (_int_max), \
-		 })
+	((const struct bt_le_adv_param[1]) {{		\
+			.options = (_options),		\
+			.interval_min = (_int_min),	\
+			.interval_max = (_int_max),	\
+		}})
 
 #define BT_LE_ADV_CONN BT_LE_ADV_PARAM(BT_LE_ADV_OPT_CONNECTABLE, \
 				       BT_GAP_ADV_FAST_INT_MIN_2, \

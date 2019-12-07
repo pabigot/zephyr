@@ -22,6 +22,8 @@
 #include <bluetooth/uuid.h>
 #include <bluetooth/gatt.h>
 
+#include "cts.h"
+
 static u8_t ct[10];
 static u8_t ct_update;
 
@@ -33,7 +35,7 @@ static void ct_ccc_cfg_changed(const struct bt_gatt_attr *attr, u16_t value)
 static ssize_t read_ct(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 		       void *buf, u16_t len, u16_t offset)
 {
-	const char *value = attr->user_data;
+	const char *value = (const char *)attr->user_data;
 
 	return bt_gatt_attr_read(conn, attr, buf, len, offset, value,
 				 sizeof(ct));
@@ -43,7 +45,7 @@ static ssize_t write_ct(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 			const void *buf, u16_t len, u16_t offset,
 			u8_t flags)
 {
-	u8_t *value = attr->user_data;
+	u8_t *value = (u8_t *)attr->user_data;
 
 	if (offset + len > sizeof(ct)) {
 		return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
