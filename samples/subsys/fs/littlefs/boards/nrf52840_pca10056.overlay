@@ -9,6 +9,7 @@
 	status = "disabled";
 };
 
+/delete-node/ &storage_partition;
 /delete-node/ &mx25r64;
 
 &qspi {
@@ -25,6 +26,7 @@
 		label = "MX25R64";
 		jedec-id = [c2 28 17];
 		size = <67108864>;
+		has-be32k;
 		has-dpd;
 		t-enter-dpd = <10000>;
 		t-exit-dpd = <35000>;
@@ -37,17 +39,9 @@
 		#address-cells = <1>;
 		#size-cells = <1>;
 
- 		partition@0 {
-			label = "small";
+		partition@0 {
+			label = "storage";
 			reg = <0x00000000 0x00010000>;
-		};
-		partition@10000 {
-			label = "medium";
-			reg = <0x00010000 0x000F0000>;
-		};
-		partition@100000 {
-			label = "large";
-			reg = <0x00100000 0x00300000>;
 		};
 	};
 };
