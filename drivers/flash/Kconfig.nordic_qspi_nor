@@ -1,0 +1,37 @@
+# Copyright (c) 2019, Nordic Semiconductor ASA
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig QSPI_NOR
+	bool "QSPI NOR Flash"
+	select FLASH_HAS_DRIVER_ENABLED
+	depends on HAS_HW_NRF_QSPI
+
+if QSPI_NOR
+config QSPI_NRF_QSPI
+	bool "nRF QSPI nrfx driver"
+	default y
+	select NRFX_QSPI
+	help
+	  Enable support for nrfx QSPI driver with EasyDMA.
+
+config	QE_BIT
+	int "Quad Enable bit number in Status Regiter"
+	default 6
+
+config QSPI_NOR_INIT_PRIORITY
+	int
+	default 80
+	help
+	  Device driver initialization priority.
+	  Device is connected to SPI bus, it has to
+	  be initialized after SPI driver.
+
+config QSPI_NOR_FLASH_LAYOUT_PAGE_SIZE
+	int "Page size to use for FLASH_LAYOUT feature"
+	default 65536
+	help
+	  When CONFIG_FLASH_PAGE_LAYOUT is used this driver will support
+	  that API.  By default the page size corresponds to the block
+	  size (65536).  Other option include the sector size (4096).
+
+endif # QSPI_NOR
