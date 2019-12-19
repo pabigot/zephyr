@@ -8,7 +8,7 @@ compatible: "nordic,nrf-qspi"
 
 include: flash-controller.yaml
 
-child-bus: qspi
+bus: qspi
 
 properties:
   "#address-cells":
