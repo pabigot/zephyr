@@ -29,6 +29,7 @@ LOG_MODULE_REGISTER(button_svc);
 
 #define BUT_PORT    DT_ALIAS_SW0_GPIOS_CONTROLLER
 #define BUT_PIN     DT_ALIAS_SW0_GPIOS_PIN
+#define BUT_FLAGS   DT_ALIAS_SW0_GPIOS_FLAGS
 
 extern struct bt_conn *conn;
 extern struct bt_gatt_service_static stsensor_svc[];
@@ -70,12 +71,11 @@ int button_init(void)
 	}
 
 	gpio_pin_configure(button_dev, BUT_PIN,
-			   GPIO_DIR_IN | GPIO_INT | GPIO_INT_EDGE |
-			   GPIO_PUD_PULL_UP | GPIO_INT_DEBOUNCE |
-			   GPIO_INT_ACTIVE_LOW);
+			   GPIO_INPUT | BUT_FLAGS);
 	gpio_init_callback(&gpio_cb, button_pressed, BIT(BUT_PIN));
 	gpio_add_callback(button_dev, &gpio_cb);
-	gpio_pin_enable_callback(button_dev, BUT_PIN);
+	gpio_pin_interrupt_configure(button_dev, BUT_PIN,
+				     GPIO_INT_EDGE_TO_ACTIVE);
 	but_val = 0;
 	return 0;
 }
