@@ -13,7 +13,7 @@
  */
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(wpan_serial, CONFIG_USB_DEVICE_LOG_LEVEL);
+LOG_MODULE_REGISTER(wpan_serial, CONFIG_USB_DRIVER_LOG_LEVEL);
 
 #include <drivers/uart.h>
 #include <zephyr.h>
