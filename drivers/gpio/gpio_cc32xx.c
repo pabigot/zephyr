@@ -256,39 +256,6 @@ static int gpio_cc32xx_manage_callback(struct device *dev,
 }
 
 
-static int gpio_cc32xx_enable_callback(struct device *dev,
-				    int access_op, u32_t pin)
-{
-	struct gpio_cc32xx_data *data = DEV_DATA(dev);
-
-	__ASSERT(pin < 8, "Invalid pin number - only 8 pins per port");
-
-	if (access_op == GPIO_ACCESS_BY_PIN) {
-		data->pin_callback_enables |= (1 << pin);
-	} else {
-		data->pin_callback_enables = 0xFFFFFFFF;
-	}
-
-	return 0;
-}
-
-
-static int gpio_cc32xx_disable_callback(struct device *dev,
-				     int access_op, u32_t pin)
-{
-	struct gpio_cc32xx_data *data = DEV_DATA(dev);
-
-	__ASSERT(pin < 8, "Invalid pin number - only 8 pins per port");
-
-	if (access_op == GPIO_ACCESS_BY_PIN) {
-		data->pin_callback_enables &= ~(1 << pin);
-	} else {
-		data->pin_callback_enables = 0U;
-	}
-
-	return 0;
-}
-
 static void gpio_cc32xx_port_isr(void *arg)
 {
 	struct device *dev = arg;
@@ -324,9 +291,6 @@ static const struct gpio_driver_api api_funcs = {
 	.port_toggle_bits = gpio_cc32xx_port_toggle_bits,
 	.pin_interrupt_configure = gpio_cc32xx_pin_interrupt_configure,
 	.manage_callback = gpio_cc32xx_manage_callback,
-	.enable_callback = gpio_cc32xx_enable_callback,
-	.disable_callback = gpio_cc32xx_disable_callback,
-
 };
 
 #ifdef CONFIG_GPIO_CC32XX_A0

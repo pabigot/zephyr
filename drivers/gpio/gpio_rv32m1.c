@@ -312,34 +312,6 @@ static int gpio_rv32m1_manage_callback(struct device *dev,
 	return 0;
 }
 
-static int gpio_rv32m1_enable_callback(struct device *dev,
-				     int access_op, u32_t pin)
-{
-	struct gpio_rv32m1_data *data = dev->driver_data;
-
-	if (access_op == GPIO_ACCESS_BY_PIN) {
-		data->pin_callback_enables |= BIT(pin);
-	} else {
-		data->pin_callback_enables = 0xFFFFFFFF;
-	}
-
-	return 0;
-}
-
-static int gpio_rv32m1_disable_callback(struct device *dev,
-				      int access_op, u32_t pin)
-{
-	struct gpio_rv32m1_data *data = dev->driver_data;
-
-	if (access_op == GPIO_ACCESS_BY_PIN) {
-		data->pin_callback_enables &= ~BIT(pin);
-	} else {
-		data->pin_callback_enables = 0U;
-	}
-
-	return 0;
-}
-
 static void gpio_rv32m1_port_isr(void *arg)
 {
 	struct device *dev = (struct device *)arg;
@@ -390,8 +362,6 @@ static const struct gpio_driver_api gpio_rv32m1_driver_api = {
 	.port_toggle_bits = gpio_rv32m1_port_toggle_bits,
 	.pin_interrupt_configure = gpio_rv32m1_pin_interrupt_configure,
 	.manage_callback = gpio_rv32m1_manage_callback,
-	.enable_callback = gpio_rv32m1_enable_callback,
-	.disable_callback = gpio_rv32m1_disable_callback,
 };
 
 #ifdef CONFIG_GPIO_RV32M1_PORTA

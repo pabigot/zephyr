@@ -325,52 +325,6 @@ static int gpio_sam_manage_callback(struct device *port,
 	return gpio_manage_callback(&context->cb, callback, set);
 }
 
-static int gpio_sam_enable_callback(struct device *port,
-				    int access_op, u32_t pin)
-{
-	const struct gpio_sam_config * const cfg = DEV_CFG(port);
-	Pio * const pio = cfg->regs;
-	u32_t mask;
-
-	switch (access_op) {
-	case GPIO_ACCESS_BY_PIN:
-		mask = BIT(pin);
-		break;
-	case GPIO_ACCESS_BY_PORT:
-		mask = 0xFFFFFFFF;
-		break;
-	default:
-		return -ENOTSUP;
-	}
-
-	pio->PIO_IER |= mask;
-
-	return 0;
-}
-
-static int gpio_sam_disable_callback(struct device *port,
-				     int access_op, u32_t pin)
-{
-	const struct gpio_sam_config * const cfg = DEV_CFG(port);
-	Pio * const pio = cfg->regs;
-	u32_t mask;
-
-	switch (access_op) {
-	case GPIO_ACCESS_BY_PIN:
-		mask = BIT(pin);
-		break;
-	case GPIO_ACCESS_BY_PORT:
-		mask = 0xFFFFFFFF;
-		break;
-	default:
-		return -ENOTSUP;
-	}
-
-	pio->PIO_IDR |= mask;
-
-	return 0;
-}
-
 static const struct gpio_driver_api gpio_sam_api = {
 	.config = gpio_sam_config,
 	.write = gpio_sam_write,
@@ -382,8 +336,6 @@ static const struct gpio_driver_api gpio_sam_api = {
 	.port_toggle_bits = gpio_sam_port_toggle_bits,
 	.pin_interrupt_configure = gpio_sam_pin_interrupt_configure,
 	.manage_callback = gpio_sam_manage_callback,
-	.enable_callback = gpio_sam_enable_callback,
-	.disable_callback = gpio_sam_disable_callback,
 };
 
 int gpio_sam_init(struct device *dev)

@@ -260,36 +260,6 @@ static int gpio_stellaris_init(struct device *dev)
 	return 0;
 }
 
-static int gpio_stellaris_enable_callback(struct device *dev,
-					  int access_op, u32_t pin)
-{
-	const struct gpio_stellaris_config * const cfg = DEV_CFG(dev);
-	u32_t base = cfg->base;
-
-	if (access_op != GPIO_ACCESS_BY_PIN) {
-		return -EINVAL;
-	}
-
-	sys_set_bit(GPIO_REG_ADDR(base, GPIO_IM_OFFSET), pin);
-
-	return 0;
-}
-
-static int gpio_stellaris_disable_callback(struct device *dev,
-					   int access_op, u32_t pin)
-{
-	const struct gpio_stellaris_config * const cfg = DEV_CFG(dev);
-	u32_t base = cfg->base;
-
-	if (access_op != GPIO_ACCESS_BY_PIN) {
-		return -EINVAL;
-	}
-
-	sys_clear_bit(GPIO_REG_ADDR(base, GPIO_IM_OFFSET), pin);
-
-	return 0;
-}
-
 static int gpio_stellaris_manage_callback(struct device *dev,
 					  struct gpio_callback *callback,
 					  bool set)
@@ -312,8 +282,6 @@ static const struct gpio_driver_api gpio_stellaris_driver_api = {
 	.port_toggle_bits = gpio_stellaris_port_toggle_bits,
 	.pin_interrupt_configure = gpio_stellaris_pin_interrupt_configure,
 	.manage_callback = gpio_stellaris_manage_callback,
-	.enable_callback = gpio_stellaris_enable_callback,
-	.disable_callback = gpio_stellaris_disable_callback,
 };
 
 #ifdef CONFIG_GPIO_A_STELLARIS

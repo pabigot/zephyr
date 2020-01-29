@@ -322,33 +322,6 @@ static int gpio_xec_manage_callback(struct device *dev,
 	return 0;
 }
 
-static int gpio_xec_enable_callback(struct device *dev,
-				    int access_op, u32_t pin)
-{
-	struct gpio_xec_data *data = dev->driver_data;
-
-	if (access_op == GPIO_ACCESS_BY_PIN) {
-		data->pin_callback_enables |= BIT(pin);
-	} else { /* GPIO_ACCESS_BY_PORT not supported */
-		return -EINVAL;
-	}
-
-	return 0;
-}
-
-static int gpio_xec_disable_callback(struct device *dev,
-				     int access_op, u32_t pin)
-{
-	struct gpio_xec_data *data = dev->driver_data;
-
-	if (access_op == GPIO_ACCESS_BY_PIN) {
-		data->pin_callback_enables &= ~BIT(pin);
-	} else { /* GPIO_ACCESS_BY_PORT not supported */
-		return -EINVAL;
-	}
-	return 0;
-}
-
 static void gpio_gpio_xec_port_isr(void *arg)
 {
 	struct device *dev = (struct device *)arg;
@@ -380,8 +353,6 @@ static const struct gpio_driver_api gpio_xec_driver_api = {
 	.port_toggle_bits = gpio_xec_port_toggle_bits,
 	.pin_interrupt_configure = gpio_xec_pin_interrupt_configure,
 	.manage_callback = gpio_xec_manage_callback,
-	.enable_callback = gpio_xec_enable_callback,
-	.disable_callback = gpio_xec_disable_callback,
 };
 
 #ifdef CONFIG_GPIO_XEC_GPIO000_036

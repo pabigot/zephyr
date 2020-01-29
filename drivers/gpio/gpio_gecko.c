@@ -300,36 +300,6 @@ static int gpio_gecko_manage_callback(struct device *dev,
 	return gpio_manage_callback(&data->callbacks, callback, set);
 }
 
-static int gpio_gecko_enable_callback(struct device *dev,
-				      int access_op, u32_t pin)
-{
-	struct gpio_gecko_data *data = dev->driver_data;
-
-	if (access_op == GPIO_ACCESS_BY_PORT) {
-		return -ENOTSUP;
-	}
-
-	data->pin_callback_enables |= BIT(pin);
-	GPIO->IEN |= BIT(pin);
-
-	return 0;
-}
-
-static int gpio_gecko_disable_callback(struct device *dev,
-				       int access_op, u32_t pin)
-{
-	struct gpio_gecko_data *data = dev->driver_data;
-
-	if (access_op == GPIO_ACCESS_BY_PORT) {
-		return -ENOTSUP;
-	}
-
-	data->pin_callback_enables &= ~BIT(pin);
-	GPIO->IEN &= ~BIT(pin);
-
-	return 0;
-}
-
 /**
  * Handler for both odd and even pin interrupts
  */
@@ -368,14 +338,10 @@ static const struct gpio_driver_api gpio_gecko_driver_api = {
 	.port_toggle_bits = gpio_gecko_port_toggle_bits,
 	.pin_interrupt_configure = gpio_gecko_pin_interrupt_configure,
 	.manage_callback = gpio_gecko_manage_callback,
-	.enable_callback = gpio_gecko_enable_callback,
-	.disable_callback = gpio_gecko_disable_callback,
 };
 
 static const struct gpio_driver_api gpio_gecko_common_driver_api = {
 	.manage_callback = gpio_gecko_manage_callback,
-	.enable_callback = gpio_gecko_enable_callback,
-	.disable_callback = gpio_gecko_disable_callback,
 };
 
 #ifdef CONFIG_GPIO_GECKO

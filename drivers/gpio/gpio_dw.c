@@ -465,50 +465,6 @@ static inline int gpio_dw_manage_callback(struct device *port,
 	return gpio_manage_callback(&context->callbacks, callback, set);
 }
 
-static inline int gpio_dw_enable_callback(struct device *port, int access_op,
-					  u32_t pin)
-{
-	const struct gpio_dw_config *config = port->config->config_info;
-	struct gpio_dw_runtime *context = port->driver_data;
-	u32_t base_addr = dw_base_to_block_base(context->base_addr);
-	u32_t data_port = dw_get_data_port(context->base_addr);
-
-	if (data_port != SWPORTA_DR) {
-		return -ENOTSUP;
-	}
-
-	if (GPIO_ACCESS_BY_PIN == access_op) {
-		dw_write(base_addr, PORTA_EOI, BIT(pin));
-		dw_set_bit(base_addr, INTMASK, pin, 0);
-	} else {
-		dw_write(base_addr, PORTA_EOI, BIT_MASK(config->bits));
-		dw_write(base_addr, INTMASK, 0);
-	}
-
-	return 0;
-}
-
-static inline int gpio_dw_disable_callback(struct device *port, int access_op,
-					   u32_t pin)
-{
-	const struct gpio_dw_config *config = port->config->config_info;
-	struct gpio_dw_runtime *context = port->driver_data;
-	u32_t base_addr = dw_base_to_block_base(context->base_addr);
-	u32_t data_port = dw_get_data_port(context->base_addr);
-
-	if (data_port != SWPORTA_DR) {
-		return -ENOTSUP;
-	}
-
-	if (GPIO_ACCESS_BY_PIN == access_op) {
-		dw_set_bit(base_addr, INTMASK, pin, 1);
-	} else {
-		dw_write(base_addr, INTMASK, BIT_MASK(config->bits));
-	}
-
-	return 0;
-}
-
 #ifdef CONFIG_DEVICE_POWER_MANAGEMENT
 static void gpio_dw_set_power_state(struct device *port, u32_t power_state)
 {
@@ -605,8 +561,6 @@ static const struct gpio_driver_api api_funcs = {
 	.port_toggle_bits = gpio_dw_port_toggle_bits,
 	.pin_interrupt_configure = gpio_dw_pin_interrupt_configure,
 	.manage_callback = gpio_dw_manage_callback,
-	.enable_callback = gpio_dw_enable_callback,
-	.disable_callback = gpio_dw_disable_callback,
 };
 
 static int gpio_dw_initialize(struct device *port)
