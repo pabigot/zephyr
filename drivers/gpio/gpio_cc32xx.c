@@ -70,7 +70,8 @@ static int gpio_cc32xx_port_set_bits_raw(struct device *port, u32_t mask);
 static int gpio_cc32xx_port_clear_bits_raw(struct device *port, u32_t mask);
 
 static inline int gpio_cc32xx_config(struct device *port,
-				   u32_t pin, int flags)
+				     gpio_pin_t pin,
+				     gpio_flags_t flags)
 {
 	const struct gpio_cc32xx_config *gpio_config = DEV_CFG(port);
 	unsigned long port_base = gpio_config->port_base;

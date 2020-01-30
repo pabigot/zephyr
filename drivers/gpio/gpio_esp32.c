@@ -56,7 +56,8 @@ struct gpio_esp32_data {
 };
 
 static int gpio_esp32_config(struct device *dev,
-			     u32_t pin, int flags)
+			     gpio_pin_t pin,
+			     gpio_flags_t flags)
 {
 	struct gpio_esp32_data *data = dev->driver_data;
 	u32_t io_pin = pin + data->port.pin_offset; /* Range from 0 - 39 */

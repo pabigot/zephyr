@@ -71,7 +71,8 @@ static inline void gpio_gecko_add_port(struct gpio_gecko_common_data *data,
 }
 
 static int gpio_gecko_configure(struct device *dev,
-				u32_t pin, int flags)
+				gpio_pin_t pin,
+				gpio_flags_t flags)
 {
 	const struct gpio_gecko_config *config = dev->config->config_info;
 	GPIO_P_TypeDef *gpio_base = config->gpio_base;

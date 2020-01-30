@@ -92,7 +92,7 @@ static int gpio_litex_init(struct device *dev)
 }
 
 static int gpio_litex_configure(struct device *dev,
-				u32_t pin, int flags)
+				gpio_pin_t pin, gpio_flags_t flags)
 {
 	const struct gpio_litex_cfg *gpio_config = DEV_GPIO_CFG(dev);
 

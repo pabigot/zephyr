@@ -305,7 +305,7 @@ static int setup_pin_pullupdown(struct device *dev, u32_t pin, int flags)
  * @return 0 if successful, failed otherwise
  */
 static int gpio_pca95xx_config(struct device *dev,
-				 u32_t pin, int flags)
+			       gpio_pin_t pin, gpio_flags_t flags)
 {
 	int ret;
 	struct gpio_pca95xx_drv_data * const drv_data =

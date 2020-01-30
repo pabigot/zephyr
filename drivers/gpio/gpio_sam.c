@@ -36,7 +36,8 @@ struct gpio_sam_runtime {
 
 #define GPIO_SAM_ALL_PINS    0xFFFFFFFF
 
-static int gpio_sam_port_configure(struct device *dev, u32_t mask, int flags)
+static int gpio_sam_port_configure(struct device *dev, u32_t mask,
+				   gpio_flags_t flags)
 {
 	const struct gpio_sam_config * const cfg = DEV_CFG(dev);
 	Pio * const pio = cfg->regs;
@@ -127,8 +128,8 @@ static int gpio_sam_port_configure(struct device *dev, u32_t mask, int flags)
 	return 0;
 }
 
-static int gpio_sam_config(struct device *dev, u32_t pin,
-			   int flags)
+static int gpio_sam_config(struct device *dev, gpio_pin_t pin,
+			   gpio_flags_t flags)
 {
 	return gpio_sam_port_configure(dev, BIT(pin), flags);
 }

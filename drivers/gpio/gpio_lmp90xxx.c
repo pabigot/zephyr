@@ -33,7 +33,7 @@ struct gpio_lmp90xxx_data {
 };
 
 static int gpio_lmp90xxx_config(struct device *dev,
-				u32_t pin, int flags)
+				gpio_pin_t pin, gpio_flags_t flags)
 {
 	struct gpio_lmp90xxx_data *data = dev->driver_data;
 	int err = 0;

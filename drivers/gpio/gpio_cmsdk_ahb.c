@@ -88,7 +88,7 @@ static int gpio_cmsdk_ahb_port_toggle_bits(struct device *dev, u32_t mask)
 	return 0;
 }
 
-static int cmsdk_ahb_gpio_config(struct device *dev, u32_t mask, int flags)
+static int cmsdk_ahb_gpio_config(struct device *dev, u32_t mask, gpio_flags_t flags)
 {
 	const struct gpio_cmsdk_ahb_cfg * const cfg = dev->config->config_info;
 
@@ -136,7 +136,8 @@ static int cmsdk_ahb_gpio_config(struct device *dev, u32_t mask, int flags)
  * @return 0 if successful, failed otherwise
  */
 static int gpio_cmsdk_ahb_config(struct device *dev,
-				 u32_t pin, int flags)
+				 gpio_pin_t pin,
+				 gpio_flags_t flags)
 {
 	return cmsdk_ahb_gpio_config(dev, BIT(pin), flags);
 }

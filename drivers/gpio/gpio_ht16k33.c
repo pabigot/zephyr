@@ -38,7 +38,8 @@ struct gpio_ht16k33_data {
 };
 
 static int gpio_ht16k33_cfg(struct device *dev,
-			    u32_t pin, int flags)
+			    gpio_pin_t pin,
+			    gpio_flags_t flags)
 {
 	ARG_UNUSED(dev);
 	ARG_UNUSED(pin);

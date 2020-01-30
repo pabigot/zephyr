@@ -79,7 +79,7 @@ static void gpio_stellaris_isr(void *arg)
 }
 
 static int gpio_stellaris_configure(struct device *dev,
-				    u32_t pin, int flags)
+				    gpio_pin_t pin, gpio_flags_t flags)
 {
 	const struct gpio_stellaris_config *cfg = DEV_CFG(dev);
 	u32_t base = cfg->base;

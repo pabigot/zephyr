@@ -128,7 +128,7 @@ static int gpiote_pin_int_cfg(struct device *port, u32_t pin)
 }
 
 static int gpio_nrfx_config(struct device *port,
-			    u32_t pin, int flags)
+			    gpio_pin_t pin, gpio_flags_t flags)
 {
 	NRF_GPIO_Type *reg = get_port_cfg(port)->port;
 	nrf_gpio_pin_pull_t pull;

@@ -32,7 +32,7 @@ struct gpio_mcux_data {
 };
 
 static int gpio_mcux_configure(struct device *dev,
-			       u32_t pin, int flags)
+			       gpio_pin_t pin, gpio_flags_t flags)
 {
 	const struct gpio_mcux_config *config = dev->config->config_info;
 	GPIO_Type *gpio_base = config->gpio_base;

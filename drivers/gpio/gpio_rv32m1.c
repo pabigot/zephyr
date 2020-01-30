@@ -70,7 +70,7 @@ static u32_t get_port_pcr_irqc_value_from_flags(struct device *dev,
 }
 
 static int gpio_rv32m1_configure(struct device *dev,
-				 u32_t pin, int flags)
+				 gpio_pin_t pin, gpio_flags_t flags)
 {
 	const struct gpio_rv32m1_config *config = dev->config->config_info;
 	GPIO_Type *gpio_base = config->gpio_base;

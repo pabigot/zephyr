@@ -302,7 +302,8 @@ static inline void dw_pin_config(struct device *port,
 }
 
 static inline int gpio_dw_config(struct device *port,
-				 u32_t pin, int flags)
+				 gpio_pin_t pin,
+				 gpio_flags_t flags)
 {
 	const struct gpio_dw_config *config = port->config->config_info;
 	u32_t io_flags;

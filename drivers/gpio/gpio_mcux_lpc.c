@@ -56,8 +56,8 @@ struct gpio_mcux_lpc_data {
 	u32_t isr_list_idx;
 };
 
-static int gpio_mcux_lpc_configure(struct device *dev, u32_t pin,
-				   int flags)
+static int gpio_mcux_lpc_configure(struct device *dev, gpio_pin_t pin,
+				   gpio_flags_t flags)
 {
 	const struct gpio_mcux_lpc_config *config = dev->config->config_info;
 	GPIO_Type *gpio_base = config->gpio_base;

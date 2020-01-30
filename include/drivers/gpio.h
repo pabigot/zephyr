@@ -544,14 +544,14 @@ enum gpio_int_trig {
 };
 
 struct gpio_driver_api {
-	int (*config)(struct device *port, u32_t pin, int flags);
+	int (*config)(struct device *port, gpio_pin_t pin, gpio_flags_t flags);
 	int (*port_get_raw)(struct device *port, gpio_port_value_t *value);
 	int (*port_set_masked_raw)(struct device *port, gpio_port_pins_t mask,
 				   gpio_port_value_t value);
 	int (*port_set_bits_raw)(struct device *port, gpio_port_pins_t pins);
 	int (*port_clear_bits_raw)(struct device *port, gpio_port_pins_t pins);
 	int (*port_toggle_bits)(struct device *port, gpio_port_pins_t pins);
-	int (*pin_interrupt_configure)(struct device *port, unsigned int pin,
+	int (*pin_interrupt_configure)(struct device *port, gpio_pin_t pin,
 				       enum gpio_int_mode, enum gpio_int_trig);
 	int (*manage_callback)(struct device *port, struct gpio_callback *cb,
 			       bool set);

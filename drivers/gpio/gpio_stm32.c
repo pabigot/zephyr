@@ -382,7 +382,7 @@ static int gpio_stm32_port_toggle_bits(struct device *dev,
  * @brief Configure pin or port
  */
 static int gpio_stm32_config(struct device *dev,
-			     u32_t pin, int flags)
+			     gpio_pin_t pin, gpio_flags_t flags)
 {
 	const struct gpio_stm32_config *cfg = dev->config->config_info;
 	int err = 0;

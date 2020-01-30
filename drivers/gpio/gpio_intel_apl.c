@@ -206,7 +206,7 @@ static int gpio_intel_apl_isr(struct device *dev)
 }
 
 static int gpio_intel_apl_config(struct device *dev,
-				 u32_t pin, int flags)
+				 gpio_pin_t pin, gpio_flags_t flags)
 {
 	const struct gpio_intel_apl_config *cfg = dev->config->config_info;
 	struct gpio_intel_apl_data *data = dev->driver_data;

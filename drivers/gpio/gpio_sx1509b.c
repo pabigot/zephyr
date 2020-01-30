@@ -111,8 +111,8 @@ static inline int i2c_reg_write_word_be(struct device *dev, u16_t dev_addr,
 }
 
 static int sx1509b_config(struct device *dev,
-			  u32_t pin,
-			  int flags)
+			  gpio_pin_t pin,
+			  gpio_flags_t flags)
 {
 	const struct sx1509b_config *cfg = dev->config->config_info;
 	struct sx1509b_drv_data *drv_data = dev->driver_data;

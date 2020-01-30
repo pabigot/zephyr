@@ -30,7 +30,7 @@
 #include <errno.h>
 
 static int gpio_mmio32_config(struct device *dev,
-					u32_t pin, int flags)
+			      gpio_pin_t pin, gpio_flags_t flags)
 {
 	struct gpio_mmio32_context *context = dev->driver_data;
 	const struct gpio_mmio32_config *config = context->config;

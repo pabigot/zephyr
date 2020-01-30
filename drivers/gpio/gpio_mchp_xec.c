@@ -45,7 +45,7 @@ struct gpio_xec_config {
 };
 
 static int gpio_xec_configure(struct device *dev,
-			      u32_t pin, int flags)
+			      gpio_pin_t pin, gpio_flags_t flags)
 {
 	const struct gpio_xec_config *config = dev->config->config_info;
 	__IO u32_t *current_pcr1;
