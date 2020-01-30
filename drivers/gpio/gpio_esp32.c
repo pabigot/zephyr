@@ -297,34 +297,6 @@ static int gpio_esp32_manage_callback(struct device *dev,
 	return gpio_manage_callback(&data->cb, callback, set);
 }
 
-static int gpio_esp32_enable_callback(struct device *dev,
-				      int access_op, u32_t pin)
-{
-	struct gpio_esp32_data *data = dev->driver_data;
-
-	if (access_op == GPIO_ACCESS_BY_PIN) {
-		data->cb_pins |= BIT(pin);
-
-		return 0;
-	}
-
-	return -ENOTSUP;
-}
-
-static int gpio_esp32_disable_callback(struct device *dev,
-				       int access_op, u32_t pin)
-{
-	struct gpio_esp32_data *data = dev->driver_data;
-
-	if (access_op == GPIO_ACCESS_BY_PIN) {
-		data->cb_pins &= ~BIT(pin);
-
-		return 0;
-	}
-
-	return -ENOTSUP;
-}
-
 static void gpio_esp32_fire_callbacks(struct device *device)
 {
 	struct gpio_esp32_data *data = device->driver_data;
@@ -376,8 +348,6 @@ static const struct gpio_driver_api gpio_esp32_driver = {
 	.port_toggle_bits = gpio_esp32_port_toggle_bits,
 	.pin_interrupt_configure = gpio_esp32_pin_interrupt_configure,
 	.manage_callback = gpio_esp32_manage_callback,
-	.enable_callback = gpio_esp32_enable_callback,
-	.disable_callback = gpio_esp32_disable_callback,
 };
 
 #if defined(CONFIG_GPIO_ESP32_0)

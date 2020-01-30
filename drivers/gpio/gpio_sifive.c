@@ -407,46 +407,6 @@ static int gpio_sifive_manage_callback(struct device *dev,
 	return gpio_manage_callback(&data->cb, callback, set);
 }
 
-static int gpio_sifive_enable_callback(struct device *dev,
-				      int access_op,
-				      u32_t pin)
-{
-	const struct gpio_sifive_config *cfg = DEV_GPIO_CFG(dev);
-
-	if (access_op != GPIO_ACCESS_BY_PIN) {
-		return -ENOTSUP;
-	}
-
-	if (pin >= SIFIVE_PINMUX_PINS) {
-		return -EINVAL;
-	}
-
-	/* Enable interrupt for the pin at PLIC (level 2) */
-	irq_enable(cfg->gpio_irq_base + (pin << 8));
-
-	return 0;
-}
-
-static int gpio_sifive_disable_callback(struct device *dev,
-				       int access_op,
-				       u32_t pin)
-{
-	const struct gpio_sifive_config *cfg = DEV_GPIO_CFG(dev);
-
-	if (access_op != GPIO_ACCESS_BY_PIN) {
-		return -ENOTSUP;
-	}
-
-	if (pin >= SIFIVE_PINMUX_PINS) {
-		return -EINVAL;
-	}
-
-	/* Disable interrupt for the pin at PLIC (level 2) */
-	irq_disable(cfg->gpio_irq_base + (pin << 8));
-
-	return 0;
-}
-
 static const struct gpio_driver_api gpio_sifive_driver = {
 	.config                  = gpio_sifive_config,
 	.write                   = gpio_sifive_write,
@@ -458,8 +418,6 @@ static const struct gpio_driver_api gpio_sifive_driver = {
 	.port_toggle_bits        = gpio_sifive_port_toggle_bits,
 	.pin_interrupt_configure = gpio_sifive_pin_interrupt_configure,
 	.manage_callback         = gpio_sifive_manage_callback,
-	.enable_callback         = gpio_sifive_enable_callback,
-	.disable_callback        = gpio_sifive_disable_callback,
 };
 
 /**

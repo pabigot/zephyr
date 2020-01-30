@@ -341,34 +341,6 @@ static int gpio_mcux_lpc_manage_cb(struct device *port,
 	return gpio_manage_callback(&data->callbacks, callback, set);
 }
 
-static int gpio_mcux_lpc_enable_cb(struct device *port, int access_op,
-				   u32_t pin)
-{
-	struct gpio_mcux_lpc_data *data = port->driver_data;
-
-	if (access_op == GPIO_ACCESS_BY_PIN) {
-		data->pin_callback_enables |= BIT(pin);
-	} else {
-		data->pin_callback_enables = 0xFFFFFFFF;
-	}
-
-	return 0;
-}
-
-static int gpio_mcux_lpc_disable_cb(struct device *port, int access_op,
-				    u32_t pin)
-{
-	struct gpio_mcux_lpc_data *data = port->driver_data;
-
-	if (access_op == GPIO_ACCESS_BY_PIN) {
-		data->pin_callback_enables &= ~BIT(pin);
-	} else {
-		data->pin_callback_enables = 0U;
-	}
-
-	return 0;
-}
-
 static int gpio_mcux_lpc_init(struct device *dev)
 {
 	const struct gpio_mcux_lpc_config *config = dev->config->config_info;
@@ -397,8 +369,6 @@ static const struct gpio_driver_api gpio_mcux_lpc_driver_api = {
 	.port_toggle_bits = gpio_mcux_lpc_port_toggle_bits,
 	.pin_interrupt_configure = gpio_mcux_lpc_pin_interrupt_configure,
 	.manage_callback = gpio_mcux_lpc_manage_cb,
-	.enable_callback = gpio_mcux_lpc_enable_cb,
-	.disable_callback = gpio_mcux_lpc_disable_cb,
 };
 
 #ifdef CONFIG_GPIO_MCUX_LPC_PORT0

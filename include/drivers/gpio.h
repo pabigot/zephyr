@@ -265,26 +265,30 @@ extern "C" {
  *
  * @deprecated Replace with `GPIO_INPUT`.
  */
-#define GPIO_DIR_IN             GPIO_INPUT
+/* Deprecated in 2.2 release */
+#define GPIO_DIR_IN __DEPRECATED_MACRO			GPIO_INPUT
 
 /** Legacy flag indicating pin is configured as output.
  *
  * @deprecated Replace with `GPIO_OUTPUT`.
  */
+/* Deprecated in 2.2 release */
 #undef GPIO_DIR_OUT
-#define GPIO_DIR_OUT            GPIO_OUTPUT
+#define GPIO_DIR_OUT __DEPRECATED_MACRO			GPIO_OUTPUT
 
 /** Legacy flag indicating pin is disconnected when GPIO pin output is low.
  *
  * @deprecated Replace with `GPIO_OPEN_SOURCE`.
  */
-#define GPIO_DS_DISCONNECT_LOW  GPIO_OPEN_SOURCE
+/* Deprecated in 2.2 release */
+#define GPIO_DS_DISCONNECT_LOW __DEPRECATED_MACRO	GPIO_OPEN_SOURCE
 
 /** Legacy flag indicating pin is disconnected when GPIO pin output is high.
  *
  * @deprecated Replace with `GPIO_OPEN_DRAIN`.
  */
-#define GPIO_DS_DISCONNECT_HIGH GPIO_OPEN_DRAIN
+/* Deprecated in 2.2 release */
+#define GPIO_DS_DISCONNECT_HIGH __DEPRECATED_MACRO	GPIO_OPEN_DRAIN
 
 /** @cond INTERNAL_HIDDEN */
 #define GPIO_PUD_SHIFT		4
@@ -295,33 +299,38 @@ extern "C" {
  *
  * @deprecated Not used any more
  */
-#define GPIO_PUD_NORMAL		0U
+/* Deprecated in 2.2 release */
+#define GPIO_PUD_NORMAL	__DEPRECATED_MACRO		0U
 
 /** Enable GPIO pin pull-up.
  *
  * @deprecated Replace with `GPIO_PULL_UP`.
  */
+/* Deprecated in 2.2 release */
 #undef GPIO_PUD_PULL_UP
-#define GPIO_PUD_PULL_UP	GPIO_PULL_UP
+#define GPIO_PUD_PULL_UP __DEPRECATED_MACRO		GPIO_PULL_UP
 
 /** Enable GPIO pin pull-down.
  *
  * @deprecated Replace with `GPIO_PULL_DOWN`.
  */
+/* Deprecated in 2.2 release */
 #undef GPIO_PUD_PULL_DOWN
-#define GPIO_PUD_PULL_DOWN	GPIO_PULL_DOWN
+#define GPIO_PUD_PULL_DOWN __DEPRECATED_MACRO		GPIO_PULL_DOWN
 
 /** Legacy flag indicating that interrupt is enabled.
  *
  * @deprecated Replace with `GPIO_INT_ENABLE`.
  */
-#define GPIO_INT                GPIO_INT_ENABLE
+/* Deprecated in 2.2 release */
+#define GPIO_INT __DEPRECATED_MACRO			GPIO_INT_ENABLE
 
 /** Legacy flag indicating that interrupt is level sensitive.
  *
  * @deprecated Replace with `GPIO_INT_LEVEL_LOW`, `GPIO_INT_LEVEL_HIGH`.
  */
-#define GPIO_INT_LEVEL          (0U << 14)
+/* Deprecated in 2.2 release */
+#define GPIO_INT_LEVEL __DEPRECATED_MACRO		(0U << 14)
 
 /** Legacy flag setting indicating signal or interrupt active level.
  *
@@ -335,8 +344,9 @@ extern "C" {
  * @deprecated Replace with `GPIO_ACTIVE_LOW` or `GPIO_INT_LOW_0`
  * depending on intent.
  */
+/* Deprecated in 2.2 release */
 #undef GPIO_INT_ACTIVE_LOW
-#define GPIO_INT_ACTIVE_LOW     GPIO_INT_LOW_0
+#define GPIO_INT_ACTIVE_LOW __DEPRECATED_MACRO		GPIO_INT_LOW_0
 
 /** Legacy flag setting indicating signal or interrupt active level.
  *
@@ -350,14 +360,16 @@ extern "C" {
  * @deprecated Replace with `GPIO_ACTIVE_HIGH` or `GPIO_INT_HIGH_1`
  * depending on intent.
  */
+/* Deprecated in 2.2 release */
 #undef GPIO_INT_ACTIVE_HIGH
-#define GPIO_INT_ACTIVE_HIGH    GPIO_INT_HIGH_1
+#define GPIO_INT_ACTIVE_HIGH __DEPRECATED_MACRO		GPIO_INT_HIGH_1
 
 /** Legacy flag indicating interrupt triggers on both rising and falling edge.
  *
  * @deprecated Replace with `GPIO_INT_EDGE_BOTH`.
  */
-#define GPIO_INT_DOUBLE_EDGE    GPIO_INT_EDGE_BOTH
+/* Deprecated in 2.2 release */
+#define GPIO_INT_DOUBLE_EDGE __DEPRECATED_MACRO		GPIO_INT_EDGE_BOTH
 
 /** @cond INTERNAL_HIDDEN */
 #define GPIO_POL_SHIFT		0
@@ -368,13 +380,15 @@ extern "C" {
  *
  * @deprecated Replace with `GPIO_ACTIVE_HIGH`.
  */
-#define GPIO_POL_NORMAL		GPIO_ACTIVE_HIGH
+/* Deprecated in 2.2 release */
+#define GPIO_POL_NORMAL __DEPRECATED_MACRO		GPIO_ACTIVE_HIGH
 
 /** Legacy flag indicating that GPIO pin polarity is inverted.
  *
  * @deprecated Replace with `GPIO_ACTIVE_LOW`.
  */
-#define GPIO_POL_INV		GPIO_ACTIVE_LOW
+/* Deprecated in 2.2 release */
+#define GPIO_POL_INV __DEPRECATED_MACRO			GPIO_ACTIVE_LOW
 
 /** @} */
 
@@ -552,8 +566,6 @@ struct gpio_driver_api {
 				       enum gpio_int_mode, enum gpio_int_trig);
 	int (*manage_callback)(struct device *port, struct gpio_callback *cb,
 			       bool set);
-	int (*enable_callback)(struct device *port, int access_op, u32_t pin);
-	int (*disable_callback)(struct device *port, int access_op, u32_t pin);
 	u32_t (*get_pending_int)(struct device *dev);
 };
 
@@ -593,49 +605,6 @@ static inline int z_impl_gpio_read(struct device *port, int access_op,
 	return api->read(port, access_op, pin, value);
 }
 
-__syscall int gpio_enable_callback(struct device *port, int access_op,
-				   u32_t pin);
-
-static inline int z_impl_gpio_enable_callback(struct device *port,
-					     int access_op, u32_t pin)
-{
-	const struct gpio_driver_api *api =
-		(const struct gpio_driver_api *)port->driver_api;
-	const struct gpio_driver_config *const cfg =
-		(const struct gpio_driver_config *)port->config->config_info;
-
-	(void)cfg;
-	__ASSERT((cfg->port_pin_mask & (gpio_port_pins_t)BIT(pin)) != 0U,
-		 "Unsupported pin");
-
-	if (api->enable_callback == NULL) {
-		return -ENOTSUP;
-	}
-
-	return api->enable_callback(port, access_op, pin);
-}
-
-__syscall int gpio_disable_callback(struct device *port, int access_op,
-				    u32_t pin);
-
-static inline int z_impl_gpio_disable_callback(struct device *port,
-					      int access_op, u32_t pin)
-{
-	const struct gpio_driver_api *api =
-		(const struct gpio_driver_api *)port->driver_api;
-	const struct gpio_driver_config *const cfg =
-		(const struct gpio_driver_config *)port->config->config_info;
-
-	(void)cfg;
-	__ASSERT((cfg->port_pin_mask & (gpio_port_pins_t)BIT(pin)) != 0U,
-		 "Unsupported pin");
-
-	if (api->disable_callback == NULL) {
-		return -ENOTSUP;
-	}
-
-	return api->disable_callback(port, access_op, pin);
-}
 /**
  * @endcond
  */
@@ -1217,19 +1186,15 @@ static inline int gpio_pin_toggle(struct device *port, unsigned int pin)
  * @param value Value set on the pin.
  * @return 0 if successful, negative errno code on failure.
  *
- * @deprecated Replace with gpio_pin_set_raw() or gpio_pin_set().
+ * @deprecated Replace with gpio_pin_set_raw(), or gpio_pin_set() if
+ * active level is handled correctly.
  */
-static inline int gpio_pin_write(struct device *port, u32_t pin,
-				 u32_t value)
+/* Deprecated in 2.2 release */
+__deprecated static inline int gpio_pin_write(struct device *port,
+					      gpio_pin_t pin,
+					      u32_t value)
 {
-	const struct gpio_driver_config *const cfg =
-		(const struct gpio_driver_config *)port->config->config_info;
-
-	(void)cfg;
-	__ASSERT((cfg->port_pin_mask & (gpio_port_pins_t)BIT(pin)) != 0U,
-		 "Unsupported pin");
-
-	return gpio_write(port, GPIO_ACCESS_BY_PIN, pin, value);
+	return gpio_pin_set_raw(port, pin, value != 0);
 }
 
 /**
@@ -1242,19 +1207,21 @@ static inline int gpio_pin_write(struct device *port, u32_t pin,
  * @param value Integer pointer to receive the data values from the pin.
  * @return 0 if successful, negative errno code on failure.
  *
- * @deprecated Replace with gpio_pin_get_raw() or gpio_pin_get().
+ * @deprecated Replace with gpio_pin_get_raw(), or gpio_pin_get() if
+ * active level is handled correctly.
  */
-static inline int gpio_pin_read(struct device *port, u32_t pin,
-				u32_t *value)
+/* Deprecated in 2.2 release */
+__deprecated static inline int gpio_pin_read(struct device *port,
+					     gpio_pin_t pin,
+					     u32_t *value)
 {
-	const struct gpio_driver_config *const cfg =
-		(const struct gpio_driver_config *)port->config->config_info;
+	int rv = gpio_pin_get_raw(port, pin);
 
-	(void)cfg;
-	__ASSERT((cfg->port_pin_mask & (gpio_port_pins_t)BIT(pin)) != 0U,
-		 "Unsupported pin");
-
-	return gpio_read(port, GPIO_ACCESS_BY_PIN, pin, value);
+	if (rv >= 0) {
+		*value = rv;
+		rv = 0;
+	}
+	return rv;
 }
 
 /**
@@ -1341,9 +1308,16 @@ static inline int gpio_remove_callback(struct device *port,
  * @deprecated Replace with ``gpio_pin_interrupt_configure()`` passing
  * interrupt configuration flags such as ``GPIO_INT_EDGE_TO_ACTIVE``.
  */
+/* Deprecated in 2.2 release */
 static inline int gpio_pin_enable_callback(struct device *port, u32_t pin)
 {
-	return gpio_enable_callback(port, GPIO_ACCESS_BY_PIN, pin);
+	/*
+	 * This API cannot be implemented in terms of the new API
+	 * because the application-desired interrupt configuration is
+	 * not available.
+	 */
+	__ASSERT(false, "Replace with gpio_pin_interrupt_configure");
+	return -ENOTSUP;
 }
 
 /**
@@ -1355,9 +1329,10 @@ static inline int gpio_pin_enable_callback(struct device *port, u32_t pin)
  * @deprecated Replace with ``gpio_pin_interrupt_configure()`` with
  * ``GPIO_INT_DISABLE``.
  */
+/* Deprecated in 2.2 release */
 static inline int gpio_pin_disable_callback(struct device *port, u32_t pin)
 {
-	return gpio_disable_callback(port, GPIO_ACCESS_BY_PIN, pin);
+	return gpio_pin_interrupt_configure(port, pin, GPIO_INT_DISABLE);
 }
 
 /**

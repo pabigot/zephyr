@@ -38,18 +38,13 @@ int modem_pin_write(struct modem_context *ctx, u32_t pin, u32_t value)
 
 int modem_pin_config(struct modem_context *ctx, u32_t pin, bool enable)
 {
-	gpio_flags_t flags = GPIO_DISCONNECTED;
-
 	if (pin < 0 || pin >= ctx->pins_len) {
 		return -ENODEV;
 	}
 
-	if (enable) {
-		flags = ctx->pins[pin].init_flags;
-	}
-
 	return gpio_pin_configure(ctx->pins[pin].gpio_port_dev,
-				  ctx->pins[pin].pin, flags);
+				  ctx->pins[pin].pin,
+				  enable ? cts->pins[pin].flags : GPIO_INPUT);
 }
 
 int modem_pin_init(struct modem_context *ctx)

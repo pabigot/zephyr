@@ -73,14 +73,14 @@ static int gpio_cc13xx_cc26xx_config(struct device *port, int access_op,
 	config |= (flags & GPIO_INT_DEBOUNCE) ? IOC_HYST_ENABLE :
 							IOC_HYST_DISABLE;
 
-	switch (flags & GPIO_PUD_MASK) {
-	case GPIO_PUD_NORMAL:
+	switch (flags & (GPIO_PULL_UP | GPIO_PULL_DOWN)) {
+	case 0:
 		config |= IOC_NO_IOPULL;
 		break;
-	case GPIO_PUD_PULL_UP:
+	case GPIO_PULL_UP:
 		config |= IOC_IOPULL_UP;
 		break;
-	case GPIO_PUD_PULL_DOWN:
+	case GPIO_PULL_DOWN:
 		config |= IOC_IOPULL_DOWN;
 		break;
 	default:
@@ -233,46 +233,6 @@ static int gpio_cc13xx_cc26xx_manage_callback(struct device *port,
 	return gpio_manage_callback(&data->callbacks, callback, set);
 }
 
-static int gpio_cc13xx_cc26xx_enable_callback(struct device *port,
-					      int access_op, u32_t pin)
-{
-	struct gpio_cc13xx_cc26xx_data *data = port->driver_data;
-
-	switch (access_op) {
-	case GPIO_ACCESS_BY_PIN:
-		__ASSERT_NO_MSG(pin < NUM_IO_MAX);
-		data->pin_callback_enables |= (1 << pin);
-		break;
-	case GPIO_ACCESS_BY_PORT:
-		data->pin_callback_enables = 0xFFFFFFFF;
-		break;
-	default:
-		return -EINVAL;
-	}
-
-	return 0;
-}
-
-static int gpio_cc13xx_cc26xx_disable_callback(struct device *port,
-					       int access_op, u32_t pin)
-{
-	struct gpio_cc13xx_cc26xx_data *data = port->driver_data;
-
-	switch (access_op) {
-	case GPIO_ACCESS_BY_PIN:
-		__ASSERT_NO_MSG(pin < NUM_IO_MAX);
-		data->pin_callback_enables &= ~(1 << pin);
-		break;
-	case GPIO_ACCESS_BY_PORT:
-		data->pin_callback_enables = 0U;
-		break;
-	default:
-		return -EINVAL;
-	}
-
-	return 0;
-}
-
 static u32_t gpio_cc13xx_cc26xx_get_pending_int(struct device *dev)
 {
 	return GPIO_getEventMultiDio(GPIO_DIO_ALL_MASK);
@@ -338,8 +298,6 @@ static const struct gpio_driver_api gpio_cc13xx_cc26xx_driver_api = {
 	.port_toggle_bits = gpio_cc13xx_cc26xx_port_toggle_bits,
 	.pin_interrupt_configure = gpio_cc13xx_cc26xx_pin_interrupt_configure,
 	.manage_callback = gpio_cc13xx_cc26xx_manage_callback,
-	.enable_callback = gpio_cc13xx_cc26xx_enable_callback,
-	.disable_callback = gpio_cc13xx_cc26xx_disable_callback,
 	.get_pending_int = gpio_cc13xx_cc26xx_get_pending_int
 };
 

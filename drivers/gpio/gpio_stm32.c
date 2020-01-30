@@ -537,34 +537,6 @@ static int gpio_stm32_manage_callback(struct device *dev,
 	return gpio_manage_callback(&data->cb, callback, set);
 }
 
-static int gpio_stm32_enable_callback(struct device *dev,
-				      int access_op, u32_t pin)
-{
-	struct gpio_stm32_data *data = dev->driver_data;
-
-	if (access_op != GPIO_ACCESS_BY_PIN) {
-		return -ENOTSUP;
-	}
-
-	data->cb_pins |= BIT(pin);
-
-	return 0;
-}
-
-static int gpio_stm32_disable_callback(struct device *dev,
-				       int access_op, u32_t pin)
-{
-	struct gpio_stm32_data *data = dev->driver_data;
-
-	if (access_op != GPIO_ACCESS_BY_PIN) {
-		return -ENOTSUP;
-	}
-
-	data->cb_pins &= ~BIT(pin);
-
-	return 0;
-}
-
 static const struct gpio_driver_api gpio_stm32_driver = {
 	.config = gpio_stm32_config,
 	.write = gpio_stm32_write,
@@ -576,9 +548,6 @@ static const struct gpio_driver_api gpio_stm32_driver = {
 	.port_toggle_bits = gpio_stm32_port_toggle_bits,
 	.pin_interrupt_configure = gpio_stm32_pin_interrupt_configure,
 	.manage_callback = gpio_stm32_manage_callback,
-	.enable_callback = gpio_stm32_enable_callback,
-	.disable_callback = gpio_stm32_disable_callback,
-
 };
 
 /**
