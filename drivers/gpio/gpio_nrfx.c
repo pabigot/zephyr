@@ -127,7 +127,7 @@ static int gpiote_pin_int_cfg(struct device *port, u32_t pin)
 	return res;
 }
 
-static int gpio_nrfx_config(struct device *port, int access_op,
+static int gpio_nrfx_config(struct device *port,
 			    u32_t pin, int flags)
 {
 	NRF_GPIO_Type *reg = get_port_cfg(port)->port;
@@ -187,13 +187,8 @@ static int gpio_nrfx_config(struct device *port, int access_op,
 		? NRF_GPIO_PIN_INPUT_CONNECT
 		: NRF_GPIO_PIN_INPUT_DISCONNECT;
 
-	if (access_op == GPIO_ACCESS_BY_PORT) {
-		from_pin = 0U;
-		to_pin   = 31U;
-	} else {
-		from_pin = pin;
-		to_pin   = pin;
-	}
+	from_pin = pin;
+	to_pin   = pin;
 
 	for (u8_t curr_pin = from_pin; curr_pin <= to_pin; ++curr_pin) {
 		if ((flags & GPIO_OUTPUT) != 0) {
