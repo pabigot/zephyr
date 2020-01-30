@@ -1,0 +1,23 @@
+/*
+ * Copyright (c) 2020 Nordic Semiconductor ASA
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/* This overlay is used solely for manual build-testing of the
+ * ieee802154 cc1200 driver.  There is no such device on this
+ * bus on this board.
+ */
+
+&spi2 {
+	cs-gpios = <&gpio0 0 0>;
+	status = "okay";
+	cc1200@0 {
+		reg = <0>;
+		spi-max-frequency = <1000000>;
+		label = "cc1200";
+		status = "okay";
+		compatible = "ti,cc1200";
+		int-gpios = <&gpio0 1 0>;
+      };
+};
