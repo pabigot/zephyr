@@ -214,7 +214,7 @@ static void bg_thread_main(void *unused1, void *unused2, void *unused3)
 
 	z_sys_post_kernel = true;
 
-	z_sys_device_do_config_level(_SYS_INIT_LEVEL_POST_KERNEL);
+	z_sys_init_run_level(_SYS_INIT_LEVEL_POST_KERNEL);
 #if CONFIG_STACK_POINTER_RANDOM
 	z_stack_adjust_initialized = 1;
 #endif
@@ -235,7 +235,7 @@ static void bg_thread_main(void *unused1, void *unused2, void *unused3)
 #endif
 
 	/* Final init level before app starts */
-	z_sys_device_do_config_level(_SYS_INIT_LEVEL_APPLICATION);
+	z_sys_init_run_level(_SYS_INIT_LEVEL_APPLICATION);
 
 #ifdef CONFIG_CPLUSPLUS
 	/* Process the .ctors and .init_array sections */
@@ -249,7 +249,7 @@ static void bg_thread_main(void *unused1, void *unused2, void *unused3)
 
 #ifdef CONFIG_SMP
 	z_smp_init();
-	z_sys_device_do_config_level(_SYS_INIT_LEVEL_SMP);
+	z_sys_init_run_level(_SYS_INIT_LEVEL_SMP);
 #endif
 
 #ifdef CONFIG_BOOT_TIME_MEASUREMENT
@@ -478,8 +478,8 @@ FUNC_NORETURN void z_cstart(void)
 #endif
 
 	/* perform basic hardware initialization */
-	z_sys_device_do_config_level(_SYS_INIT_LEVEL_PRE_KERNEL_1);
-	z_sys_device_do_config_level(_SYS_INIT_LEVEL_PRE_KERNEL_2);
+	z_sys_init_run_level(_SYS_INIT_LEVEL_PRE_KERNEL_1);
+	z_sys_init_run_level(_SYS_INIT_LEVEL_PRE_KERNEL_2);
 
 #ifdef CONFIG_STACK_CANARIES
 	z_early_boot_rand_get((u8_t *)&stack_guard, sizeof(stack_guard));
