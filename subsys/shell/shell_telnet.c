@@ -393,10 +393,9 @@ static int write(const struct shell_transport *transport,
 	k_delayed_work_cancel(&sh_telnet->send_work);
 
 	do {
-		if (lb->len + length - *cnt > TELNET_LINE_SIZE) {
+		copy_len = length - *cnt;
+		if ((lb->len + copy_len) > TELNET_LINE_SIZE) {
 			copy_len = TELNET_LINE_SIZE - lb->len;
-		} else {
-			copy_len = length - *cnt;
 		}
 
 		memcpy(lb->buf + lb->len, (u8_t *)data + *cnt, copy_len);
