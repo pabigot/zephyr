@@ -2,6 +2,7 @@
  * Copyright (c) 2018 Aapo Vienamo
  * Copyright (c) 2018 Peter Bigot Consulting, LLC
  * Copyright (c) 2019 Nordic Semiconductor ASA
+ * Copyright (c) 2020 ZedBlox Ltd.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -43,6 +44,9 @@ struct sx1509b_pin_state {
 	u16_t polarity;         /* 0x0C */
 	u16_t dir;              /* 0x0E */
 	u16_t data;             /* 0x10 */
+	u16_t interrupt;        /* 0x12 */
+	u32_t interrupt_sense;  /* 0x14 */
+	u16_t debounce_en;
 };
 
 /** Runtime driver data */
@@ -50,8 +54,20 @@ struct sx1509b_drv_data {
 	/* gpio_driver_data needs to be first */
 	struct gpio_driver_data common;
 	struct device *i2c_master;
+	struct device *gpio_int;
 	struct sx1509b_pin_state pin_state;
+	struct sx1509b_config *cfg;
+	struct gpio_callback gpio_cb;
+	u8_t interrupt_sup;
 	struct k_sem lock;
+
+	struct k_work work;
+	struct device *dev;
+
+	/* Enabled INT pins generating a cb */
+	u32_t cb_pins;
+	/* user ISR cb */
+	sys_slist_t cb;
 };
 
 /** Configuration data */
@@ -59,7 +75,10 @@ struct sx1509b_config {
 	/* gpio_driver_config needs to be first */
 	struct gpio_driver_config common;
 	const char *i2c_master_dev_name;
+	const char *gpio_int_dev_name;
 	u16_t i2c_slave_addr;
+	u16_t gpio_pin;
+	u16_t gpio_flags;
 };
 
 /* General configuration register addresses */
@@ -91,6 +110,24 @@ enum {
 	SX1509B_REG_DIR                 = 0x0e,
 	SX1509B_REG_DATA                = 0x10,
 	SX1509B_REG_LED_DRIVER_ENABLE   = 0x20,
+	SX1509B_REG_DEBOUNCE_CONFIG     = 0x22,
+	SX1509B_REG_DEBOUNCE_ENABLE     = 0x23,
+};
+
+/* Interrupt config register addresses */
+enum {
+	SX1509B_REG_INTERRUPT_MASK   = 0x12,
+	SX1509B_REG_SENSE_B          = 0x14,
+	SX1509B_REG_SENSE_A          = 0x16,
+	SX1509B_REG_INTERRUPT_SOURCE = 0x18,
+};
+
+/* Edge sensitivity types */
+enum {
+	SX1509B_EDGE_NONE     = 0x00,
+	SX1509B_EDGE_RISING   = 0x01,
+	SX1509B_EDGE_FALLING  = 0x02,
+	SX1509B_EDGE_BOTH     = 0x03,
 };
 
 /**
@@ -111,6 +148,83 @@ static inline int i2c_reg_write_word_be(struct device *dev, u16_t dev_addr,
 
 	return i2c_write(dev, tx_buf, 3, dev_addr);
 }
+
+/**
+ * @brief Write a big-endian byte to an internal address of an I2C slave.
+ *
+ * @param dev Pointer to the device structure for the driver instance.
+ * @param dev_addr Address of the I2C device for writing.
+ * @param reg_addr Address of the internal register being written.
+ * @param value Value to be written to internal register.
+ *
+ * @retval 0 If successful.
+ * @retval -EIO General input / output error.
+ */
+static inline int i2c_reg_write_byte_be(struct device *dev, u16_t dev_addr,
+					u8_t reg_addr, u8_t value)
+{
+	u8_t tx_buf[3] = { reg_addr, value };
+
+	return i2c_write(dev, tx_buf, 2, dev_addr);
+}
+
+#ifdef CONFIG_GPIO_SX1509B_INTERRUPT
+static int sx1509b_handle_interrupt(void *arg)
+{
+	struct device *dev = (struct device *) arg;
+	const struct sx1509b_config *cfg = dev->config->config_info;
+	struct sx1509b_drv_data *drv_data = dev->driver_data;
+	int ret = 0;
+	u16_t int_source;
+
+	k_sem_take(&drv_data->lock, K_FOREVER);
+
+	ret = i2c_burst_read(drv_data->i2c_master, cfg->i2c_slave_addr,
+				 SX1509B_REG_INTERRUPT_SOURCE,
+				 (u8_t *)&int_source,
+				 sizeof(int_source));
+	if (ret) {
+		goto out;
+	}
+
+	int_source = sys_be16_to_cpu(int_source);
+
+	if ((int_source & drv_data->cb_pins) != 0) {
+		gpio_fire_callbacks(&drv_data->cb, dev, int_source);
+	}
+
+	/* reset interrupts */
+	ret = i2c_reg_write_word_be(drv_data->i2c_master, cfg->i2c_slave_addr,
+					SX1509B_REG_INTERRUPT_SOURCE, 0xffff);
+	if (ret) {
+		goto out;
+	}
+
+out:
+	k_sem_give(&drv_data->lock);
+
+	return ret;
+}
+
+static void sx1509b_work_handler(struct k_work *work)
+{
+	struct sx1509b_drv_data *drv_data =
+		CONTAINER_OF(work, struct sx1509b_drv_data, work);
+
+	sx1509b_handle_interrupt(drv_data->dev);
+}
+
+static void sx1509_int_cb(struct device *dev, struct gpio_callback *gpio_cb,
+			   u32_t pins)
+{
+	struct sx1509b_drv_data *drv_data = CONTAINER_OF(gpio_cb,
+		struct sx1509b_drv_data, gpio_cb);
+
+	ARG_UNUSED(pins);
+
+	k_work_submit(&drv_data->work);
+}
+#endif
 
 static int sx1509b_config(struct device *dev,
 			  gpio_pin_t pin,
@@ -190,6 +304,12 @@ static int sx1509b_config(struct device *dev,
 		pins->dir |= BIT(pin);
 	}
 
+	if (flags & GPIO_INT_DEBOUNCE) {
+		pins->debounce_en |= BIT(pin);
+	} else {
+		pins->debounce_en &= ~BIT(pin);
+	}
+
 	outbuf.reg = SX1509B_REG_INPUT_DISABLE;
 	outbuf.pins.input_disable = sys_cpu_to_be16(pins->input_disable);
 	outbuf.pins.long_slew = sys_cpu_to_be16(pins->long_slew);
@@ -212,14 +332,34 @@ static int sx1509b_config(struct device *dev,
 		if (rc == 0) {
 			rc = i2c_write(drv_data->i2c_master,
 				       &outbuf.reg,
-				       sizeof(outbuf) - sizeof(pins->data),
+				       sizeof(outbuf) - sizeof(pins->data) -
+				       sizeof(pins->interrupt) -
+				       sizeof(pins->interrupt_sense) -
+				       sizeof(pins->debounce_en),
 				       cfg->i2c_slave_addr);
 		}
 	} else {
 		rc = i2c_write(drv_data->i2c_master,
 			       &outbuf.reg,
-			       sizeof(outbuf),
+			       sizeof(outbuf) - sizeof(pins->interrupt) -
+			       sizeof(pins->interrupt_sense) -
+			       sizeof(pins->debounce_en),
 			       cfg->i2c_slave_addr);
+	}
+
+	/* write only one byte for debounce config */
+	rc = i2c_reg_write_byte_be(drv_data->i2c_master, cfg->i2c_slave_addr,
+					SX1509B_REG_DEBOUNCE_CONFIG,
+					CONFIG_GPIO_SX1509B_DEBOUNCE_TIME);
+	if (rc) {
+		goto out;
+	}
+
+	rc = i2c_reg_write_word_be(drv_data->i2c_master, cfg->i2c_slave_addr,
+					SX1509B_REG_DEBOUNCE_ENABLE,
+					pins->debounce_en);
+	if (rc) {
+		goto out;
 	}
 
 out:
@@ -320,12 +460,55 @@ static int pin_interrupt_configure(struct device *dev,
 				   enum gpio_int_mode mode,
 				   enum gpio_int_trig trig)
 {
-	int ret = 0;
+	const struct sx1509b_config *cfg = dev->config->config_info;
+	struct sx1509b_drv_data *drv_data = dev->driver_data;
+	struct sx1509b_pin_state *pins = &drv_data->pin_state;
+	int rc = 0;
 
-	if (mode != GPIO_INT_MODE_DISABLED) {
-		ret = -ENOTSUP;
+	if ((mode != GPIO_INT_MODE_DISABLED) &&
+			(drv_data->interrupt_sup == 0)) {
+		return -ENOTSUP;
 	}
-	return ret;
+
+	k_sem_take(&drv_data->lock, K_FOREVER);
+
+	if (mode == GPIO_INT_MODE_EDGE) {
+		pins->interrupt &= ~BIT(pin);
+		if (trig == GPIO_INT_TRIG_BOTH) {
+			pins->interrupt_sense |= (SX1509B_EDGE_BOTH <<
+								(pin * 2));
+		} else if (trig == GPIO_INT_TRIG_LOW) {
+			pins->interrupt_sense |= (SX1509B_EDGE_FALLING <<
+								(pin * 2));
+		} else if (trig == GPIO_INT_TRIG_HIGH) {
+			pins->interrupt_sense |= (SX1509B_EDGE_RISING <<
+								(pin * 2));
+		}
+	} else {
+		pins->interrupt |= BIT(pin);
+	}
+
+	rc = i2c_reg_write_word_be(drv_data->i2c_master, cfg->i2c_slave_addr,
+					SX1509B_REG_INTERRUPT_MASK,
+					pins->interrupt);
+	if (rc) {
+		goto out;
+	}
+
+	rc = i2c_reg_write_word_be(drv_data->i2c_master, cfg->i2c_slave_addr,
+					SX1509B_REG_SENSE_B,
+					(pins->interrupt_sense >> 16) & 0xffff);
+	if (rc) {
+		goto out;
+	}
+
+	rc = i2c_reg_write_word_be(drv_data->i2c_master, cfg->i2c_slave_addr,
+					SX1509B_REG_SENSE_A,
+					pins->interrupt_sense & 0xffff);
+
+out:
+	k_sem_give(&drv_data->lock);
+	return rc;
 }
 
 /**
@@ -340,6 +523,12 @@ static int sx1509b_init(struct device *dev)
 	struct sx1509b_drv_data *drv_data = dev->driver_data;
 	int rc;
 
+	/*
+	 * storing dev ptr with drv data to be used in gpio_cb
+	 * in interrupt ctx
+	 */
+	drv_data->dev = dev;
+
 	drv_data->i2c_master = device_get_binding(cfg->i2c_master_dev_name);
 	if (!drv_data->i2c_master) {
 		LOG_ERR("%s: no bus %s", dev->config->name,
@@ -347,6 +536,43 @@ static int sx1509b_init(struct device *dev)
 		rc = -EINVAL;
 		goto out;
 	}
+
+#ifdef CONFIG_GPIO_SX1509B_INTERRUPT
+	drv_data->gpio_int = device_get_binding(cfg->gpio_int_dev_name);
+	if (!drv_data->gpio_int) {
+		/* interrupt not supported */
+		drv_data->interrupt_sup = 0;
+	} else {
+		drv_data->interrupt_sup = 1;
+
+		drv_data->work.handler = sx1509b_work_handler;
+
+		gpio_pin_configure(drv_data->gpio_int, cfg->gpio_pin,
+				GPIO_INPUT | GPIO_PULL_UP);
+		gpio_pin_interrupt_configure(drv_data->gpio_int, cfg->gpio_pin,
+				GPIO_INT_EDGE_TO_INACTIVE);
+
+		gpio_init_callback(&drv_data->gpio_cb, sx1509_int_cb,
+				BIT(cfg->gpio_pin));
+		gpio_add_callback(drv_data->gpio_int, &drv_data->gpio_cb);
+		gpio_enable_callback(drv_data->gpio_int, cfg->gpio_pin);
+	}
+#else
+	/* interrupt not supported */
+	drv_data->interrupt_sup = 0;
+#endif
+
+	/* Reset state */
+	drv_data->pin_state = (struct sx1509b_pin_state) {
+		.input_disable	 = 0x0000,
+		.pull_up		 = 0x0000,
+		.pull_down		 = 0x0000,
+		.open_drain		 = 0x0000,
+		.dir			 = 0xffff,
+		.data			 = 0xffff,
+		.interrupt		 = 0xffff,
+		.interrupt_sense = 0x00000000,
+	};
 
 	rc = i2c_reg_write_byte(drv_data->i2c_master, cfg->i2c_slave_addr,
 				SX1509B_REG_RESET, SX1509B_REG_RESET_MAGIC0);
@@ -400,6 +626,37 @@ out:
 	return rc;
 }
 
+#ifdef CONFIG_GPIO_SX1509B_INTERRUPT
+static int gpio_sx1509b_manage_callback(struct device *dev,
+					  struct gpio_callback *callback,
+					  bool set)
+{
+	struct sx1509b_drv_data *data = dev->driver_data;
+
+	return gpio_manage_callback(&data->cb, callback, set);
+}
+
+static int gpio_sx1509b_enable_callback(struct device *dev,
+					  gpio_pin_t pin)
+{
+	struct sx1509b_drv_data *data = dev->driver_data;
+
+	data->cb_pins |= BIT(pin);
+
+	return 0;
+}
+
+static int gpio_sx1509b_disable_callback(struct device *dev,
+					   gpio_pin_t pin)
+{
+	struct sx1509b_drv_data *data = dev->driver_data;
+
+	data->cb_pins &= ~BIT(pin);
+
+	return 0;
+}
+#endif
+
 static const struct gpio_driver_api api_table = {
 	.pin_configure = sx1509b_config,
 	.port_get_raw = port_get,
@@ -408,6 +665,11 @@ static const struct gpio_driver_api api_table = {
 	.port_clear_bits_raw = port_clear_bits,
 	.port_toggle_bits = port_toggle_bits,
 	.pin_interrupt_configure = pin_interrupt_configure,
+#ifdef CONFIG_GPIO_SX1509B_INTERRUPT
+	.manage_callback = gpio_sx1509b_manage_callback,
+	.enable_callback = gpio_sx1509b_enable_callback,
+	.disable_callback = gpio_sx1509b_disable_callback,
+#endif
 };
 
 static const struct sx1509b_config sx1509b_cfg = {
@@ -416,6 +678,11 @@ static const struct sx1509b_config sx1509b_cfg = {
 	},
 	.i2c_master_dev_name = DT_INST_BUS_LABEL(0),
 	.i2c_slave_addr = DT_INST_REG_ADDR(0),
+#ifdef CONFIG_GPIO_SX1509B_INTERRUPT
+	.gpio_int_dev_name = DT_INST_GPIO_LABEL(0, int_gpios),
+	.gpio_pin = DT_INST_GPIO_PIN(0, int_gpios),
+	.gpio_flags = DT_INST_GPIO_FLAGS(0, int_gpios),
+#endif
 };
 
 static struct sx1509b_drv_data sx1509b_drvdata = {

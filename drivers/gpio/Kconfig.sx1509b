@@ -19,3 +19,18 @@ config GPIO_SX1509B_INIT_PRIORITY
 	default 70
 	help
 	  Device driver initialization priority.
+
+config GPIO_SX1509B_INTERRUPT
+	bool "Interrupt enable"
+	depends on GPIO_SX1509B
+	default n
+	help
+	  Enable interrupts on gpio pins.
+
+config GPIO_SX1509B_DEBOUNCE_TIME
+	int "Debounce time interval"
+	depends on GPIO_SX1509B
+	range 0 7
+	default 0
+	help
+	  Debounce time interval when debounce enabled.
