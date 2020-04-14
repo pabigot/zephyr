@@ -58,7 +58,6 @@ struct sx1509b_drv_data {
 	struct sx1509b_pin_state pin_state;
 	struct sx1509b_config *cfg;
 	struct gpio_callback gpio_cb;
-	u8_t interrupt_sup;
 	struct k_sem lock;
 
 	struct k_work work;
@@ -465,8 +464,8 @@ static int pin_interrupt_configure(struct device *dev,
 	struct sx1509b_pin_state *pins = &drv_data->pin_state;
 	int rc = 0;
 
-	if ((mode != GPIO_INT_MODE_DISABLED) &&
-			(drv_data->interrupt_sup == 0)) {
+	if (!IS_ENABLED(CONFIG_GPIO_SX1509B_INTERRUPT) &&
+			(mode != GPIO_INT_MODE_DISABLED)) {
 		return -ENOTSUP;
 	}
 
@@ -540,26 +539,21 @@ static int sx1509b_init(struct device *dev)
 #ifdef CONFIG_GPIO_SX1509B_INTERRUPT
 	drv_data->gpio_int = device_get_binding(cfg->gpio_int_dev_name);
 	if (!drv_data->gpio_int) {
-		/* interrupt not supported */
-		drv_data->interrupt_sup = 0;
+		rc = -ENOTSUP;
+		goto out;
 	} else {
-		drv_data->interrupt_sup = 1;
-
-		drv_data->work.handler = sx1509b_work_handler;
+		k_work_init(&drv_data->work, sx1509b_work_handler);
 
 		gpio_pin_configure(drv_data->gpio_int, cfg->gpio_pin,
-				GPIO_INPUT | GPIO_PULL_UP);
+				GPIO_INPUT | cfg->gpio_flags);
 		gpio_pin_interrupt_configure(drv_data->gpio_int, cfg->gpio_pin,
-				GPIO_INT_EDGE_TO_INACTIVE);
+				GPIO_INT_EDGE_TO_ACTIVE);
 
 		gpio_init_callback(&drv_data->gpio_cb, sx1509_int_cb,
 				BIT(cfg->gpio_pin));
 		gpio_add_callback(drv_data->gpio_int, &drv_data->gpio_cb);
 		gpio_enable_callback(drv_data->gpio_int, cfg->gpio_pin);
 	}
-#else
-	/* interrupt not supported */
-	drv_data->interrupt_sup = 0;
 #endif
 
 	/* Reset state */
@@ -679,9 +673,9 @@ static const struct sx1509b_config sx1509b_cfg = {
 	.i2c_master_dev_name = DT_INST_BUS_LABEL(0),
 	.i2c_slave_addr = DT_INST_REG_ADDR(0),
 #ifdef CONFIG_GPIO_SX1509B_INTERRUPT
-	.gpio_int_dev_name = DT_INST_GPIO_LABEL(0, int_gpios),
-	.gpio_pin = DT_INST_GPIO_PIN(0, int_gpios),
-	.gpio_flags = DT_INST_GPIO_FLAGS(0, int_gpios),
+	.gpio_int_dev_name = DT_INST_GPIO_LABEL(0, nint_gpios),
+	.gpio_pin = DT_INST_GPIO_PIN(0, nint_gpios),
+	.gpio_flags = DT_INST_GPIO_FLAGS(0, nint_gpios),
 #endif
 };
 

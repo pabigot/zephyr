@@ -18,7 +18,7 @@ properties:
       required: true
       const: 16
 
-    int-gpios:
+    nint-gpios:
       type: phandle-array
       required: false
       description: |
