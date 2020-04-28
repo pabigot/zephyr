@@ -6,6 +6,11 @@
 #ifndef ZEPHYR_INCLUDE_POSIX_TIME_H_
 #define ZEPHYR_INCLUDE_POSIX_TIME_H_
 
+/* Read standard header.  This may find <posix/time.h> since they
+ * refer to the same file when include/posix is in the search path.
+ */
+#include <time.h>
+
 #ifdef CONFIG_NEWLIB_LIBC
 /* Kludge to support outdated newlib version as used in SDK 0.10 for Xtensa */
 #include <newlib.h>
@@ -100,4 +105,9 @@ int timer_settime(timer_t timerid, int flags, const struct itimerspec *value,
 #include <syscalls/time.h>
 #endif /* CONFIG_ARCH_POSIX */
 
+#else /* ZEPHYR_INCLUDE_POSIX_TIME_H_ */
+/* Read the standard header when <posix/time.h> finds itself on the
+ * first attempt.
+ */
+#include_next <time.h>
 #endif /* ZEPHYR_INCLUDE_POSIX_TIME_H_ */
