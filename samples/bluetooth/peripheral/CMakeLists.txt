@@ -5,6 +5,6 @@ find_package(Zephyr HINTS $ENV{ZEPHYR_BASE})
 project(peripheral)
 
 target_sources(app PRIVATE
-  src/main.c
+  src/main.cxx
   src/cts.c
 )

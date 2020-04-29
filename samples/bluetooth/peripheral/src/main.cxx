@@ -44,7 +44,7 @@ static u8_t vnd_value[] = { 'V', 'e', 'n', 'd', 'o', 'r' };
 static ssize_t read_vnd(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 			void *buf, u16_t len, u16_t offset)
 {
-	const char *value = attr->user_data;
+	const char *value = (const char *)attr->user_data;
 
 	return bt_gatt_attr_read(conn, attr, buf, len, offset, value,
 				 strlen(value));
@@ -54,7 +54,7 @@ static ssize_t write_vnd(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 			 const void *buf, u16_t len, u16_t offset,
 			 u8_t flags)
 {
-	u8_t *value = attr->user_data;
+	u8_t *value = (u8_t *)attr->user_data;
 
 	if (offset + len > sizeof(vnd_value)) {
 		return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
@@ -95,7 +95,7 @@ static ssize_t read_long_vnd(struct bt_conn *conn,
 			     const struct bt_gatt_attr *attr, void *buf,
 			     u16_t len, u16_t offset)
 {
-	const char *value = attr->user_data;
+	const char *value = (const char *)attr->user_data;
 
 	return bt_gatt_attr_read(conn, attr, buf, len, offset, value,
 				 sizeof(vnd_long_value));
@@ -105,7 +105,7 @@ static ssize_t write_long_vnd(struct bt_conn *conn,
 			      const struct bt_gatt_attr *attr, const void *buf,
 			      u16_t len, u16_t offset, u8_t flags)
 {
-	u8_t *value = attr->user_data;
+	u8_t *value = (u8_t *)attr->user_data;
 
 	if (flags & BT_GATT_WRITE_FLAG_PREPARE) {
 		return 0;
@@ -133,7 +133,7 @@ static int signed_value;
 static ssize_t read_signed(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 			   void *buf, u16_t len, u16_t offset)
 {
-	const char *value = attr->user_data;
+	const char *value = (const char *)attr->user_data;
 
 	return bt_gatt_attr_read(conn, attr, buf, len, offset, value,
 				 sizeof(signed_value));
@@ -143,7 +143,7 @@ static ssize_t write_signed(struct bt_conn *conn, const struct bt_gatt_attr *att
 			    const void *buf, u16_t len, u16_t offset,
 			    u8_t flags)
 {
-	u8_t *value = attr->user_data;
+	u8_t *value = (u8_t *)attr->user_data;
 
 	if (offset + len > sizeof(signed_value)) {
 		return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
@@ -167,7 +167,7 @@ static ssize_t write_without_rsp_vnd(struct bt_conn *conn,
 				     const void *buf, u16_t len, u16_t offset,
 				     u8_t flags)
 {
-	u8_t *value = attr->user_data;
+	u8_t *value = (u8_t *)attr->user_data;
 
 	/* Write request received. Reject it since this char only accepts
 	 * Write Commands.
