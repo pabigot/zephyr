@@ -1,0 +1,54 @@
+#
+# Copyright (c) 2020 Nordic Semiconductor ASA
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+description: |
+    This binding provides resources required to build and run the
+    samples/drivers/nrf_timer test.
+
+compatible: "test,nrf-timer"
+
+properties:
+    tick-rtc:
+      type: phandle
+      required: false
+      description: |
+        Reference to the RTC peripheral used as the system tick timer.
+        If absent uses NRF_RTC1 which is hard-coded as the tick timer.
+        CC[0] is by the tick timer for alarms; CC[1] is used by this
+        application for triggered capture.
+
+    hf-timer:
+      type: phandle
+      required: true
+      description: |
+        Reference to the TIMER peripheral used as the high-frequency
+        clock.  This timer must support 32-bit mode.  In this
+        application CC[0] is used to read the timer; CC[1] is used for
+        triggered capture.
+
+    int-gpios:
+        type: phandle-array
+        required: true
+        description: |
+          Identity of a GPIO that will be connected to the 1pps signal
+          and serve as the trigger for an interrupt in which the ticks
+          counter will be captured.
+
+    hf-gpios:
+        type: phandle-array
+        required: true
+        description: |
+          Identity of a GPIO that will be connected to the 1pps signal
+          and serve as the trigger for a GPIOTE input event connected to
+          an TIMER capture task.
+
+    lf-gpios:
+        type: phandle-array
+        required: true
+        description: |
+          Identity of a GPIO that will be connected to the 1pps signal
+          and serve as the trigger for a GPIOTE input event connected to
+          an RTC capture task.
