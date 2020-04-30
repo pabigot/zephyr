@@ -76,7 +76,7 @@ static int spi_flash_wb_access(struct spi_flash_data *ctx,
 	return spi_write(ctx->spi, &ctx->spi_cfg, &tx);
 }
 
-static inline int spi_flash_wb_id(struct device *dev)
+static inline int spi_flash_wb_id(const struct device *dev)
 {
 	struct spi_flash_data *const driver_data = dev->data;
 	uint32_t temp_data;
@@ -98,7 +98,7 @@ static inline int spi_flash_wb_id(struct device *dev)
 	return 0;
 }
 
-static uint8_t spi_flash_wb_reg_read(struct device *dev, uint8_t reg)
+static uint8_t spi_flash_wb_reg_read(const struct device *dev, uint8_t reg)
 {
 	struct spi_flash_data *const driver_data = dev->data;
 
@@ -110,7 +110,7 @@ static uint8_t spi_flash_wb_reg_read(struct device *dev, uint8_t reg)
 	return reg;
 }
 
-static inline void wait_for_flash_idle(struct device *dev)
+static inline void wait_for_flash_idle(const struct device *dev)
 {
 	uint8_t reg;
 
@@ -119,7 +119,7 @@ static inline void wait_for_flash_idle(struct device *dev)
 	} while (reg & W25QXXDV_WIP_BIT);
 }
 
-static int spi_flash_wb_reg_write(struct device *dev, uint8_t reg)
+static int spi_flash_wb_reg_write(const struct device *dev, uint8_t reg)
 {
 	struct spi_flash_data *const driver_data = dev->data;
 
@@ -131,7 +131,8 @@ static int spi_flash_wb_reg_write(struct device *dev, uint8_t reg)
 	return 0;
 }
 
-static int spi_flash_wb_read(struct device *dev, off_t offset, void *data,
+static int spi_flash_wb_read(const struct device *dev, off_t offset,
+			     void *data,
 			     size_t len)
 {
 	struct spi_flash_data *const driver_data = dev->data;
@@ -153,7 +154,7 @@ static int spi_flash_wb_read(struct device *dev, off_t offset, void *data,
 	return ret;
 }
 
-static int spi_flash_wb_write_protection_set_with_lock(struct device *dev,
+static int spi_flash_wb_write_protection_set_with_lock(const struct device *dev,
 						       bool enable, bool lock)
 {
 	struct spi_flash_data *const driver_data = dev->data;
@@ -181,13 +182,14 @@ static int spi_flash_wb_write_protection_set_with_lock(struct device *dev,
 	return ret;
 }
 
-static int spi_flash_wb_write_protection_set(struct device *dev, bool enable)
+static int spi_flash_wb_write_protection_set(const struct device *dev,
+					     bool enable)
 {
 	return spi_flash_wb_write_protection_set_with_lock(dev, enable, true);
 }
 
-static int spi_flash_wb_program_page(struct device *dev, off_t offset,
-		const void *data, size_t len)
+static int spi_flash_wb_program_page(const struct device *dev, off_t offset,
+				     const void *data, size_t len)
 {
 	uint8_t reg;
 	struct spi_flash_data *const driver_data = dev->data;
@@ -214,7 +216,7 @@ static int spi_flash_wb_program_page(struct device *dev, off_t offset,
 
 }
 
-static int spi_flash_wb_write(struct device *dev, off_t offset,
+static int spi_flash_wb_write(const struct device *dev, off_t offset,
 			      const void *data, size_t len)
 {
 	int ret;
@@ -275,7 +277,7 @@ end:
 	return ret;
 }
 
-static inline int spi_flash_wb_erase_internal(struct device *dev,
+static inline int spi_flash_wb_erase_internal(const struct device *dev,
 					      off_t offset, size_t size)
 {
 	struct spi_flash_data *const driver_data = dev->data;
@@ -320,7 +322,8 @@ static inline int spi_flash_wb_erase_internal(struct device *dev,
 				   need_offset, offset, NULL, 0, true);
 }
 
-static int spi_flash_wb_erase(struct device *dev, off_t offset, size_t size)
+static int spi_flash_wb_erase(const struct device *dev, off_t offset,
+			      size_t size)
 {
 	struct spi_flash_data *const driver_data = dev->data;
 	int ret = 0;
@@ -384,7 +387,7 @@ static int spi_flash_wb_erase(struct device *dev, off_t offset, size_t size)
 #if defined(CONFIG_FLASH_PAGE_LAYOUT)
 static struct flash_pages_layout dev_layout;
 
-static void flash_wb_pages_layout(struct device *dev,
+static void flash_wb_pages_layout(const struct device *dev,
 				  const struct flash_pages_layout **layout,
 				  size_t *layout_size)
 {
@@ -412,7 +415,7 @@ static const struct flash_driver_api spi_flash_api = {
 #endif
 };
 
-static int spi_flash_wb_configure(struct device *dev)
+static int spi_flash_wb_configure(const struct device *dev)
 {
 	struct spi_flash_data *data = dev->data;
 
@@ -442,7 +445,7 @@ static int spi_flash_wb_configure(struct device *dev)
 	return spi_flash_wb_id(dev);
 }
 
-static int spi_flash_init(struct device *dev)
+static int spi_flash_init(const struct device *dev)
 {
 	int ret;
 

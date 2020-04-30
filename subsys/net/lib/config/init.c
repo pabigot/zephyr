@@ -419,7 +419,7 @@ int net_config_init(const char *app_info, uint32_t flags,
 	return net_config_init_by_iface(NULL, app_info, flags, timeout);
 }
 
-int net_config_init_app(struct device *device, const char *app_info)
+int net_config_init_app(const struct device *device, const char *app_info)
 {
 	struct net_if *iface = NULL;
 	uint32_t flags = 0U;
@@ -484,7 +484,7 @@ int net_config_init_app(struct device *device, const char *app_info)
 }
 
 #if defined(CONFIG_NET_CONFIG_AUTO_INIT)
-static int init_app(struct device *device)
+static int init_app(const struct device *device)
 {
 	ARG_UNUSED(device);
 

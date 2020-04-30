@@ -70,7 +70,7 @@ LOG_MODULE_REGISTER(spi_nor, CONFIG_FLASH_LOG_LEVEL);
  * @sem: The semaphore to access to the flash
  */
 struct spi_nor_data {
-	struct device *spi;
+	const struct device *spi;
 	struct spi_config spi_cfg;
 #if DT_INST_SPI_DEV_HAS_CS_GPIOS(0)
 	struct spi_cs_control cs_ctrl;
@@ -245,7 +245,7 @@ static int exit_dpd(const struct device *const dev)
  * This means taking the lock and, if necessary, waking the device
  * from deep power-down mode.
  */
-static void acquire_device(struct device *dev)
+static void acquire_device(const struct device *dev)
 {
 	if (IS_ENABLED(CONFIG_MULTITHREADING)) {
 		struct spi_nor_data *const driver_data = dev->data;
@@ -263,7 +263,7 @@ static void acquire_device(struct device *dev)
  * This means (optionally) putting the device into deep power-down
  * mode, and releasing the lock.
  */
-static void release_device(struct device *dev)
+static void release_device(const struct device *dev)
 {
 	if (IS_ENABLED(CONFIG_SPI_NOR_IDLE_IN_DPD)) {
 		enter_dpd(dev);
@@ -283,7 +283,7 @@ static void release_device(struct device *dev)
  * @param flash_id The flash info structure which contains the expected JEDEC ID
  * @return 0 on success, negative errno code otherwise
  */
-static inline int spi_nor_read_id(struct device *dev,
+static inline int spi_nor_read_id(const struct device *dev,
 				  const struct spi_nor_config *const flash_id)
 {
 	uint8_t buf[SPI_NOR_MAX_ID_LEN];
@@ -306,7 +306,7 @@ static inline int spi_nor_read_id(struct device *dev,
  * @param dev The device structure
  * @return 0 on success, negative errno code otherwise
  */
-static int spi_nor_wait_until_ready(struct device *dev)
+static int spi_nor_wait_until_ready(const struct device *dev)
 {
 	int ret;
 	uint8_t reg;
@@ -318,7 +318,7 @@ static int spi_nor_wait_until_ready(struct device *dev)
 	return ret;
 }
 
-static int spi_nor_read(struct device *dev, off_t addr, void *dest,
+static int spi_nor_read(const struct device *dev, off_t addr, void *dest,
 			size_t size)
 {
 	const struct spi_nor_config *params = dev->config;
@@ -339,7 +339,8 @@ static int spi_nor_read(struct device *dev, off_t addr, void *dest,
 	return ret;
 }
 
-static int spi_nor_write(struct device *dev, off_t addr, const void *src,
+static int spi_nor_write(const struct device *dev, off_t addr,
+			 const void *src,
 			 size_t size)
 {
 	const struct spi_nor_config *params = dev->config;
@@ -385,7 +386,7 @@ out:
 	return ret;
 }
 
-static int spi_nor_erase(struct device *dev, off_t addr, size_t size)
+static int spi_nor_erase(const struct device *dev, off_t addr, size_t size)
 {
 	const struct spi_nor_config *params = dev->config;
 	int ret = 0;
@@ -454,7 +455,8 @@ out:
 	return ret;
 }
 
-static int spi_nor_write_protection_set(struct device *dev, bool write_protect)
+static int spi_nor_write_protection_set(const struct device *dev,
+					bool write_protect)
 {
 	int ret;
 
@@ -483,7 +485,7 @@ static int spi_nor_write_protection_set(struct device *dev, bool write_protect)
  * @param info The flash info structure
  * @return 0 on success, negative errno code otherwise
  */
-static int spi_nor_configure(struct device *dev)
+static int spi_nor_configure(const struct device *dev)
 {
 	struct spi_nor_data *data = dev->data;
 	const struct spi_nor_config *params = dev->config;
@@ -533,7 +535,7 @@ static int spi_nor_configure(struct device *dev)
  * @param name The flash name
  * @return 0 on success, negative errno code otherwise
  */
-static int spi_nor_init(struct device *dev)
+static int spi_nor_init(const struct device *dev)
 {
 	if (IS_ENABLED(CONFIG_MULTITHREADING)) {
 		struct spi_nor_data *const driver_data = dev->data;
@@ -565,7 +567,7 @@ static const struct flash_pages_layout dev_layout = {
 };
 #undef LAYOUT_PAGES_COUNT
 
-static void spi_nor_pages_layout(struct device *dev,
+static void spi_nor_pages_layout(const struct device *dev,
 				 const struct flash_pages_layout **layout,
 				 size_t *layout_size)
 {
