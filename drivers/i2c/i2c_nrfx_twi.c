@@ -8,6 +8,7 @@
 #include <drivers/i2c.h>
 #include <dt-bindings/i2c/i2c.h>
 #include <nrfx_twi.h>
+#include "i2c_bitbang.h"
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(i2c_nrfx_twi, CONFIG_I2C_LOG_LEVEL);
@@ -165,9 +166,92 @@ static int i2c_nrfx_twi_configure(struct device *dev, u32_t dev_config)
 	return 0;
 }
 
+static void set_scl(void *io_context, int state)
+{
+	const nrfx_twi_config_t *cp = io_context;
+
+	if (state) {
+		NRF_P0->OUTSET = BIT(cp->scl);
+	} else {
+		NRF_P0->OUTCLR = BIT(cp->scl);
+	}
+}
+
+static void set_sda(void *io_context, int state)
+{
+	const nrfx_twi_config_t *cp = io_context;
+
+	if (state) {
+		NRF_P0->OUTSET = BIT(cp->sda);
+	} else {
+		NRF_P0->OUTCLR = BIT(cp->sda);
+	}
+}
+
+static int get_sda(void *io_context)
+{
+	const nrfx_twi_config_t *cp = io_context;
+	return (NRF_P0->IN & BIT(cp->sda)) != 0;
+}
+
+static const struct i2c_bitbang_io i2c_bitbang_io = {
+	.set_scl = set_scl,
+	.set_sda = set_sda,
+	.get_sda = get_sda,
+};
+
+static int i2c_nrfx_twi_recover_bus(struct device *dev)
+{
+	const struct i2c_nrfx_twi_config *tcp = get_dev_config(dev);
+	const nrfx_twi_config_t *ncp = &tcp->config;
+	struct i2c_bitbang i2c_bitbang;
+	int ret = 0;
+
+	k_sem_take(&(get_dev_data(dev)->transfer_sync), K_FOREVER);
+	nrfx_twi_disable(&tcp->twi);
+
+	NRF_P0->PIN_CNF[ncp->sda] = 0
+		| (GPIO_PIN_CNF_SENSE_Disabled << GPIO_PIN_CNF_SENSE_Pos)
+		| (GPIO_PIN_CNF_DRIVE_S0S1 << GPIO_PIN_CNF_DRIVE_Pos)
+		| (GPIO_PIN_CNF_INPUT_Connect << GPIO_PIN_CNF_INPUT_Pos)
+		| (GPIO_PIN_CNF_DIR_Output << GPIO_PIN_CNF_DIR_Pos)
+		| (GPIO_PIN_CNF_PULL_Pullup << GPIO_PIN_CNF_PULL_Pos)
+		;
+
+	NRF_P0->PIN_CNF[ncp->scl] = 0
+		| (GPIO_PIN_CNF_SENSE_Disabled << GPIO_PIN_CNF_SENSE_Pos)
+		| (GPIO_PIN_CNF_DRIVE_S0S1 << GPIO_PIN_CNF_DRIVE_Pos)
+		| (GPIO_PIN_CNF_INPUT_Disconnect << GPIO_PIN_CNF_INPUT_Pos)
+		| (GPIO_PIN_CNF_DIR_Output << GPIO_PIN_CNF_DIR_Pos)
+		| (GPIO_PIN_CNF_PULL_Pullup << GPIO_PIN_CNF_PULL_Pos)
+		;
+
+	i2c_bitbang_init(&i2c_bitbang, &i2c_bitbang_io, ncp);
+
+	ret = i2c_bitbang_recover_bus(&i2c_bitbang);
+
+	NRF_P0->PIN_CNF[ncp->sda] = 0
+		| (GPIO_PIN_CNF_SENSE_Disabled << GPIO_PIN_CNF_SENSE_Pos)
+		| (GPIO_PIN_CNF_DRIVE_S0S1 << GPIO_PIN_CNF_DRIVE_Pos)
+		| (GPIO_PIN_CNF_INPUT_Disconnect << GPIO_PIN_CNF_INPUT_Pos)
+		| (GPIO_PIN_CNF_DIR_Input << GPIO_PIN_CNF_DIR_Pos)
+		;
+	NRF_P0->PIN_CNF[ncp->scl] = 0
+		| (GPIO_PIN_CNF_SENSE_Disabled << GPIO_PIN_CNF_SENSE_Pos)
+		| (GPIO_PIN_CNF_DRIVE_S0S1 << GPIO_PIN_CNF_DRIVE_Pos)
+		| (GPIO_PIN_CNF_INPUT_Disconnect << GPIO_PIN_CNF_INPUT_Pos)
+		| (GPIO_PIN_CNF_DIR_Input << GPIO_PIN_CNF_DIR_Pos)
+		;
+
+	k_sem_give(&(get_dev_data(dev)->transfer_sync));
+	return ret;
+}
+
+
 static const struct i2c_driver_api i2c_nrfx_twi_driver_api = {
 	.configure = i2c_nrfx_twi_configure,
 	.transfer  = i2c_nrfx_twi_transfer,
+	.recover_bus = i2c_nrfx_twi_recover_bus,
 };
 
 static int init_twi(struct device *dev)
