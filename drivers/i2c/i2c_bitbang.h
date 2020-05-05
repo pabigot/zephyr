@@ -34,6 +34,9 @@ struct i2c_bitbang {
 /**
  * @brief Initialize an i2c_bitbang instance
  *
+ * The instance is configured for standard mode (100 kbit/s)
+ * transfers.
+ *
  * @param bitbang	The instance to initialize
  * @param io		Functions to use for controlling I2C bus lines
  * @param io_context	Context pointer to pass to i/o functions when then are

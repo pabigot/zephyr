@@ -48,6 +48,7 @@ int i2c_bitbang_configure(struct i2c_bitbang *context, u32_t dev_config)
 
 	/* Setup speed to use */
 	switch (I2C_SPEED_GET(dev_config)) {
+	default:
 	case I2C_SPEED_STANDARD:
 		context->delays[T_LOW]  = NS_TO_SYS_CLOCK_HW_CYCLES(4700);
 		context->delays[T_HIGH] = NS_TO_SYS_CLOCK_HW_CYCLES(4000);
@@ -56,8 +57,10 @@ int i2c_bitbang_configure(struct i2c_bitbang *context, u32_t dev_config)
 		context->delays[T_LOW]  = NS_TO_SYS_CLOCK_HW_CYCLES(1300);
 		context->delays[T_HIGH] = NS_TO_SYS_CLOCK_HW_CYCLES(600);
 		break;
-	default:
-		return -ENOTSUP;
+	case I2C_SPEED_FAST_PLUS:
+		context->delays[T_LOW]  = NS_TO_SYS_CLOCK_HW_CYCLES(500);
+		context->delays[T_HIGH] = NS_TO_SYS_CLOCK_HW_CYCLES(260);
+		break;
 	}
 
 	return 0;
