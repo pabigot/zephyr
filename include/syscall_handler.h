@@ -455,7 +455,7 @@ static inline int z_obj_validation_check(struct z_object *ko,
  * @param _api Expected driver API structure memory address
  * @return 0 on success, nonzero on failure
  */
-#define Z_SYSCALL_SPECIFIC_DRIVER(_device, _dtype, _init_fn) \
+#define Z_SYSCALL_SPECIFIC_DRIVER(_device, _dtype, _api) \
 	({ \
 		struct device *_dev = (struct device *)_device; \
 		Z_SYSCALL_OBJ(_dev, _dtype) || \
