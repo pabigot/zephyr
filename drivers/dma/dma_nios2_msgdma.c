@@ -32,12 +32,12 @@ struct nios2_msgdma_dev_cfg {
 
 #define DEV_NAME(dev) ((dev)->name)
 #define DEV_CFG(dev) \
-	((struct nios2_msgdma_dev_cfg *)(dev)->config_info)
+	((const struct nios2_msgdma_dev_cfg *)(dev)->config_info)
 
 static void nios2_msgdma_isr(void *arg)
 {
 	struct device *dev = (struct device *)arg;
-	struct nios2_msgdma_dev_cfg *cfg = DEV_CFG(dev);
+	const struct nios2_msgdma_dev_cfg *cfg = DEV_CFG(dev);
 
 	/* Call Altera HAL driver ISR */
 	alt_handle_irq(cfg->msgdma_dev, MSGDMA_0_CSR_IRQ);
@@ -45,7 +45,7 @@ static void nios2_msgdma_isr(void *arg)
 
 static void nios2_msgdma_callback(void *context)
 {
-	struct nios2_msgdma_dev_cfg *dev_cfg =
+	const struct nios2_msgdma_dev_cfg *dev_cfg =
 				DEV_CFG((struct device *)context);
 	int err_code;
 	u32_t status;
@@ -68,7 +68,7 @@ static void nios2_msgdma_callback(void *context)
 static int nios2_msgdma_config(struct device *dev, u32_t channel,
 			       struct dma_config *cfg)
 {
-	struct nios2_msgdma_dev_cfg *dev_cfg = DEV_CFG(dev);
+	const struct nios2_msgdma_dev_cfg *dev_cfg = DEV_CFG(dev);
 	struct dma_block_config *dma_block;
 	int status;
 	u32_t control;
@@ -152,7 +152,7 @@ static int nios2_msgdma_config(struct device *dev, u32_t channel,
 
 static int nios2_msgdma_transfer_start(struct device *dev, u32_t channel)
 {
-	struct nios2_msgdma_dev_cfg *cfg = DEV_CFG(dev);
+	const struct nios2_msgdma_dev_cfg *cfg = DEV_CFG(dev);
 	int status;
 
 	/* Nios-II mSGDMA supports only one channel per DMA core */
@@ -175,7 +175,7 @@ static int nios2_msgdma_transfer_start(struct device *dev, u32_t channel)
 
 static int nios2_msgdma_transfer_stop(struct device *dev, u32_t channel)
 {
-	struct nios2_msgdma_dev_cfg *cfg = DEV_CFG(dev);
+	const struct nios2_msgdma_dev_cfg *cfg = DEV_CFG(dev);
 	int ret = -EIO;
 	u32_t status;
 
@@ -208,7 +208,7 @@ static struct device DEVICE_NAME_GET(dma0_nios2);
 
 static int nios2_msgdma0_initialize(struct device *dev)
 {
-	struct nios2_msgdma_dev_cfg *dev_cfg = DEV_CFG(dev);
+	const struct nios2_msgdma_dev_cfg *dev_cfg = DEV_CFG(dev);
 
 	/* Initialize semaphore */
 	k_sem_init(&dev_cfg->sem_lock, 1, 1);
