@@ -201,7 +201,7 @@ BUILD_ASSERT(IS_ENABLED(CONFIG_PCIE), "NS16550(s) in DT need CONFIG_PCIE");
 /* convenience defines */
 
 #define DEV_CFG(dev) \
-	((struct uart_ns16550_device_config * const) \
+	((const struct uart_ns16550_device_config * const) \
 	 (dev)->config_info)
 #define DEV_DATA(dev) \
 	((struct uart_ns16550_dev_data_t *)(dev)->driver_data)
@@ -316,7 +316,7 @@ static int uart_ns16550_configure(struct device *dev,
 				const struct uart_config *cfg)
 {
 	struct uart_ns16550_dev_data_t * const dev_data = DEV_DATA(dev);
-	struct uart_ns16550_device_config * const dev_cfg = DEV_CFG(dev);
+	const struct uart_ns16550_device_config * const dev_cfg = DEV_CFG(dev);
 
 	unsigned int old_level;     /* old interrupt lock level */
 	u8_t mdc = 0U;
