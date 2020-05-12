@@ -51,7 +51,7 @@ static struct codec_driver_config codec_device_config = {
 static struct codec_driver_data codec_device_data;
 
 #define DEV_CFG(dev) \
-	((struct codec_driver_config *const)(dev)->config_info)
+	((const struct codec_driver_config *const)(dev)->config_info)
 #define DEV_DATA(dev) \
 	((struct codec_driver_data *const)(dev)->driver_data)
 
@@ -75,7 +75,7 @@ static void codec_read_all_regs(struct device *dev);
 
 static int codec_initialize(struct device *dev)
 {
-	struct codec_driver_config *const dev_cfg = DEV_CFG(dev);
+	const struct codec_driver_config *const dev_cfg = DEV_CFG(dev);
 
 	/* bind I2C */
 	dev_cfg->i2c_device = device_get_binding(dev_cfg->i2c_dev_name);
@@ -99,7 +99,7 @@ static int codec_initialize(struct device *dev)
 static int codec_configure(struct device *dev,
 		struct audio_codec_cfg *cfg)
 {
-	struct codec_driver_config *const dev_cfg = DEV_CFG(dev);
+	const struct codec_driver_config *const dev_cfg = DEV_CFG(dev);
 	int ret;
 
 	if (cfg->dai_type != AUDIO_DAI_TYPE_I2S) {
@@ -198,7 +198,7 @@ static int codec_apply_properties(struct device *dev)
 static void codec_write_reg(struct device *dev, struct reg_addr reg, u8_t val)
 {
 	struct codec_driver_data *const dev_data = DEV_DATA(dev);
-	struct codec_driver_config *const dev_cfg = DEV_CFG(dev);
+	const struct codec_driver_config *const dev_cfg = DEV_CFG(dev);
 
 	/* set page if different */
 	if (dev_data->reg_addr_cache.page != reg.page) {
@@ -216,7 +216,7 @@ static void codec_write_reg(struct device *dev, struct reg_addr reg, u8_t val)
 static void codec_read_reg(struct device *dev, struct reg_addr reg, u8_t *val)
 {
 	struct codec_driver_data *const dev_data = DEV_DATA(dev);
-	struct codec_driver_config *const dev_cfg = DEV_CFG(dev);
+	const struct codec_driver_config *const dev_cfg = DEV_CFG(dev);
 
 	/* set page if different */
 	if (dev_data->reg_addr_cache.page != reg.page) {
