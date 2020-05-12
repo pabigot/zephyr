@@ -21,7 +21,7 @@ LOG_MODULE_REGISTER(i2c_gecko);
 #include "i2c-priv.h"
 
 #define DEV_CFG(dev) \
-	((struct i2c_gecko_config * const)(dev)->config_info)
+	((const struct i2c_gecko_config * const)(dev)->config_info)
 #define DEV_DATA(dev) \
 	((struct i2c_gecko_data * const)(dev)->driver_data)
 #define DEV_BASE(dev) \
@@ -52,7 +52,7 @@ void i2c_gecko_config_pins(struct device *dev,
 			   const struct soc_gpio_pin *pin_scl)
 {
 	I2C_TypeDef *base = DEV_BASE(dev);
-	struct i2c_gecko_config *config = DEV_CFG(dev);
+	const struct i2c_gecko_config *config = DEV_CFG(dev);
 
 	soc_gpio_configure(pin_scl);
 	soc_gpio_configure(pin_sda);
@@ -69,7 +69,7 @@ void i2c_gecko_config_pins(struct device *dev,
 static int i2c_gecko_configure(struct device *dev, u32_t dev_config_raw)
 {
 	I2C_TypeDef *base = DEV_BASE(dev);
-	struct i2c_gecko_config *config = DEV_CFG(dev);
+	const struct i2c_gecko_config *config = DEV_CFG(dev);
 	struct i2c_gecko_data *data = DEV_DATA(dev);
 	u32_t baudrate;
 
@@ -165,7 +165,7 @@ finish:
 
 static int i2c_gecko_init(struct device *dev)
 {
-	struct i2c_gecko_config *config = DEV_CFG(dev);
+	const struct i2c_gecko_config *config = DEV_CFG(dev);
 	u32_t bitrate_cfg;
 	int error;
 
