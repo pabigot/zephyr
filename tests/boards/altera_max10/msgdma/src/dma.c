@@ -39,7 +39,7 @@ static void dma_user_callback(void *arg, uint32_t id, int error_code)
 
 void test_msgdma(void)
 {
-	struct device *dma;
+	const struct device *dma;
 	static uint32_t chan_id;
 	int i;
 

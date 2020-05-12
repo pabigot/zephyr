@@ -38,7 +38,7 @@
 #include <usb/usb_device.h>
 #endif
 
-static struct device *uart_console_dev;
+static const struct device *uart_console_dev;
 
 #ifdef CONFIG_UART_CONSOLE_DEBUG_SERVER_HOOKS
 
@@ -134,7 +134,8 @@ static uint8_t (*completion_cb)(char *line, uint8_t len);
 #define ANSI_HOME          'H'
 #define ANSI_DEL           '~'
 
-static int read_uart(struct device *uart, uint8_t *buf, unsigned int size)
+static int read_uart(const struct device *uart, uint8_t *buf,
+		     unsigned int size)
 {
 	int rx;
 
@@ -434,7 +435,7 @@ static bool handle_mcumgr(struct console_input *cmd, uint8_t byte)
 
 #endif /* CONFIG_UART_CONSOLE_MCUMGR */
 
-static void uart_console_isr(struct device *unused)
+static void uart_console_isr(const struct device *unused)
 {
 	ARG_UNUSED(unused);
 
@@ -592,7 +593,7 @@ static void uart_console_hook_install(void)
  *
  * @return 0 if successful, otherwise failed.
  */
-static int uart_console_init(struct device *arg)
+static int uart_console_init(const struct device *arg)
 {
 
 	ARG_UNUSED(arg);

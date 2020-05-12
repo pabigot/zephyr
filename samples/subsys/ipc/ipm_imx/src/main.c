@@ -9,7 +9,7 @@
 #include <device.h>
 #include <drivers/ipm.h>
 
-static struct device *ipm;
+static const struct device *ipm;
 
 static void ipm_callback(void *context, uint32_t id, volatile void *data)
 {

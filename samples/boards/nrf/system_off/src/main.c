@@ -18,7 +18,7 @@
 void main(void)
 {
 	int rc;
-	struct device *cons = device_get_binding(CONSOLE_LABEL);
+	const struct device *cons = device_get_binding(CONSOLE_LABEL);
 
 	printk("\n%s system off demo\n", CONFIG_BOARD);
 

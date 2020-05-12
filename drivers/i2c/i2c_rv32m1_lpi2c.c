@@ -25,7 +25,7 @@ struct rv32m1_lpi2c_config {
 	clock_ip_name_t clock_ip_name;
 	uint32_t clock_ip_src;
 	uint32_t bitrate;
-	void (*irq_config_func)(struct device *dev);
+	void (*irq_config_func)(const struct device *dev);
 };
 
 struct rv32m1_lpi2c_data {
@@ -35,10 +35,11 @@ struct rv32m1_lpi2c_data {
 	status_t completion_status;
 };
 
-static int rv32m1_lpi2c_configure(struct device *dev, uint32_t dev_config)
+static int rv32m1_lpi2c_configure(const struct device *dev,
+				  uint32_t dev_config)
 {
 	const struct rv32m1_lpi2c_config *config = dev->config_info;
-	struct device *clk;
+	const struct device *clk;
 	uint32_t baudrate;
 	uint32_t clk_freq;
 	int err;
@@ -101,7 +102,7 @@ static void rv32m1_lpi2c_master_transfer_callback(LPI2C_Type *base,
 						  status_t completionStatus,
 						  void *userData)
 {
-	struct device *dev = userData;
+	const struct device *dev = userData;
 	struct rv32m1_lpi2c_data *data = dev->driver_data;
 
 	ARG_UNUSED(base);
@@ -126,7 +127,8 @@ static uint32_t rv32m1_lpi2c_convert_flags(int msg_flags)
 	return flags;
 }
 
-static int rv32m1_lpi2c_transfer(struct device *dev, struct i2c_msg *msgs,
+static int rv32m1_lpi2c_transfer(const struct device *dev,
+				 struct i2c_msg *msgs,
 				 uint8_t num_msgs, uint16_t addr)
 {
 	const struct rv32m1_lpi2c_config *config = dev->config_info;
@@ -201,19 +203,19 @@ out:
 
 static void rv32m1_lpi2c_isr(void *arg)
 {
-	struct device *dev = (struct device *)arg;
+	const struct device *dev = (const struct device *)arg;
 	const struct rv32m1_lpi2c_config *config = dev->config_info;
 	struct rv32m1_lpi2c_data *data = dev->driver_data;
 
 	LPI2C_MasterTransferHandleIRQ(config->base, &data->handle);
 }
 
-static int rv32m1_lpi2c_init(struct device *dev)
+static int rv32m1_lpi2c_init(const struct device *dev)
 {
 	const struct rv32m1_lpi2c_config *config = dev->config_info;
 	struct rv32m1_lpi2c_data *data = dev->driver_data;
 	lpi2c_master_config_t master_config;
-	struct device *clk;
+	const struct device *clk;
 	uint32_t clk_freq, dev_cfg;
 	int err;
 
@@ -262,7 +264,7 @@ static const struct i2c_driver_api rv32m1_lpi2c_driver_api = {
 };
 
 #define RV32M1_LPI2C_DEVICE(id)                                                \
-	static void rv32m1_lpi2c_irq_config_func_##id(struct device *dev);     \
+	static void rv32m1_lpi2c_irq_config_func_##id(const struct device *dev);     \
 	static const struct rv32m1_lpi2c_config rv32m1_lpi2c_##id##_config = { \
 		.base =                                                        \
 		(LPI2C_Type *)DT_INST_REG_ADDR(id),                            \
@@ -287,7 +289,7 @@ static const struct i2c_driver_api rv32m1_lpi2c_driver_api = {
 			    &rv32m1_lpi2c_##id##_config,                       \
 			    POST_KERNEL, CONFIG_I2C_INIT_PRIORITY,             \
 			    &rv32m1_lpi2c_driver_api);	                       \
-	static void rv32m1_lpi2c_irq_config_func_##id(struct device *dev)      \
+	static void rv32m1_lpi2c_irq_config_func_##id(const struct device *dev)      \
 	{                                                                      \
 		IRQ_CONNECT(DT_INST_IRQN(id),                                  \
 			    0,						       \

@@ -107,7 +107,7 @@ static uint32_t __get_tim_clk(uint32_t bus_clk,
  *
  * return 0, or negative errno code
  */
-static int pwm_stm32_pin_set(struct device *dev, uint32_t pwm,
+static int pwm_stm32_pin_set(const struct device *dev, uint32_t pwm,
 			     uint32_t period_cycles, uint32_t pulse_cycles,
 			     pwm_flags_t flags)
 {
@@ -194,7 +194,8 @@ static int pwm_stm32_pin_set(struct device *dev, uint32_t pwm,
  *
  * return 0, or negative errno code
  */
-static int pwm_stm32_get_cycles_per_sec(struct device *dev, uint32_t pwm,
+static int pwm_stm32_get_cycles_per_sec(const struct device *dev,
+					uint32_t pwm,
 					uint64_t *cycles)
 {
 	const struct pwm_stm32_config *cfg = DEV_CFG(dev);
@@ -226,10 +227,10 @@ static const struct pwm_driver_api pwm_stm32_drv_api_funcs = {
 };
 
 
-static inline void __pwm_stm32_get_clock(struct device *dev)
+static inline void __pwm_stm32_get_clock(const struct device *dev)
 {
 	struct pwm_stm32_data *data = DEV_DATA(dev);
-	struct device *clk = device_get_binding(STM32_CLOCK_CONTROL_NAME);
+	const struct device *clk = device_get_binding(STM32_CLOCK_CONTROL_NAME);
 
 	__ASSERT_NO_MSG(clk);
 
@@ -237,7 +238,7 @@ static inline void __pwm_stm32_get_clock(struct device *dev)
 }
 
 
-static int pwm_stm32_init(struct device *dev)
+static int pwm_stm32_init(const struct device *dev)
 {
 	const struct pwm_stm32_config *config = DEV_CFG(dev);
 	struct pwm_stm32_data *data = DEV_DATA(dev);

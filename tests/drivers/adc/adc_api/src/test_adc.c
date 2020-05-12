@@ -235,15 +235,15 @@ static const struct adc_channel_cfg m_2nd_channel_cfg = {
 };
 #endif /* defined(ADC_2ND_CHANNEL_ID) */
 
-struct device *get_adc_device(void)
+const struct device *get_adc_device(void)
 {
 	return device_get_binding(ADC_DEVICE_NAME);
 }
 
-static struct device *init_adc(void)
+static const struct device *init_adc(void)
 {
 	int ret;
-	struct device *adc_dev = device_get_binding(ADC_DEVICE_NAME);
+	const struct device *adc_dev = device_get_binding(ADC_DEVICE_NAME);
 
 	zassert_not_null(adc_dev, "Cannot get ADC device");
 
@@ -295,7 +295,7 @@ static int test_task_one_channel(void)
 		.resolution  = ADC_RESOLUTION,
 	};
 
-	struct device *adc_dev = init_adc();
+	const struct device *adc_dev = init_adc();
 
 	if (!adc_dev) {
 		return TC_FAIL;
@@ -329,7 +329,7 @@ static int test_task_two_channels(void)
 		.resolution  = ADC_RESOLUTION,
 	};
 
-	struct device *adc_dev = init_adc();
+	const struct device *adc_dev = init_adc();
 
 	if (!adc_dev) {
 		return TC_FAIL;
@@ -378,7 +378,7 @@ static int test_task_asynchronous_call(void)
 		K_POLL_EVENT_INITIALIZER(K_POLL_TYPE_SIGNAL,
 					 K_POLL_MODE_NOTIFY_ONLY,
 					 &async_sig);
-	struct device *adc_dev = init_adc();
+	const struct device *adc_dev = init_adc();
 
 	if (!adc_dev) {
 		return TC_FAIL;
@@ -409,7 +409,7 @@ void test_adc_asynchronous_call(void)
  * test_adc_sample_with_interval
  */
 static enum adc_action sample_with_interval_callback(
-				struct device *dev,
+				const struct device *dev,
 				const struct adc_sequence *sequence,
 				uint16_t sampling_index)
 {
@@ -433,7 +433,7 @@ static int test_task_with_interval(void)
 		.resolution  = ADC_RESOLUTION,
 	};
 
-	struct device *adc_dev = init_adc();
+	const struct device *adc_dev = init_adc();
 
 	if (!adc_dev) {
 		return TC_FAIL;
@@ -457,7 +457,7 @@ void test_adc_sample_with_interval(void)
  */
 static uint8_t m_samplings_done;
 static enum adc_action repeated_samplings_callback(
-				struct device *dev,
+				const struct device *dev,
 				const struct adc_sequence *sequence,
 				uint16_t sampling_index)
 {
@@ -521,7 +521,7 @@ static int test_task_repeated_samplings(void)
 		.resolution  = ADC_RESOLUTION,
 	};
 
-	struct device *adc_dev = init_adc();
+	const struct device *adc_dev = init_adc();
 
 	if (!adc_dev) {
 		return TC_FAIL;
@@ -551,7 +551,7 @@ static int test_task_invalid_request(void)
 		.resolution  = 0, /* intentionally invalid value */
 	};
 
-	struct device *adc_dev = init_adc();
+	const struct device *adc_dev = init_adc();
 
 	if (!adc_dev) {
 		return TC_FAIL;

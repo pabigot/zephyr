@@ -68,7 +68,7 @@ static struct net_pkt rf2xx_ack_pkt = {
 #endif /* CONFIG_NET_L2_OPENTHREAD */
 
 /* Radio Transceiver ISR */
-static inline void trx_isr_handler(struct device *port,
+static inline void trx_isr_handler(const struct device *port,
 				   struct gpio_callback *cb,
 				   uint32_t pins)
 {
@@ -82,7 +82,7 @@ static inline void trx_isr_handler(struct device *port,
 	k_sem_give(&ctx->trx_isr_lock);
 }
 
-static void rf2xx_trx_set_state(struct device *dev,
+static void rf2xx_trx_set_state(const struct device *dev,
 				enum rf2xx_trx_state_cmd_t state)
 {
 	do {
@@ -99,7 +99,7 @@ static void rf2xx_trx_set_state(struct device *dev,
 		  RF2XX_TRX_PHY_STATUS_MASK));
 }
 
-static void rf2xx_trx_set_tx_state(struct device *dev)
+static void rf2xx_trx_set_tx_state(const struct device *dev)
 {
 	uint8_t status;
 
@@ -123,7 +123,7 @@ static void rf2xx_trx_set_tx_state(struct device *dev)
 	rf2xx_trx_set_state(dev, RF2XX_TRX_PHY_STATE_CMD_TX_ARET_ON);
 }
 
-static void rf2xx_trx_set_rx_state(struct device *dev)
+static void rf2xx_trx_set_rx_state(const struct device *dev)
 {
 	rf2xx_trx_set_state(dev, RF2XX_TRX_PHY_STATE_CMD_TRX_OFF);
 	rf2xx_iface_reg_read(dev, RF2XX_IRQ_STATUS_REG);
@@ -134,7 +134,7 @@ static void rf2xx_trx_set_rx_state(struct device *dev)
 	rf2xx_trx_set_state(dev, RF2XX_TRX_PHY_STATE_CMD_RX_AACK_ON);
 }
 
-static void rf2xx_trx_rx(struct device *dev)
+static void rf2xx_trx_rx(const struct device *dev)
 {
 	struct rf2xx_context *ctx = dev->driver_data;
 	struct net_pkt *pkt = NULL;
@@ -212,7 +212,7 @@ static void rf2xx_trx_rx(struct device *dev)
 	}
 }
 
-static void rf2xx_process_rx_frame(struct device *dev)
+static void rf2xx_process_rx_frame(const struct device *dev)
 {
 	struct rf2xx_context *ctx = dev->driver_data;
 
@@ -236,7 +236,7 @@ static void rf2xx_process_rx_frame(struct device *dev)
 	}
 }
 
-static void rf2xx_process_tx_frame(struct device *dev)
+static void rf2xx_process_tx_frame(const struct device *dev)
 {
 	struct rf2xx_context *ctx = dev->driver_data;
 
@@ -246,7 +246,7 @@ static void rf2xx_process_tx_frame(struct device *dev)
 	rf2xx_trx_set_rx_state(dev);
 }
 
-static void rf2xx_process_trx_end(struct device *dev)
+static void rf2xx_process_trx_end(const struct device *dev)
 {
 	uint8_t trx_status = (rf2xx_iface_reg_read(dev, RF2XX_TRX_STATUS_REG) &
 			   RF2XX_TRX_PHY_STATUS_MASK);
@@ -260,7 +260,7 @@ static void rf2xx_process_trx_end(struct device *dev)
 
 static void rf2xx_thread_main(void *arg)
 {
-	struct device *dev = INT_TO_POINTER(arg);
+	const struct device *dev = INT_TO_POINTER(arg);
 	struct rf2xx_context *ctx = dev->driver_data;
 	uint8_t isr_status;
 
@@ -305,7 +305,7 @@ static void rf2xx_thread_main(void *arg)
 	}
 }
 
-static inline uint8_t *get_mac(struct device *dev)
+static inline uint8_t *get_mac(const struct device *dev)
 {
 	const struct rf2xx_config *conf = dev->config_info;
 	struct rf2xx_context *ctx = dev->driver_data;
@@ -327,7 +327,7 @@ static inline uint8_t *get_mac(struct device *dev)
 	return ctx->mac_addr;
 }
 
-static enum ieee802154_hw_caps rf2xx_get_capabilities(struct device *dev)
+static enum ieee802154_hw_caps rf2xx_get_capabilities(const struct device *dev)
 {
 	ARG_UNUSED(dev);
 
@@ -339,14 +339,14 @@ static enum ieee802154_hw_caps rf2xx_get_capabilities(struct device *dev)
 	       IEEE802154_HW_2_4_GHZ;
 }
 
-static int rf2xx_cca(struct device *dev)
+static int rf2xx_cca(const struct device *dev)
 {
 	ARG_UNUSED(dev);
 
 	return 0;
 }
 
-static int rf2xx_set_channel(struct device *dev, uint16_t channel)
+static int rf2xx_set_channel(const struct device *dev, uint16_t channel)
 {
 	uint8_t reg;
 
@@ -361,7 +361,7 @@ static int rf2xx_set_channel(struct device *dev, uint16_t channel)
 	return 0;
 }
 
-static int rf2xx_set_txpower(struct device *dev, int16_t dbm)
+static int rf2xx_set_txpower(const struct device *dev, int16_t dbm)
 {
 	uint8_t reg;
 
@@ -376,7 +376,7 @@ static int rf2xx_set_txpower(struct device *dev, int16_t dbm)
 	return 0;
 }
 
-static int rf2xx_set_ieee_addr(struct device *dev, bool set,
+static int rf2xx_set_ieee_addr(const struct device *dev, bool set,
 			       const uint8_t *ieee_addr)
 {
 	const uint8_t *ptr_to_reg = ieee_addr;
@@ -399,7 +399,7 @@ static int rf2xx_set_ieee_addr(struct device *dev, bool set,
 
 	return 0;
 }
-static int rf2xx_set_short_addr(struct device *dev, bool set,
+static int rf2xx_set_short_addr(const struct device *dev, bool set,
 				uint16_t short_addr)
 {
 	uint8_t short_addr_le[2] = { 0xFF, 0xFF };
@@ -418,7 +418,8 @@ static int rf2xx_set_short_addr(struct device *dev, bool set,
 
 	return 0;
 }
-static int rf2xx_set_pan_id(struct device *dev, bool set, uint16_t pan_id)
+static int rf2xx_set_pan_id(const struct device *dev, bool set,
+			    uint16_t pan_id)
 {
 	uint8_t pan_id_le[2] = { 0xFF, 0xFF };
 
@@ -434,7 +435,7 @@ static int rf2xx_set_pan_id(struct device *dev, bool set, uint16_t pan_id)
 	return 0;
 }
 
-static int rf2xx_filter(struct device *dev,
+static int rf2xx_filter(const struct device *dev,
 			bool set, enum ieee802154_filter_type type,
 			const struct ieee802154_filter *filter)
 {
@@ -475,7 +476,7 @@ static void rf2xx_handle_ack(struct rf2xx_context *ctx, struct net_buf *frag)
 	#define rf2xx_handle_ack(...)
 #endif
 
-static int rf2xx_tx(struct device *dev,
+static int rf2xx_tx(const struct device *dev,
 		    enum ieee802154_tx_mode mode,
 		    struct net_pkt *pkt,
 		    struct net_buf *frag)
@@ -532,7 +533,7 @@ static int rf2xx_tx(struct device *dev,
 	return response;
 }
 
-static int rf2xx_start(struct device *dev)
+static int rf2xx_start(const struct device *dev)
 {
 	const struct rf2xx_config *conf = dev->config_info;
 	struct rf2xx_context *ctx = dev->driver_data;
@@ -546,7 +547,7 @@ static int rf2xx_start(struct device *dev)
 	return 0;
 }
 
-static int rf2xx_stop(struct device *dev)
+static int rf2xx_stop(const struct device *dev)
 {
 	const struct rf2xx_config *conf = dev->config_info;
 	struct rf2xx_context *ctx = dev->driver_data;
@@ -559,7 +560,8 @@ static int rf2xx_stop(struct device *dev)
 	return 0;
 }
 
-int rf2xx_configure(struct device *dev, enum ieee802154_config_type type,
+int rf2xx_configure(const struct device *dev,
+		    enum ieee802154_config_type type,
 		    const struct ieee802154_config *config)
 {
 	ARG_UNUSED(dev);
@@ -569,7 +571,7 @@ int rf2xx_configure(struct device *dev, enum ieee802154_config_type type,
 	return 0;
 }
 
-static int power_on_and_setup(struct device *dev)
+static int power_on_and_setup(const struct device *dev)
 {
 	const struct rf2xx_config *conf = dev->config_info;
 	struct rf2xx_context *ctx = dev->driver_data;
@@ -639,7 +641,7 @@ static int power_on_and_setup(struct device *dev)
 	return 0;
 }
 
-static inline int configure_gpios(struct device *dev)
+static inline int configure_gpios(const struct device *dev)
 {
 	const struct rf2xx_config *conf = dev->config_info;
 	struct rf2xx_context *ctx = dev->driver_data;
@@ -699,7 +701,7 @@ static inline int configure_gpios(struct device *dev)
 	return 0;
 }
 
-static inline int configure_spi(struct device *dev)
+static inline int configure_spi(const struct device *dev)
 {
 	struct rf2xx_context *ctx = dev->driver_data;
 	const struct rf2xx_config *conf = dev->config_info;
@@ -741,7 +743,7 @@ static inline int configure_spi(struct device *dev)
 	return 0;
 }
 
-static int rf2xx_init(struct device *dev)
+static int rf2xx_init(const struct device *dev)
 {
 	struct rf2xx_context *ctx = dev->driver_data;
 	const struct rf2xx_config *conf = dev->config_info;
@@ -785,7 +787,7 @@ static int rf2xx_init(struct device *dev)
 
 static void rf2xx_iface_init(struct net_if *iface)
 {
-	struct device *dev = net_if_get_device(iface);
+	const struct device *dev = net_if_get_device(iface);
 	struct rf2xx_context *ctx = dev->driver_data;
 	uint8_t *mac = get_mac(dev);
 

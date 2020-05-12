@@ -58,10 +58,10 @@ struct rtc_stm32_data {
 ((const struct rtc_stm32_config * const)(dev)->config_info)
 
 
-static void rtc_stm32_irq_config(struct device *dev);
+static void rtc_stm32_irq_config(const struct device *dev);
 
 
-static int rtc_stm32_start(struct device *dev)
+static int rtc_stm32_start(const struct device *dev)
 {
 	ARG_UNUSED(dev);
 
@@ -71,7 +71,7 @@ static int rtc_stm32_start(struct device *dev)
 }
 
 
-static int rtc_stm32_stop(struct device *dev)
+static int rtc_stm32_stop(const struct device *dev)
 {
 	ARG_UNUSED(dev);
 
@@ -81,7 +81,7 @@ static int rtc_stm32_stop(struct device *dev)
 }
 
 
-static uint32_t rtc_stm32_read(struct device *dev)
+static uint32_t rtc_stm32_read(const struct device *dev)
 {
 	struct tm now = { 0 };
 	time_t ts;
@@ -117,13 +117,13 @@ static uint32_t rtc_stm32_read(struct device *dev)
 	return ticks;
 }
 
-static int rtc_stm32_get_value(struct device *dev, uint32_t *ticks)
+static int rtc_stm32_get_value(const struct device *dev, uint32_t *ticks)
 {
 	*ticks = rtc_stm32_read(dev);
 	return 0;
 }
 
-static int rtc_stm32_set_alarm(struct device *dev, uint8_t chan_id,
+static int rtc_stm32_set_alarm(const struct device *dev, uint8_t chan_id,
 				const struct counter_alarm_cfg *alarm_cfg)
 {
 	struct tm alarm_tm;
@@ -186,7 +186,7 @@ static int rtc_stm32_set_alarm(struct device *dev, uint8_t chan_id,
 }
 
 
-static int rtc_stm32_cancel_alarm(struct device *dev, uint8_t chan_id)
+static int rtc_stm32_cancel_alarm(const struct device *dev, uint8_t chan_id)
 {
 	LL_RTC_DisableWriteProtection(RTC);
 	LL_RTC_ClearFlag_ALRA(RTC);
@@ -200,13 +200,13 @@ static int rtc_stm32_cancel_alarm(struct device *dev, uint8_t chan_id)
 }
 
 
-static uint32_t rtc_stm32_get_pending_int(struct device *dev)
+static uint32_t rtc_stm32_get_pending_int(const struct device *dev)
 {
 	return LL_RTC_IsActiveFlag_ALRA(RTC) != 0;
 }
 
 
-static uint32_t rtc_stm32_get_top_value(struct device *dev)
+static uint32_t rtc_stm32_get_top_value(const struct device *dev)
 {
 	const struct counter_config_info *info = dev->config_info;
 
@@ -214,7 +214,7 @@ static uint32_t rtc_stm32_get_top_value(struct device *dev)
 }
 
 
-static int rtc_stm32_set_top_value(struct device *dev,
+static int rtc_stm32_set_top_value(const struct device *dev,
 				   const struct counter_top_cfg *cfg)
 {
 	const struct counter_config_info *info = dev->config_info;
@@ -230,7 +230,7 @@ static int rtc_stm32_set_top_value(struct device *dev,
 }
 
 
-static uint32_t rtc_stm32_get_max_relative_alarm(struct device *dev)
+static uint32_t rtc_stm32_get_max_relative_alarm(const struct device *dev)
 {
 	const struct counter_config_info *info = dev->config_info;
 
@@ -240,7 +240,7 @@ static uint32_t rtc_stm32_get_max_relative_alarm(struct device *dev)
 
 void rtc_stm32_isr(void *arg)
 {
-	struct device *const dev = (struct device *)arg;
+	const struct device *const dev = (const struct device *)arg;
 	struct rtc_stm32_data *data = DEV_DATA(dev);
 	counter_alarm_callback_t alarm_callback = data->callback;
 
@@ -268,9 +268,9 @@ void rtc_stm32_isr(void *arg)
 }
 
 
-static int rtc_stm32_init(struct device *dev)
+static int rtc_stm32_init(const struct device *dev)
 {
-	struct device *clk = device_get_binding(STM32_CLOCK_CONTROL_NAME);
+	const struct device *clk = device_get_binding(STM32_CLOCK_CONTROL_NAME);
 	const struct rtc_stm32_config *cfg = DEV_CFG(dev);
 
 	__ASSERT_NO_MSG(clk);
@@ -399,7 +399,7 @@ DEVICE_AND_API_INIT(rtc_stm32, DT_INST_LABEL(0), &rtc_stm32_init,
 		    &rtc_data, &rtc_config, PRE_KERNEL_1,
 		    CONFIG_KERNEL_INIT_PRIORITY_DEVICE, &rtc_stm32_driver_api);
 
-static void rtc_stm32_irq_config(struct device *dev)
+static void rtc_stm32_irq_config(const struct device *dev)
 {
 	IRQ_CONNECT(DT_INST_IRQN(0),
 		    DT_INST_IRQ(0, priority),

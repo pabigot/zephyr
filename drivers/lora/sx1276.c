@@ -51,10 +51,10 @@ static const struct sx1276_dio sx1276_dios[] = { SX1276_DIO_GPIO_INIT(0) };
 #define SX1276_MAX_DIO ARRAY_SIZE(sx1276_dios)
 
 static struct sx1276_data {
-	struct device *reset;
-	struct device *spi;
+	const struct device *reset;
+	const struct device *spi;
 	struct spi_config spi_cfg;
-	struct device *dio_dev[SX1276_MAX_DIO];
+	const struct device *dio_dev[SX1276_MAX_DIO];
 	struct k_work dio_work[SX1276_MAX_DIO];
 } dev_data;
 
@@ -98,7 +98,7 @@ static void sx1276_dio_work_handle(struct k_work *work)
 	(*DioIrq[dio])(NULL);
 }
 
-static void sx1276_irq_callback(struct device *dev,
+static void sx1276_irq_callback(const struct device *dev,
 				struct gpio_callback *cb, uint32_t pins)
 {
 	unsigned int i, pin;
@@ -309,7 +309,7 @@ const struct Radio_s Radio = {
 	.SetTxContinuousWave = SX1276SetTxContinuousWave,
 };
 
-static int sx1276_lora_init(struct device *dev)
+static int sx1276_lora_init(const struct device *dev)
 {
 #if DT_INST_SPI_DEV_HAS_CS_GPIOS(0)
 	static struct spi_cs_control spi_cs;

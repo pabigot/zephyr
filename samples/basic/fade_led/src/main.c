@@ -49,7 +49,7 @@
 
 void main(void)
 {
-	struct device *pwm;
+	const struct device *pwm;
 	uint32_t pulse_width = 0U;
 	uint8_t dir = 1U;
 	int ret;
