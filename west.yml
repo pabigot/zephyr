@@ -74,7 +74,7 @@ manifest:
       revision: 6812113dc58d134b74acdeebbffb4f80b8eeab75
       path: modules/hal/stm32
     - name: hal_ti
-      revision: aabc6a04a8e871cbb01e02c22bb409f68001dc64
+      revision: pull/14/head
       path: modules/hal/ti
     - name: libmetal
       revision: 87e9e7f2c5b4e238236fe703db61ba23e48dc2ef
@@ -83,6 +83,7 @@ manifest:
       revision: 74fc2e753a997bd71cefa34dd9c56dcb954b42e2
       path: modules/lib/gui/lvgl
     - name: mbedtls
+      revision: pull/10/head
       path: modules/crypto/mbedtls
       revision: 4bf099f1254332d16dcd931ccea0a88d24a7d3c7
     - name: mcuboot
@@ -107,7 +108,7 @@ manifest:
       revision: 1db7e9ebe5bbf701ca1ff8cad623892ec48fb0f0
       path: modules/lib/openthread
     - name: segger
-      revision: 6fcf61606d6012d2c44129edc033f59331e268bc
+      revision: pull/1/head
       path: modules/debug/segger
     - name: tinycbor
       path: modules/lib/tinycbor
