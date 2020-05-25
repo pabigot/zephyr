@@ -10,5 +10,5 @@ endif()
 find_package(Zephyr HINTS $ENV{ZEPHYR_BASE})
 project(mesh)
 
-target_sources(app PRIVATE src/main.c)
+target_sources(app PRIVATE src/main.cxx)
 target_sources_ifdef(CONFIG_BOARD_BBC_MICROBIT app PRIVATE src/microbit.c)
