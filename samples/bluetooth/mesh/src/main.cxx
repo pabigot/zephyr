@@ -16,23 +16,22 @@
 #include "board.h"
 
 static struct bt_mesh_cfg_srv cfg_srv = {
+	/* 3 transmissions with 20ms interval */
+	.net_transmit = BT_MESH_TRANSMIT(2, 20),
 	.relay = BT_MESH_RELAY_DISABLED,
+	.relay_retransmit = BT_MESH_TRANSMIT(2, 20),
 	.beacon = BT_MESH_BEACON_ENABLED,
-#if defined(CONFIG_BT_MESH_FRIEND)
-	.frnd = BT_MESH_FRIEND_ENABLED,
-#else
-	.frnd = BT_MESH_FRIEND_NOT_SUPPORTED,
-#endif
 #if defined(CONFIG_BT_MESH_GATT_PROXY)
 	.gatt_proxy = BT_MESH_GATT_PROXY_ENABLED,
 #else
 	.gatt_proxy = BT_MESH_GATT_PROXY_NOT_SUPPORTED,
 #endif
+#if defined(CONFIG_BT_MESH_FRIEND)
+	.frnd = BT_MESH_FRIEND_ENABLED,
+#else
+	.frnd = BT_MESH_FRIEND_NOT_SUPPORTED,
+#endif
 	.default_ttl = 7,
-
-	/* 3 transmissions with 20ms interval */
-	.net_transmit = BT_MESH_TRANSMIT(2, 20),
-	.relay_retransmit = BT_MESH_TRANSMIT(2, 20),
 };
 
 static struct bt_mesh_health_srv health_srv = {
@@ -136,8 +135,8 @@ static struct bt_mesh_elem elements[] = {
 
 static const struct bt_mesh_comp comp = {
 	.cid = BT_COMP_ID_LF,
-	.elem = elements,
 	.elem_count = ARRAY_SIZE(elements),
+	.elem = elements,
 };
 
 static int output_number(bt_mesh_output_action_t action, u32_t number)
@@ -156,7 +155,7 @@ static void prov_complete(u16_t net_idx, u16_t addr)
 
 static void prov_reset(void)
 {
-	bt_mesh_prov_enable(BT_MESH_PROV_ADV | BT_MESH_PROV_GATT);
+	bt_mesh_prov_enable((bt_mesh_prov_bearer_t)(BT_MESH_PROV_ADV | BT_MESH_PROV_GATT));
 }
 
 static const uint8_t dev_uuid[16] = { 0xdd, 0xdd };
@@ -192,7 +191,7 @@ static void bt_ready(int err)
 	}
 
 	/* This will be a no-op if settings_load() loaded provisioning info */
-	bt_mesh_prov_enable(BT_MESH_PROV_ADV | BT_MESH_PROV_GATT);
+	bt_mesh_prov_enable((bt_mesh_prov_bearer_t)(BT_MESH_PROV_ADV | BT_MESH_PROV_GATT));
 
 	printk("Mesh initialized\n");
 }
