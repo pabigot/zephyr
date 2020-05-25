@@ -257,14 +257,12 @@ struct bt_mesh_model_op {
 #define BT_MESH_MODEL_CB(_id, _op, _pub, _user_data, _cb)                    \
 {                                                                            \
 	.id = (_id),                                                         \
-	.op = _op,                                                           \
-	.keys = { [0 ... (CONFIG_BT_MESH_MODEL_KEY_COUNT - 1)] =             \
-			BT_MESH_KEY_UNUSED },                                \
 	.pub = _pub,                                                         \
-	.groups = { [0 ... (CONFIG_BT_MESH_MODEL_GROUP_COUNT - 1)] =         \
-			BT_MESH_ADDR_UNASSIGNED },                           \
-	.user_data = _user_data,                                             \
+	.keys = { BT_MESH_KEY_UNUSED },                                      \
+	.groups = { BT_MESH_ADDR_UNASSIGNED },                               \
+	.op = _op,                                                           \
 	.cb = _cb,                                                           \
+	.user_data = _user_data,                                             \
 }
 
 /** @def BT_MESH_MODEL_VND_CB
