@@ -1,0 +1,25 @@
+/ {
+  chosen {
+    /delete-property/ zephyr,console;
+    zephyr,console = &uart1;
+  };
+};
+
+&uart0 {
+/*  compatible = "nordic,nrf-uart"; */
+  compatible = "nordic,nrf-uarte";
+/*
+  rts-pin = <33>;
+  cts-pin = <34>;
+  */
+  /delete-property/ rts-pin;
+  /delete-property/ cts-pin;
+};
+
+&uart1 {
+  compatible = "nordic,nrf-uarte";
+  current-speed = <115200>;
+  status = "okay";
+  tx-pin = <40>;
+  rx-pin = <42>;
+};

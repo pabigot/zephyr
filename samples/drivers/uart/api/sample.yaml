@@ -1,0 +1,5 @@
+sample:
+  name: UART API
+tests:
+  sample.drivers.uart.api:
+    tags: uart
