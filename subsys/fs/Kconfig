@@ -49,6 +49,14 @@ config FUSE_FS_ACCESS
 	help
 	  Expose file system partitions to the host system through FUSE.
 
+config FILE_SYSTEM_MAX_TYPES
+	int "Maximum number of distinct file system types allowed"
+	default 2
+	help
+	  Zephyr provides several file system types including FatFS and
+	  LittleFS, but it is possible to define additional ones and
+	  register them.  A slot is required for each type.
+
 menu "FatFs Settings"
 	visible if FAT_FILESYSTEM_ELM
 
