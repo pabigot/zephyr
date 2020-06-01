@@ -19,8 +19,34 @@ static char buffer[BUF_LEN];
 static char *read_pos = buffer;
 static char *cur = buffer;
 static int file_length;
-static struct fs_mount_t *mp[FS_TYPE_END];
+static struct fs_mount_t *mounts[4];
 static bool nospace;
+
+static int remove_mount(struct fs_mount_t *mp)
+{
+	for (size_t i = 0; i < ARRAY_SIZE(mounts); ++i) {
+		if (mounts[i] == mp) {
+			mounts[i] = NULL;
+			return 0;
+		}
+	}
+
+	return -EINVAL;
+}
+
+static int add_mount(struct fs_mount_t *mp)
+{
+	int rv = -ENOSPC;
+
+	for (size_t i = 0; i < ARRAY_SIZE(mounts); ++i) {
+		if (mounts[i] == NULL) {
+			mounts[i] = mp;
+			rv = 0;
+			break;
+		}
+	}
+	return rv;
+}
 
 static int temp_open(struct fs_file_t *zfp, const char *file_name)
 {
@@ -239,20 +265,17 @@ static int temp_statvfs(struct fs_mount_t *mountp,
 
 static int temp_mount(struct fs_mount_t *mountp)
 {
+	/* TBD: What is this trying to test? */
 	if (mountp->mnt_point[mountp->mountp_len - 1] != ':') {
 		return -EINVAL;
 	}
-	mp[mountp->type] = mountp;
-	return 0;
+
+	return add_mount(mountp);
 }
 
 static int temp_unmount(struct fs_mount_t *mountp)
 {
-	if (mp[mountp->type] == NULL) {
-		return -EINVAL;
-	}
-	mp[mountp->type] = NULL;
-	return 0;
+	return remove_mount(mountp);
 }
 
 /* File system interface */
