@@ -473,7 +473,7 @@ int fs_statvfs(const char *path, struct fs_statvfs *stat);
  * @retval 0 Success
  * @retval -ERRNO errno code if error
  */
-int fs_register(enum fs_type type, struct fs_file_system_t *fs);
+int fs_register(enum fs_type type, const struct fs_file_system_t *fs);
 
 /**
  * @brief Unregister a file system
@@ -486,7 +486,7 @@ int fs_register(enum fs_type type, struct fs_file_system_t *fs);
  * @retval 0 Success
  * @retval -ERRNO errno code if error
  */
-int fs_unregister(enum fs_type type, struct fs_file_system_t *fs);
+int fs_unregister(enum fs_type type, const struct fs_file_system_t *fs);
 
 /**
  * @}
