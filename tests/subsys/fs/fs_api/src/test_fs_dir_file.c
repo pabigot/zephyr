@@ -12,7 +12,7 @@ struct fs_file_system_t null_fs = {NULL};
 static struct test_fs_data test_data;
 
 static struct fs_mount_t test_fs_mnt_1 = {
-		.type = TEST_FS_1,
+		.type = TEMP_FS,
 		.mnt_point = TEST_FS_MNTP,
 		.fs_data = &test_data,
 };
@@ -24,25 +24,25 @@ static struct fs_mount_t test_fs_mnt_unsupported_fs = {
 };
 
 static struct fs_mount_t test_fs_mnt_invalid_root = {
-		.type = TEST_FS_2,
+		.type = TEMP_FS,
 		.mnt_point = "SDA:",
 		.fs_data = &test_data,
 };
 
 static struct fs_mount_t test_fs_mnt_already_mounted = {
-		.type = TEST_FS_2,
+		.type = TEMP_FS,
 		.mnt_point = TEST_FS_MNTP,
 		.fs_data = &test_data,
 };
 
 static struct fs_mount_t test_fs_mnt_invalid_parm = {
-		.type = TEST_FS_2,
+		.type = TEMP_FS,
 		.mnt_point = "/SDA",
 		.fs_data = &test_data,
 };
 
 static struct fs_mount_t test_fs_mnt_no_op = {
-		.type = TEST_FS_2,
+		.type = TEMP_FS,
 		.mnt_point = "/SDA:",
 		.fs_data = &test_data,
 };
@@ -61,13 +61,12 @@ static int test_mount(void)
 		return TC_FAIL;
 	}
 
-	TC_PRINT("Mount to a unsupported directory\n");
+	TC_PRINT("Mount an unsupported fs\n");
 	ret = fs_mount(&test_fs_mnt_unsupported_fs);
-	if (!ret) {
-		return TC_FAIL;
-	}
+	zassert_equal(ret, -ENOENT,
+		      "unsupported: %d", ret);
 
-	fs_register(TEST_FS_2, &temp_fs);
+	fs_register(TEMP_FS, &temp_fs);
 	TC_PRINT("Mount to an invalid directory\n");
 	ret = fs_mount(&test_fs_mnt_invalid_root);
 	if (!ret) {
@@ -92,16 +91,16 @@ static int test_mount(void)
 		return TC_FAIL;
 	}
 
-	fs_unregister(TEST_FS_2, &temp_fs);
+	fs_unregister(TEMP_FS, &temp_fs);
 
-	fs_register(TEST_FS_2, &null_fs);
+	fs_register(TEMP_FS, &null_fs);
 	TC_PRINT("Mount a file system has no interface implemented");
 	ret = fs_mount(&test_fs_mnt_no_op);
 	if (!ret) {
 		TC_PRINT("Should not mount to a fs which has no interface\n");
 		return TC_FAIL;
 	}
-	fs_unregister(TEST_FS_2, &null_fs);
+	fs_unregister(TEMP_FS, &null_fs);
 
 
 	return TC_PASS;
@@ -858,7 +857,7 @@ static int test_file_unlink(void)
 
 void test_dir_file(void)
 {
-	fs_register(TEST_FS_1, &temp_fs);
+	fs_register(TEMP_FS, &temp_fs);
 
 	zassert_true(test_mount() == TC_PASS, NULL);
 	zassert_true(test_file_statvfs() == TC_PASS, NULL);
@@ -880,5 +879,5 @@ void test_dir_file(void)
 	zassert_true(test_file_unlink() == TC_PASS, NULL);
 	zassert_true(test_unmount() == TC_PASS, NULL);
 
-	fs_unregister(TEST_FS_1, &temp_fs);
+	fs_unregister(TEMP_FS, &temp_fs);
 }

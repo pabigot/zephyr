@@ -18,13 +18,11 @@
 #define TEST_DIR	TEST_FS_MNTP"/testdir"
 #define TEST_DIR_FILE	TEST_FS_MNTP"/testdir/testfile.txt"
 
-/* kenel only reserve two slots for specific file system.
- * By disable that two file systems, test cases can make
- * use of that slots to register a file systems for test
- */
-#define TEST_FS_1 FS_FATFS
-#define TEST_FS_2 FS_LITTLEFS
-#define UNSUPPORTED_FS FS_TYPE_END
+/* Expose the identifier to use for the stub file system implementation. */
+#define TEMP_FS FS_TYPE_EXTERNAL_BASE
+
+/* Expose an identifier for an unknown file system implementation */
+#define UNSUPPORTED_FS (FS_TYPE_EXTERNAL_BASE + 1)
 
 extern struct fs_file_system_t temp_fs;
 
