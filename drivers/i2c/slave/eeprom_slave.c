@@ -68,6 +68,35 @@ int eeprom_slave_read(struct device *dev, uint8_t *eeprom_data,
 	return 0;
 }
 
+static int eeprom_slave_transfer(struct i2c_slave_config *config,
+				 struct i2c_msg *msgs, uint8_t num_msgs,
+				 uint16_t addr)
+{
+	struct i2c_eeprom_slave_data *data = CONTAINER_OF(config,
+						struct i2c_eeprom_slave_data,
+						config);
+	struct i2c_msg *msg = msgs;
+	int len;
+
+	LOG_DBG("eeprom: transfer %s:", data->i2c_controller->name);
+	i2c_dump_msgs("in", msgs, num_msgs, addr);
+	if (num_msgs < 2 || (msg->flags & I2C_MSG_READ) || !msg->len) {
+		return 0;
+	}
+
+	data->buffer_idx = *msg->buf;
+	msg++;
+	len = MIN(msg->len, data->buffer_size - data->buffer_idx);
+	if (msg->flags & I2C_MSG_READ) {
+		memcpy(msg->buf, data->buffer + data->buffer_idx, len);
+	} else {
+		memcpy(data->buffer + data->buffer_idx, msg->buf, len);
+	}
+	data->buffer_idx += len;
+
+	return 0;
+}
+
 static int eeprom_slave_write_requested(struct i2c_slave_config *config)
 {
 	struct i2c_eeprom_slave_data *data = CONTAINER_OF(config,
@@ -177,6 +206,7 @@ static const struct i2c_slave_driver_api api_funcs = {
 };
 
 static const struct i2c_slave_callbacks eeprom_callbacks = {
+	.slave_transfer = eeprom_slave_transfer,
 	.write_requested = eeprom_slave_write_requested,
 	.read_requested = eeprom_slave_read_requested,
 	.write_received = eeprom_slave_write_received,
