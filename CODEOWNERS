@@ -183,6 +183,8 @@
 /drivers/i2s/i2s_ll_stm32*                @avisconti
 /drivers/i2c/i2c_common.c                 @sjg20
 /drivers/i2c/i2c_shell.c                  @nashif
+/drivers/i2c/i2c_sim.c                    @sjg20
+/drivers/i2c/Kconfig.i2c_sim              @sjg20
 /drivers/ieee802154/                      @jukkar @tbursztyka
 /drivers/ieee802154/ieee802154_rf2xx*     @jukkar @tbursztyka @nandojve
 /drivers/interrupt_controller/            @andrewboie
@@ -498,6 +500,7 @@
 /tests/drivers/flash_simulator/           @nvlsianpu
 /tests/drivers/gpio/                      @mnkp @pabigot
 /tests/drivers/hwinfo/                    @alexanderwachter
+/tests/drivers/i2c/                       @sjg20
 /tests/drivers/spi/                       @tbursztyka
 /tests/drivers/uart/uart_async_api/       @Mierunski
 /tests/kernel/                            @andrewboie @andyross @nashif
