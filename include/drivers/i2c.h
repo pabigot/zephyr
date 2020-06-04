@@ -129,6 +129,27 @@ struct i2c_msg {
  */
 struct i2c_slave_config;
 
+/**
+ * @brief Callback function to request emulation of an I2C transfer
+ *
+ * You can either use this callback or all the others below it. This
+ * one is more convenient for native_posix testing since it provides a
+ * higher-level API.
+ *
+ * Check your I2C driver to see which one it implements. If your
+ * simulator needs to be used by multiple I2C drivers, then you may
+ * need to implement both!
+ *
+ * @param config Slave configuration that is handling the request.
+ * @param msgs Array of messages to dump.
+ * @param num_msgs Number of messages to dump.
+ * @param addr Address of the I2C target device.
+ * @retval 0 if OK
+ * @retval -EINVAL an invalid parameter is passed
+ */
+typedef int (*i2c_slave_transfer_cb_t)(struct i2c_slave_config *config,
+				       struct i2c_msg *msgs, uint8_t num_msgs,
+				       uint16_t addr);
 typedef int (*i2c_slave_write_requested_cb_t)(
 		struct i2c_slave_config *config);
 typedef int (*i2c_slave_read_requested_cb_t)(
@@ -140,6 +161,9 @@ typedef int (*i2c_slave_read_processed_cb_t)(
 typedef int (*i2c_slave_stop_cb_t)(struct i2c_slave_config *config);
 
 struct i2c_slave_callbacks {
+	/** callback function to request emulation of an I2C transfer */
+	i2c_slave_transfer_cb_t slave_transfer;
+
 	/** callback function being called when write is requested */
 	i2c_slave_write_requested_cb_t write_requested;
 	/** callback function being called when read is requested */
