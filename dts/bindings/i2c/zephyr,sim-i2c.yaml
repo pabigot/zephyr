@@ -1,0 +1,13 @@
+# Copyright 2020 Google LLC
+# SPDX-License-Identifier: Apache-2.0
+
+description: I2C emulator
+
+compatible: "zephyr,sim-i2c"
+
+include: i2c-controller.yaml
+
+properties:
+    reg:
+      required: true
+      description: Nominal address space for the controller
