@@ -16,7 +16,6 @@
 	};
 };
 
-
 &i2c2 {
 	eeprom@56 {
 		compatible = "atmel,at24";
