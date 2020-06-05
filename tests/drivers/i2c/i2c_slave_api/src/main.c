@@ -23,8 +23,8 @@ LOG_MODULE_REGISTER(main);
 
 #define TEST_DATA_SIZE	20
 
-static uint8_t eeprom_0_data[TEST_DATA_SIZE] = "0123456789abcdefghij";
-static uint8_t eeprom_1_data[TEST_DATA_SIZE] = "jihgfedcba9876543210";
+static uint8_t eeprom_a_data[TEST_DATA_SIZE] = "0123456789abcdefghij";
+static uint8_t eeprom_b_data[TEST_DATA_SIZE] = "jihgfedcba9876543210";
 static uint8_t i2c_buffer[TEST_DATA_SIZE];
 
 /*
@@ -142,6 +142,8 @@ void test_eeprom_slave(void)
 	int reg_addr1 = DT_REG_ADDR(DT_INST(1, atmel_at24));
 	const char *label_eeprom0 = DT_LABEL(DT_INST(0, atmel_at24));
 	const char *label_eeprom1 = DT_LABEL(DT_INST(1, atmel_at24));
+	char *data0;
+	char *data1;
 
 	i2c_0 = device_get_binding(DT_BUS_LABEL(DT_INST(0, atmel_at24)));
 	zassert_not_null(i2c_0, "I2C device %s not found",
@@ -157,23 +159,6 @@ void test_eeprom_slave(void)
 	LOG_INF("Found I2C Master device %s",
 		    DT_BUS_LABEL(DT_INST(1, atmel_at24)));
 
-	/*
-	 * Normal applications would interact with an EEPROM
-	 * identified by the string literal used in the binding node
-	 * label property ("EEPROM_SLAVE_0") rather than the generated
-	 * macro DT_LABEL(DT_INST(0, atmel_at24)).  There is no guarantee that
-	 * the index for the compatible is persistent across builds;
-	 * for example DT_LABEL(DT_INST(0, atmel_at24)) might refer to
-	 * "EEPROM_SLAVE_1" * if the order of the node declarations were changed
-	 * in the overlay file.
-	 *
-	 * The label string cannot be directly used to determine the
-	 * correct parent bus and device index for whitebox testing in
-	 * this application.  So for this application only, where the
-	 * devices are interchangeable, the device is selected the
-	 * using the generated macro.
-	 */
-
 	eeprom_0 = device_get_binding(label_eeprom0);
 	zassert_not_null(eeprom_0, "EEPROM device %s not found", label_eeprom0);
 
@@ -185,10 +170,10 @@ void test_eeprom_slave(void)
 	LOG_INF("Found EEPROM device %s", label_eeprom1);
 
 	/* Program dummy bytes */
-	ret = eeprom_slave_program(eeprom_0, eeprom_0_data, TEST_DATA_SIZE);
+	ret = eeprom_slave_program(eeprom_0, eeprom_a_data, TEST_DATA_SIZE);
 	zassert_equal(ret, 0, "Failed to program EEPROM %s", label_eeprom0);
 
-	ret = eeprom_slave_program(eeprom_1, eeprom_1_data, TEST_DATA_SIZE);
+	ret = eeprom_slave_program(eeprom_1, eeprom_b_data, TEST_DATA_SIZE);
 	zassert_equal(ret, 0, "Failed to program EEPROM %s", label_eeprom1);
 
 	/* Attach EEPROM */
@@ -202,31 +187,43 @@ void test_eeprom_slave(void)
 
 	LOG_INF("EEPROM %s Attached !", label_eeprom1);
 
+	/* Figure out which slave belongs to which EEPROM */
+	ret = i2c_burst_read(i2c_0, reg_addr0, 0, i2c_buffer, TEST_DATA_SIZE);
+	zassert_equal(ret, 0, "Failed to read EEPROM %s", label_eeprom0);
+	if (*i2c_buffer == '0') {
+		LOG_INF("0");
+		data0 = eeprom_a_data;
+		data1 = eeprom_b_data;
+	} else {
+		data0 = eeprom_b_data;
+		data1 = eeprom_a_data;
+	}
+
 	/* Run Tests without bus access conflicts */
-	zassert_equal(0, run_full_read(i2c_0, reg_addr1, eeprom_1_data),
+	zassert_equal(0, run_full_read(i2c_0, reg_addr0, data0),
 		     "Full read from #1 failed");
-	zassert_equal(0, run_full_read(i2c_1, reg_addr0, eeprom_0_data),
+	zassert_equal(0, run_full_read(i2c_1, reg_addr1, data1),
 		     "Full read from #2 failed");
 
 	for (offset = 0 ; offset < TEST_DATA_SIZE-1 ; ++offset) {
-		zassert_equal(0, run_partial_read(i2c_0, reg_addr1,
-			      eeprom_1_data, offset),
+		zassert_equal(0,
+			      run_partial_read(i2c_0, reg_addr0, data0, offset),
 			      "Partial read i2c0 inst1 failed");
 	}
 
 	for (offset = 0 ; offset < TEST_DATA_SIZE-1 ; ++offset) {
-		zassert_equal(0, run_partial_read(i2c_1, reg_addr0,
-			      eeprom_0_data, offset),
+		zassert_equal(0,
+			      run_partial_read(i2c_1, reg_addr1, data1, offset),
 			      "Partial read i2c1 inst0 failed");
 	}
 
 	for (offset = 0 ; offset < TEST_DATA_SIZE-1 ; ++offset) {
-		zassert_equal(0, run_program_read(i2c_0, reg_addr1, offset),
+		zassert_equal(0, run_program_read(i2c_0, reg_addr0, offset),
 			      "Program read i2c0 inst1 failed");
 	}
 
 	for (offset = 0 ; offset < TEST_DATA_SIZE-1 ; ++offset) {
-		zassert_equal(0, run_program_read(i2c_1, reg_addr0, offset),
+		zassert_equal(0, run_program_read(i2c_1, reg_addr1, offset),
 			      "Program read i2c1 inst0 failed");
 	}
 
