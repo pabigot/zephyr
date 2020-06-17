@@ -367,9 +367,8 @@ static void rx_thread(void *arg1, void *unused1, void *unused2)
 	}
 }
 
-static void eth_isr(void *arg)
+static void eth_isr(const struct device *dev)
 {
-	const struct device *dev = (const struct device *)arg;
 	struct eth_gecko_dev_data *const dev_data = DEV_DATA(dev);
 	const struct eth_gecko_dev_cfg *const cfg = DEV_CFG(dev);
 	ETH_TypeDef *eth = cfg->regs;
