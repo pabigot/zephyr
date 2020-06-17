@@ -1198,9 +1198,8 @@ static uint8_t m2s_vwires_isr_cnt =
 	sizeof(m2s_vwires_isr) / sizeof(struct espi_isr);
 static uint8_t periph_isr_cnt = sizeof(peripherals_isr) / sizeof(struct espi_isr);
 
-static void espi_xec_bus_isr(void *arg)
+static void espi_xec_bus_isr(const struct device *dev)
 {
-	const struct device *dev = (const struct device *)arg;
 	const struct espi_xec_config *config = dev->config;
 	uint32_t girq_result;
 
@@ -1219,9 +1218,8 @@ static void espi_xec_bus_isr(void *arg)
 	REG32(MCHP_GIRQ_SRC_ADDR(config->bus_girq_id)) = girq_result;
 }
 
-static void espi_xec_vw_isr(void *arg)
+static void espi_xec_vw_isr(const struct device *dev)
 {
-	const struct device *dev = (const struct device *)arg;
 	const struct espi_xec_config *config = dev->config;
 	uint32_t girq_result;
 
@@ -1240,9 +1238,8 @@ static void espi_xec_vw_isr(void *arg)
 	REG32(MCHP_GIRQ_SRC_ADDR(config->vw_girq_id)) = girq_result;
 }
 
-static void espi_xec_periph_isr(void *arg)
+static void espi_xec_periph_isr(const struct device *dev)
 {
-	const struct device *dev = (const struct device *)arg;
 	const struct espi_xec_config *config = dev->config;
 	uint32_t girq_result;
 
