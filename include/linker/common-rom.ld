@@ -72,6 +72,22 @@
 		__init_array_end = .;
 	} GROUP_LINK_IN(ROMABLE_REGION)
 #endif
+
+	SECTION_PROLOGUE(devices,,)
+	{
+		/* link in devices objects, which are tied to the init ones;
+		 * the objects are thus sorted the same way as their init
+		 * object parent see include/device.h
+		 */
+		__device_start = .;
+		CREATE_OBJ_LEVEL(device, PRE_KERNEL_1)
+		CREATE_OBJ_LEVEL(device, PRE_KERNEL_2)
+		CREATE_OBJ_LEVEL(device, POST_KERNEL)
+		CREATE_OBJ_LEVEL(device, APPLICATION)
+		CREATE_OBJ_LEVEL(device, SMP)
+		__device_end = .;
+	} GROUP_LINK_IN(ROMABLE_REGION)
+
 #ifdef CONFIG_USERSPACE
 	/* Build-time assignment of permissions to kernel objects to
 	 * threads declared with K_THREAD_DEFINE()
