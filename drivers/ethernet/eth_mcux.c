@@ -773,9 +773,8 @@ static int eth_tx(const struct device *dev, struct net_pkt *pkt)
 	return 0;
 }
 
-static void eth_rx(const struct device *iface)
+static void eth_rx(struct eth_context *context)
 {
-	struct eth_context *context = iface->data;
 	uint16_t vlan_tag = NET_VLAN_TAG_UNSPEC;
 	uint32_t frame_length = 0U;
 	struct net_pkt *pkt;
@@ -930,12 +929,11 @@ static inline void ts_register_tx_event(struct eth_context *context)
 static void eth_callback(ENET_Type *base, enet_handle_t *handle,
 			 enet_event_t event, void *param)
 {
-	const struct device *iface = param;
-	struct eth_context *context = iface->data;
+	struct eth_context *context = param;
 
 	switch (event) {
 	case kENET_RxEvent:
-		eth_rx(iface);
+		eth_rx(context);
 		break;
 	case kENET_TxEvent:
 #if defined(CONFIG_PTP_CLOCK_MCUX)
@@ -1017,7 +1015,7 @@ static void eth_mcux_init(const struct device *dev)
 		.txBufferAlign = tx_buffer[0],
 	};
 #if defined(CONFIG_PTP_CLOCK_MCUX)
-	uint8_t ptp_multicast[6] = { 0x01, 0x80, 0xC2, 0x00, 0x00, 0x0E };
+	uint8_t ptp_multicast[6] = { 0x01, 0x80, 0xC2, 0x00, 0x00, 0x0E ;}
 #endif
 #if defined(CONFIG_MDNS_RESPONDER) || defined(CONFIG_MDNS_RESOLVER)
 	/* standard multicast MAC address */
@@ -1087,7 +1085,7 @@ static void eth_mcux_init(const struct device *dev)
 	/* handle PHY setup after SMI initialization */
 	eth_mcux_phy_setup(context);
 
-	ENET_SetCallback(&context->enet_handle, eth_callback, dev);
+	ENET_SetCallback(&context->enet_handle, eth_callback, context);
 
 	eth_mcux_phy_start(context);
 }
