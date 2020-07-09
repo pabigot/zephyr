@@ -23,6 +23,9 @@ LOG_MODULE_REGISTER(main);
 
 #define TEST_DATA_SIZE	20
 
+#define NODE_EP0 DT_NODELABEL(eeprom_0)
+#define NODE_EP1 DT_NODELABEL(eeprom_1)
+
 static uint8_t eeprom_a_data[TEST_DATA_SIZE] = "0123456789abcdefghij";
 static uint8_t eeprom_b_data[TEST_DATA_SIZE] = "jihgfedcba9876543210";
 static uint8_t i2c_buffer[TEST_DATA_SIZE];
@@ -138,26 +141,24 @@ void test_eeprom_slave(void)
 	struct device *i2c_0;
 	struct device *i2c_1;
 	int ret, offset;
-	int reg_addr0 = DT_REG_ADDR(DT_INST(0, atmel_at24));
-	int reg_addr1 = DT_REG_ADDR(DT_INST(1, atmel_at24));
-	const char *label_eeprom0 = DT_LABEL(DT_INST(0, atmel_at24));
-	const char *label_eeprom1 = DT_LABEL(DT_INST(1, atmel_at24));
-	char *data0;
-	char *data1;
+	int reg_addr0 = DT_REG_ADDR(NODE_EP0);
+	int reg_addr1 = DT_REG_ADDR(NODE_EP1);
+	const char *label_eeprom0 = DT_LABEL(NODE_EP0);
+	const char *label_eeprom1 = DT_LABEL(NODE_EP1);
 
-	i2c_0 = device_get_binding(DT_BUS_LABEL(DT_INST(0, atmel_at24)));
+	i2c_0 = device_get_binding(DT_BUS_LABEL(NODE_EP0));
 	zassert_not_null(i2c_0, "I2C device %s not found",
-			 DT_BUS_LABEL(DT_INST(0, atmel_at24)));
+			 DT_BUS_LABEL(NODE_EP0));
 
 	LOG_INF("Found I2C Master device %s",
-		    DT_BUS_LABEL(DT_INST(0, atmel_at24)));
+		    DT_BUS_LABEL(NODE_EP0));
 
-	i2c_1 = device_get_binding(DT_BUS_LABEL(DT_INST(1, atmel_at24)));
+	i2c_1 = device_get_binding(DT_BUS_LABEL(NODE_EP1));
 	zassert_not_null(i2c_1, "I2C device %s not found",
-			 DT_BUS_LABEL(DT_INST(1, atmel_at24)));
+			 DT_BUS_LABEL(NODE_EP1));
 
 	LOG_INF("Found I2C Master device %s",
-		    DT_BUS_LABEL(DT_INST(1, atmel_at24)));
+		    DT_BUS_LABEL(NODE_EP1));
 
 	eeprom_0 = device_get_binding(label_eeprom0);
 	zassert_not_null(eeprom_0, "EEPROM device %s not found", label_eeprom0);
@@ -187,33 +188,23 @@ void test_eeprom_slave(void)
 
 	LOG_INF("EEPROM %s Attached !", label_eeprom1);
 
-	/* Figure out which slave belongs to which EEPROM */
-	ret = i2c_burst_read(i2c_0, reg_addr0, 0, i2c_buffer, TEST_DATA_SIZE);
-	zassert_equal(ret, 0, "Failed to read EEPROM %s", label_eeprom0);
-	if (*i2c_buffer == '0') {
-		LOG_INF("0");
-		data0 = eeprom_a_data;
-		data1 = eeprom_b_data;
-	} else {
-		data0 = eeprom_b_data;
-		data1 = eeprom_a_data;
-	}
-
 	/* Run Tests without bus access conflicts */
-	zassert_equal(0, run_full_read(i2c_0, reg_addr0, data0),
-		     "Full read from #1 failed");
-	zassert_equal(0, run_full_read(i2c_1, reg_addr1, data1),
-		     "Full read from #2 failed");
+	ret = run_full_read(i2c_0, reg_addr0, eeprom_a_data);
+	zassert_equal(0, ret,
+		      "Full read from #1 failed: %d", ret);
+	ret = run_full_read(i2c_1, reg_addr1, eeprom_b_data);
+	zassert_equal(0, ret,
+		      "Full read from #2 failed: %d", ret);
 
 	for (offset = 0 ; offset < TEST_DATA_SIZE-1 ; ++offset) {
 		zassert_equal(0,
-			      run_partial_read(i2c_0, reg_addr0, data0, offset),
+			      run_partial_read(i2c_0, reg_addr0, eeprom_a_data, offset),
 			      "Partial read i2c0 inst1 failed");
 	}
 
 	for (offset = 0 ; offset < TEST_DATA_SIZE-1 ; ++offset) {
 		zassert_equal(0,
-			      run_partial_read(i2c_1, reg_addr1, data1, offset),
+			      run_partial_read(i2c_1, reg_addr1, eeprom_b_data, offset),
 			      "Partial read i2c1 inst0 failed");
 	}
 
