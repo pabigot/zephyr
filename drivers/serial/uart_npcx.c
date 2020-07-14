@@ -342,7 +342,7 @@ static int uart_npcx_init(const struct device *dev)
 
 #ifdef CONFIG_UART_INTERRUPT_DRIVEN
 #define NPCX_UART_IRQ_CONFIG_FUNC_DECL(inst) \
-	static void uart_npcx_irq_config_##inst(struct device *dev)
+	static void uart_npcx_irq_config_##inst(const struct device *dev)
 #define NPCX_UART_IRQ_CONFIG_FUNC_INIT(inst) \
 	.irq_config_func = uart_npcx_irq_config_##inst,
 #define NPCX_UART_IRQ_CONFIG_FUNC(inst)	                                       \

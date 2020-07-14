@@ -471,14 +471,14 @@ is made within the init function:
       ...
    }
 
-   int my_driver_init(struct device *device)
+   int my_driver_init(const struct device *device)
    {
       ...
       DEVICE_MMIO_MAP(device, K_MEM_CACHE_NONE);
       ...
    }
 
-   int my_driver_some_function(struct device *device)
+   int my_driver_some_function(const struct device *device)
    {
       ...
       /* Write some data to the MMIO region */
@@ -532,7 +532,7 @@ For example:
       ...
    }
 
-   int my_driver_init(struct device *device)
+   int my_driver_init(const struct device *device)
    {
       ...
       DEVICE_MMIO_NAMED_MAP(device, courge, K_MEM_CACHE_NONE);
@@ -540,7 +540,7 @@ For example:
       ...
    }
 
-   int my_driver_some_function(struct device *device)
+   int my_driver_some_function(const struct device *device)
    {
       ...
       /* Write some data to the MMIO regions */
