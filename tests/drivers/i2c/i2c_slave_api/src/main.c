@@ -185,40 +185,31 @@ void test_eeprom_slave(void)
 
 	LOG_INF("EEPROM %s Attached !", label_eeprom1);
 
-	/* The simulated EP0 is configured to be accessed as a follower device
-	 * at addr_0 on i2c_0 and should expose eeprom_0_data.  The validation
-	 * uses i2c_1 as a bus leader to access this device, which works because
-	 * i2c_0 and i2_c have their SDA (SCL) pins shorted (they are on the
-	 * same physical bus).  Thus in these calls i2c_1 is a leader device
-	 * operating on the follower address addr_0.
-	 *
-	 * Similarly validation of EP1 uses i2c_0 as a leader with addr_1 and
-	 * eeprom_1_data for validation.
-	 */
-	zassert_equal(0, run_full_read(i2c_1, addr_0, eeprom_0_data),
+	/* Run Tests without bus access conflicts */
+	zassert_equal(0, run_full_read(i2c_0, addr_0, eeprom_0_data),
 		     "Full I2C read from EP0 failed");
-	zassert_equal(0, run_full_read(i2c_0, addr_1, eeprom_1_data),
+	zassert_equal(0, run_full_read(i2c_1, addr_1, eeprom_1_data),
 		     "Full I2C read from EP1 failed");
 
 	for (offset = 0 ; offset < TEST_DATA_SIZE-1 ; ++offset) {
-		zassert_equal(0, run_partial_read(i2c_1, addr_0,
-			      eeprom_0_data, offset),
+		zassert_equal(0, run_partial_read(i2c_0, addr_0, eeprom_0_data,
+						  offset),
 			      "Partial I2C read EP0 failed");
 	}
 
 	for (offset = 0 ; offset < TEST_DATA_SIZE-1 ; ++offset) {
-		zassert_equal(0, run_partial_read(i2c_0, addr_1,
-			      eeprom_1_data, offset),
+		zassert_equal(0, run_partial_read(i2c_1, addr_1, eeprom_1_data,
+						  offset),
 			      "Partial I2C read EP1 failed");
 	}
 
 	for (offset = 0 ; offset < TEST_DATA_SIZE-1 ; ++offset) {
-		zassert_equal(0, run_program_read(i2c_1, addr_0, offset),
+		zassert_equal(0, run_program_read(i2c_0, addr_0, offset),
 			      "Program I2C read EP0 failed");
 	}
 
 	for (offset = 0 ; offset < TEST_DATA_SIZE-1 ; ++offset) {
-		zassert_equal(0, run_program_read(i2c_0, addr_1, offset),
+		zassert_equal(0, run_program_read(i2c_1, addr_1, offset),
 			      "Program I2C read EP1 failed");
 	}
 
