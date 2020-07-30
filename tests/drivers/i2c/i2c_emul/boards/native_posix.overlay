@@ -1,0 +1,23 @@
+/*
+ * Copyright 2020 Google LLC
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+	aliases {
+		eeprom-1 = &eeprom1;
+	};
+};
+
+&i2c0 {
+	eeprom1: eeprom@57 {
+		compatible = "atmel,at24";
+		reg = <0x57>;
+		label = "EEPROM_1";
+		size = <256>;
+		pagesize = <8>;
+		address-width = <8>;
+		timeout = <5>;
+	};
+};

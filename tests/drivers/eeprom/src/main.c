@@ -13,7 +13,7 @@ static void test_size(void)
 	struct device *eeprom;
 	size_t size;
 
-	eeprom = device_get_binding(DT_LABEL(DT_ALIAS(eeprom_0)));
+	eeprom = device_get_binding(DT_LABEL(DT_ALIAS(eeprom_1)));
 
 	size = eeprom_get_size(eeprom);
 	zassert_not_equal(0, size, "Unexpected size of zero bytes");

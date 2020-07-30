@@ -1,0 +1,5 @@
+tests:
+  drivers.i2c:
+    depends_on: i2c
+    tags: drivers i2c
+    platform_whitelist: native_posix
