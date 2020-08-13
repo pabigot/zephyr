@@ -6,6 +6,7 @@
 
 /*
  * Copyright 2020 Google LLC
+ * Copyright (c) 2020 Nordic Semiconductor ASA
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -27,11 +28,18 @@ extern "C" {
 #endif
 
 struct i2c_msg;
+struct i2c_emul_api;
 
-/**
- * Set up an emulator
- */
-typedef int (*i2c_emul_init_t)(void *inst, uint32_t dev_config);
+/** Node in a linked list of registered emulated I2C devices */
+struct i2c_emul_registration {
+	sys_snode_t node;
+
+	/* API provided for this device */
+	const struct i2c_emul_api *api;
+
+	/* I2C address of the emulated device */
+	uint16_t addr;
+};
 
 /**
  * Passes I2C messages to the emulator. The emulator updates the data with what
@@ -45,29 +53,24 @@ typedef int (*i2c_emul_init_t)(void *inst, uint32_t dev_config);
  * @retval 0 If successful.
  * @retval -EIO General input / output error.
  */
-typedef int (*i2c_emul_transfer_t)(void *inst, struct i2c_msg *msgs,
+typedef int (*i2c_emul_transfer_t)(struct i2c_emul_registration *reg,
+				   struct i2c_msg *msgs,
 				   int num_msgs, int addr);
-
-struct i2c_emul_api {
-	i2c_emul_init_t configure;
-	i2c_emul_transfer_t transfer;
-};
-
-/** Node in a linked list of registered emulated I2C devices */
-struct i2c_emul_registration {
-	sys_snode_t node;
-	/* Emulator instance pointer, contains device-specific state */
-	void *inst;
-	/* API provided for this device */
-	const struct i2c_emul_api *api;
-	/* I2C address of the emulated device */
-	uint16_t addr;
-};
 
 /**
  * Register an emulated device on the controller
  */
-int i2c_emul_register(struct i2c_emul_registration *inst);
+int i2c_emul_register(struct device *dev,
+		      struct i2c_emul_registration *inst);
+
+struct i2c_emul_api {
+	i2c_emul_transfer_t transfer;
+};
+
+/**
+ * Back door to allow an emulator to retrieve the host configuration.
+ */
+uint32_t i2c_emul_configuration(struct device *dev);
 
 #ifdef __cplusplus
 }
