@@ -89,11 +89,11 @@ static int test_fs_deinit(void)
 
 static int test_fs_unsupported(void)
 {
-	if (fs_register(FS_TYPE_END, &temp_fs) == 0) {
+	if (fs_register(FS_TYPE_EXTERNAL_BASE, &temp_fs) == 0) {
 		return TC_FAIL;
 	}
 
-	if (fs_unregister(FS_TYPE_END, &temp_fs) == 0) {
+	if (fs_unregister(FS_TYPE_EXTERNAL_BASE, &temp_fs) == 0) {
 		return TC_FAIL;
 	}
 
