@@ -20,8 +20,8 @@ extern const struct init_entry __init_end[];
 extern const struct init_entry __init_SMP_start[];
 #endif
 
-extern struct device __device_start[];
-extern struct device __device_end[];
+extern const struct device __device_start[];
+extern const struct device __device_end[];
 
 extern uint32_t __device_init_status_start[];
 
@@ -114,7 +114,7 @@ static inline const struct device *z_vrfy_device_get_binding(const char *name)
 #include <syscalls/device_get_binding_mrsh.c>
 #endif /* CONFIG_USERSPACE */
 
-size_t z_device_get_all_static(const struct device **devices)
+size_t z_device_get_all_static(struct device const **devices)
 {
 	*devices = __device_start;
 	return __device_end - __device_start;

@@ -136,7 +136,7 @@ extern "C" {
  *    spi_config.
  */
 struct spi_cs_control {
-	const struct device *gpio_dev;
+	const struct device	*gpio_dev;
 	uint32_t		delay;
 	gpio_pin_t		gpio_pin;
 	gpio_dt_flags_t		gpio_dt_flags;

@@ -238,7 +238,7 @@ __syscall const struct device *device_get_binding(const char *name);
  *
  * @return the number of statically allocated devices.
  */
-size_t z_device_get_all_static(const struct device **devices);
+size_t z_device_get_all_static(const struct device * *devices);
 
 /** @brief Determine whether a device has been successfully initialized.
  *
@@ -424,7 +424,7 @@ static inline int device_get_power_state(const struct device *device,
  *
  * @deprecated in 2.4 release, replace with z_device_get_all_static()
  */
-__deprecated static inline void device_list_get(const struct device **device_list,
+__deprecated static inline void device_list_get(const struct device * *device_list,
 						int *device_count)
 {
 	*device_count = z_device_get_all_static(device_list);

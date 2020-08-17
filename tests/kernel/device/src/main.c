@@ -196,7 +196,7 @@ void test_pre_kernel_detection(void)
  */
 static void test_build_suspend_device_list(void)
 {
-	const struct device *devices;
+	struct device const *devices;
 	size_t devcount = z_device_get_all_static(&devices);
 
 	zassert_false((devcount == 0), NULL);

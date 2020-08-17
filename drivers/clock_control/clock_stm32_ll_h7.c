@@ -134,7 +134,7 @@ CONFIG_SYS_CLOCK_HW_CYCLES_PER_SEC"
  * use them independently in zephyr clock subsystem.
  */
 #error "D1CPRE presacler can't be higher than 1"
-'#endif
+#endif
 #endif /* CONFIG_CPU_CORTEX_M7 */
 
 static uint32_t get_bus_clock(uint32_t clock, uint32_t prescaler)
