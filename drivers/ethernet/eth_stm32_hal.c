@@ -470,7 +470,7 @@ static void eth_isr(const struct device *dev)
 	struct eth_stm32_hal_dev_data *dev_data;
 	ETH_HandleTypeDef *heth;
 
-	__ASSERT_NO_MSG(arg != NULL);
+	__ASSERT_NO_MSG(dev != NULL);
 
 	dev_data = DEV_DATA(dev);
 

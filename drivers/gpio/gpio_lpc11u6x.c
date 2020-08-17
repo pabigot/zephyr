@@ -430,7 +430,8 @@ DEVICE_DECLARE(gpio_lpc11u6x_2);
 
 static void gpio_lpc11u6x_isr(const void *arg)
 {
-	struct gpio_lpc11u6x_shared *shared = arg;
+	struct gpio_lpc11u6x_shared *shared =
+		(struct gpio_lpc11u6x_shared *)arg;
 	struct lpc11u6x_pint_regs *pint_regs = (struct lpc11u6x_pint_regs *)
 		(shared->gpio_base + LPC11U6X_PINT_REGS);
 	uint32_t *pintsel_reg =
