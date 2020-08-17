@@ -150,7 +150,7 @@ static size_t obj_size_get(enum k_objects otype)
 	switch (otype) {
 #include <otype-to-size.h>
 	default:
-		ret = sizeof(struct device);
+		ret = sizeof(const struct device);
 		break;
 	}
 

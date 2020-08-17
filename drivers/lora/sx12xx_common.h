@@ -13,7 +13,7 @@
 #include <drivers/lora.h>
 #include <device.h>
 
-int __sx12xx_configure_pin(const struct device **dev, const char *controller,
+int __sx12xx_configure_pin(const struct device * *dev, const char *controller,
 			   gpio_pin_t pin, gpio_flags_t flags);
 
 #define sx12xx_configure_pin(_name, _flags)				\
