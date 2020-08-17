@@ -166,7 +166,7 @@ static int vipm_nrf_init(const struct device *dev)
 }
 
 #define VIPM_DEVICE_1(_idx)						\
-static int vipm_nrf_##_idx##_send(const struct device *dev, int wait,		\
+static int vipm_nrf_##_idx##_send(const struct device *dev, int wait,	\
 				  uint32_t id, const void *data, int size)	\
 {									\
 	if (!IS_ENABLED(CONFIG_IPM_MSG_CH_##_idx##_TX)) {		\
@@ -192,7 +192,7 @@ static int vipm_nrf_##_idx##_send(const struct device *dev, int wait,		\
 	return 0;							\
 }									\
 									\
-static void vipm_nrf_##_idx##_register_callback(const struct device *dev,	\
+static void vipm_nrf_##_idx##_register_callback(const struct device *dev, \
 						ipm_callback_t cb,	\
 						void *user_data)	\
 {									\

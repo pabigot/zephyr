@@ -150,7 +150,7 @@ static const struct counter_driver_api imx_epit_driver_api = {
 };
 
 #define COUNTER_IMX_EPIT_DEVICE(idx)					       \
-static int imx_epit_config_func_##idx(const struct device *dev);		       \
+static int imx_epit_config_func_##idx(const struct device *dev);	       \
 static const struct imx_epit_config imx_epit_##idx##z_config = {	       \
 	.info = {							       \
 			.max_top_value = COUNTER_MAX_RELOAD,		       \

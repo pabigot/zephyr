@@ -346,7 +346,7 @@ static int uart_npcx_init(const struct device *dev)
 #define NPCX_UART_IRQ_CONFIG_FUNC_INIT(inst) \
 	.irq_config_func = uart_npcx_irq_config_##inst,
 #define NPCX_UART_IRQ_CONFIG_FUNC(inst)	                                       \
-	static void uart_npcx_irq_config_##inst(const struct device *dev)	       \
+	static void uart_npcx_irq_config_##inst(const struct device *dev)      \
 	{	                                                               \
 		IRQ_CONNECT(DT_INST_IRQN(inst),		                       \
 			DT_INST_IRQ(inst, priority),                           \
