@@ -768,7 +768,8 @@ static void lpc11u6x_uartx_isr(const struct device *dev)
 
 static void lpc11u6x_uartx_shared_isr(const void *arg)
 {
-	struct lpc11u6x_uartx_shared_irq *shared_irq = arg;
+	struct lpc11u6x_uartx_shared_irq *shared_irq =
+		(struct lpc11u6x_uartx_shared_irq *)arg;
 	int i;
 
 	for (i = 0; i < ARRAY_SIZE(shared_irq->devices); i++) {

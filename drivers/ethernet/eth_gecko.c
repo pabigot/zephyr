@@ -380,7 +380,6 @@ static void eth_isr(const struct device *dev)
 				ETH_IENS_AMBAERR);
 	uint32_t rx_irq_mask = (ETH_IENS_RXCMPLT | ETH_IENS_RXUSEDBITREAD);
 
-	__ASSERT_NO_MSG(arg != NULL);
 	__ASSERT_NO_MSG(dev_data != NULL);
 	__ASSERT_NO_MSG(cfg != NULL);
 

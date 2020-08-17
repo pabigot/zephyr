@@ -507,7 +507,7 @@ void z_nrf_clock_control_lf_on(enum nrf_lfclk_start_mode start_mode)
  * it by pointer at runtime, maybe?) so we don't have this leaky
  * symbol.
  */
-void nrf_power_clock_isr(void *arg);
+void nrf_power_clock_isr(const void *arg);
 
 static int clk_init(const struct device *dev)
 {
@@ -613,7 +613,7 @@ static void usb_power_isr(void)
 #endif
 }
 
-void nrf_power_clock_isr(void *arg)
+void nrf_power_clock_isr(const void *arg)
 {
 	ARG_UNUSED(arg);
 	const struct device *dev = DEVICE_GET(clock_nrf);
