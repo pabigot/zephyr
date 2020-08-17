@@ -651,7 +651,7 @@ static const struct dma_driver_api dma_funcs = {
 };
 
 #define DMA_INIT(index)							\
-static void dma_stm32_config_irq_##index(const struct device *dev);		\
+static void dma_stm32_config_irq_##index(const struct device *dev);	\
 									\
 const struct dma_stm32_config dma_stm32_config_##index = {		\
 	.pclken = { .bus = DT_INST_CLOCKS_CELL(index, bus),	\

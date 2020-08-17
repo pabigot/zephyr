@@ -379,7 +379,7 @@ static const struct i2c_driver_api i2c_imx_driver_api = {
 				CONFIG_KERNEL_INIT_PRIORITY_DEVICE,	\
 				&i2c_imx_driver_api);			\
 									\
-	static void i2c_imx_config_func_##n(const struct device *dev)		\
+	static void i2c_imx_config_func_##n(const struct device *dev)	\
 	{								\
 		ARG_UNUSED(dev);					\
 									\

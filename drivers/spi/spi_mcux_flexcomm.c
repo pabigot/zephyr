@@ -266,7 +266,7 @@ static const struct spi_driver_api spi_mcux_driver_api = {
 };
 
 #define SPI_MCUX_FLEXCOMM_DEVICE(id)					\
-	static void spi_mcux_config_func_##id(const struct device *dev);	\
+	static void spi_mcux_config_func_##id(const struct device *dev); \
 	static const struct spi_mcux_config spi_mcux_config_##id = {	\
 		.base =							\
 		(SPI_Type *)DT_INST_REG_ADDR(id),			\

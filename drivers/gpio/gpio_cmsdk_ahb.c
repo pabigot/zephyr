@@ -254,7 +254,7 @@ static int gpio_cmsdk_ahb_init(const struct device *dev)
 }
 
 #define CMSDK_AHB_GPIO_DEVICE(n)						\
-	static void gpio_cmsdk_port_##n##_config_func(const struct device *dev);	\
+	static void gpio_cmsdk_port_##n##_config_func(const struct device *dev); \
 										\
 	static const struct gpio_cmsdk_ahb_cfg gpio_cmsdk_port_##n##_config = {	\
 		.common = {							\

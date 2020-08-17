@@ -318,7 +318,7 @@ static const struct uart_driver_api uart_gecko_driver_api = {
 #define GECKO_UART_IRQ_HANDLER_FUNC(idx)				       \
 	.irq_config_func = uart_gecko_config_func_##idx,
 #define GECKO_UART_IRQ_HANDLER(idx)					       \
-	static void uart_gecko_config_func_##idx(const struct device *dev)	       \
+	static void uart_gecko_config_func_##idx(const struct device *dev)     \
 	{								       \
 		IRQ_CONNECT(DT_INST_IRQ_BY_NAME(idx, rx, irq),		       \
 			    DT_INST_IRQ_BY_NAME(idx, rx, priority),	       \
@@ -402,7 +402,7 @@ DT_INST_FOREACH_STATUS_OKAY(GECKO_UART_INIT)
 #define GECKO_USART_IRQ_HANDLER_FUNC(idx)				       \
 	.irq_config_func = usart_gecko_config_func_##idx,
 #define GECKO_USART_IRQ_HANDLER(idx)					       \
-	static void usart_gecko_config_func_##idx(const struct device *dev)	       \
+	static void usart_gecko_config_func_##idx(const struct device *dev)    \
 	{								       \
 		IRQ_CONNECT(DT_INST_IRQ_BY_NAME(idx, rx, irq),		       \
 			    DT_INST_IRQ_BY_NAME(idx, rx, priority),	       \
