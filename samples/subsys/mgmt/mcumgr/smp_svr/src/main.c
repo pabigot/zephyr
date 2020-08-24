@@ -6,6 +6,8 @@
  */
 
 #include <zephyr.h>
+#include <drivers/gpio.h>
+#include <usb/usb_device.h>
 #include <stats/stats.h>
 
 #ifdef CONFIG_MCUMGR_CMD_FS_MGMT
@@ -55,6 +57,16 @@ static struct fs_mount_t littlefs_mnt = {
 
 void main(void)
 {
+	if (IS_ENABLED(CONFIG_USB)) {
+		usb_enable(NULL);
+		k_sleep(K_SECONDS(1));
+	}
+
+	const struct device *gpio = device_get_binding(DT_GPIO_LABEL(DT_ALIAS(led0), gpios));
+	gpio_pin_t pin = DT_GPIO_PIN(DT_ALIAS(led0), gpios);
+	gpio_pin_configure(gpio, pin,
+			   GPIO_OUTPUT_INACTIVE | DT_GPIO_FLAGS(DT_ALIAS(led0), gpios));
+
 	int rc = STATS_INIT_AND_REG(smp_svr_stats, STATS_SIZE_32,
 				    "smp_svr_stats");
 
@@ -96,6 +108,7 @@ void main(void)
 	 * main thread idle while the mcumgr server runs.
 	 */
 	while (1) {
+		gpio_pin_toggle(gpio, pin);
 		k_sleep(K_MSEC(1000));
 		STATS_INC(smp_svr_stats, ticks);
 	}
