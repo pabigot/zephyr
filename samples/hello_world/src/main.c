@@ -9,9 +9,9 @@
 #include <sys/printk.h>
 #include <sys/util.h>
 
-#define INTERVAL_MS 1000U
-#define WORK_DELAY_US 0U
-#define TIMEOUT_DELAY_US 50U
+#define INTERVAL_MS 1000
+#define WORK_DELAY_US 0
+#define TIMEOUT_DELAY_US 50
 
 enum mode {
 	MODE_INTERVAL,
@@ -105,9 +105,9 @@ void work_handler(struct k_work* work)
 
 	sp->sch_ut += INTERVAL_MS;
 	if (MODE_REL_SCH_OFFSET == mode) {
-		next_to = K_MSEC(INTERVAL_MS - (now - sch_ut));
+		next_to = K_MSEC(INTERVAL_MS - (int32_t)(now - sch_ut));
 	} else if (MODE_REL_WRK_OFFSET == mode) {
-		next_to = K_MSEC(INTERVAL_MS - (now - sp->wrk_ut));
+		next_to = K_MSEC(INTERVAL_MS - (int32_t)(now - sp->wrk_ut));
 	} else if (MODE_REL_NOW_OFFSET == mode) {
 		next_to = K_MSEC(INTERVAL_MS);
 	} else if (MODE_IMMED == mode) {
