@@ -59,6 +59,24 @@
 #include <logging/log.h>
 LOG_MODULE_REGISTER(usb_cdc_acm);
 
+K_KERNEL_STACK_DEFINE(cdc_work_q_stack, CONFIG_SYSTEM_WORKQUEUE_STACK_SIZE);
+static struct k_work_q cdc_work_q;
+
+static int cdc_work_q_init(const struct device *dev)
+{
+	ARG_UNUSED(dev);
+
+	k_work_q_start(&cdc_work_q,
+		       cdc_work_q_stack,
+		       K_KERNEL_STACK_SIZEOF(cdc_work_q_stack),
+		       CONFIG_SYSTEM_WORKQUEUE_PRIORITY);
+	k_thread_name_set(&cdc_work_q.thread, "cdcworkq");
+
+	return 0;
+}
+
+SYS_INIT(cdc_work_q_init, POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT);
+
 #define DEV_DATA(dev)						\
 	((struct cdc_acm_dev_data_t * const)(dev)->data)
 
@@ -288,7 +306,7 @@ static void cdc_acm_write_cb(uint8_t ep, int size, void *priv)
 
 	/* Call callback only if tx irq ena */
 	if (dev_data->cb && dev_data->tx_irq_ena) {
-		k_work_submit(&dev_data->cb_work);
+		k_work_submit_to_queue(&cdc_work_q, &dev_data->cb_work);
 	}
 
 	if (ring_buf_is_empty(dev_data->tx_ringbuf)) {
@@ -296,7 +314,7 @@ static void cdc_acm_write_cb(uint8_t ep, int size, void *priv)
 		return;
 	}
 
-	k_work_submit(&dev_data->tx_work);
+	k_work_submit_to_queue(&cdc_work_q, &dev_data->tx_work);
 }
 
 static void tx_work_handler(struct k_work *work)
@@ -362,7 +380,7 @@ done:
 
 	/* Call callback only if rx irq ena */
 	if (dev_data->cb && dev_data->rx_irq_ena) {
-		k_work_submit(&dev_data->cb_work);
+		k_work_submit_to_queue(&cdc_work_q, &dev_data->cb_work);
 	}
 
 	usb_transfer(ep, dev_data->rx_buf, sizeof(dev_data->rx_buf),
@@ -588,7 +606,7 @@ static int cdc_acm_fifo_fill(const struct device *dev,
 		LOG_WRN("Ring buffer full, drop %d bytes", len - wrote);
 	}
 
-	k_work_submit(&dev_data->tx_work);
+	k_work_submit_to_queue(&cdc_work_q, &dev_data->tx_work);
 
 	/* Return written to ringbuf data len */
 	return wrote;
@@ -635,7 +653,7 @@ static void cdc_acm_irq_tx_enable(const struct device *dev)
 	dev_data->tx_irq_ena = true;
 
 	if (dev_data->cb && dev_data->tx_ready) {
-		k_work_submit(&dev_data->cb_work);
+		k_work_submit_to_queue(&cdc_work_q, &dev_data->cb_work);
 	}
 }
 
@@ -685,7 +703,7 @@ static void cdc_acm_irq_rx_enable(const struct device *dev)
 	dev_data->rx_irq_ena = true;
 
 	if (dev_data->cb && dev_data->rx_ready) {
-		k_work_submit(&dev_data->cb_work);
+		k_work_submit_to_queue(&cdc_work_q, &dev_data->cb_work);
 	}
 }
 
