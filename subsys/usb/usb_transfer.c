@@ -13,6 +13,24 @@
 
 LOG_MODULE_REGISTER(usb_transfer, CONFIG_USB_DEVICE_LOG_LEVEL);
 
+K_KERNEL_STACK_DEFINE(usbx_work_q_stack, CONFIG_SYSTEM_WORKQUEUE_STACK_SIZE);
+static struct k_work_q usbx_work_q;
+
+static int usbx_work_q_init(const struct device *dev)
+{
+	ARG_UNUSED(dev);
+
+	k_work_q_start(&usbx_work_q,
+		       usbx_work_q_stack,
+		       K_KERNEL_STACK_SIZEOF(usbx_work_q_stack),
+		       CONFIG_SYSTEM_WORKQUEUE_PRIORITY);
+	k_thread_name_set(&usbx_work_q.thread, "cdcworkq");
+
+	return 0;
+}
+
+SYS_INIT(usbx_work_q_init, POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT);
+
 struct usb_transfer_sync_priv {
 	int tsize;
 	struct k_sem sem;
@@ -137,7 +155,7 @@ done:
 
 		if (k_is_in_isr()) {
 			/* reschedule completion in thread context */
-			k_work_submit(&trans->work);
+			k_work_submit_to_queue(&usbx_work_q, &trans->work);
 			return;
 		}
 
@@ -187,7 +205,7 @@ void usb_transfer_ep_callback(uint8_t ep, enum usb_dc_ep_cb_status_code status)
 		/* Read (out) needs to be done from ep_callback */
 		usb_transfer_work(&trans->work);
 	} else {
-		k_work_submit(&trans->work);
+		k_work_submit_to_queue(&usbx_work_q, &trans->work);
 	}
 }
 
@@ -240,7 +258,7 @@ int usb_transfer(uint8_t ep, uint8_t *data, size_t dlen, unsigned int flags,
 
 	if (flags & USB_TRANS_WRITE) {
 		/* start writing first chunk */
-		k_work_submit(&trans->work);
+		k_work_submit_to_queue(&usbx_work_q, &trans->work);
 	} else {
 		/* ready to read, clear NAK */
 		ret = usb_dc_ep_read_continue(ep);
@@ -268,7 +286,7 @@ void usb_cancel_transfer(uint8_t ep)
 	}
 
 	trans->status = -ECANCELED;
-	k_work_submit(&trans->work);
+	k_work_submit_to_queue(&usbx_work_q, &trans->work);
 
 done:
 	irq_unlock(key);
@@ -284,7 +302,7 @@ void usb_cancel_transfers(void)
 
 		if (trans->status == -EBUSY) {
 			trans->status = -ECANCELED;
-			k_work_submit(&trans->work);
+			k_work_submit_to_queue(&usbx_work_q, &trans->work);
 			LOG_DBG("Cancel transfer for ep: 0x%02x", trans->ep);
 		}
 
