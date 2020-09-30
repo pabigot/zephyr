@@ -69,14 +69,8 @@ static int spi_emul_io(const struct device *dev,
 {
 	struct spi_emul *emul;
 	const struct spi_emul_api *api;
-	unsigned int chipsel;
 
-	/*
-	 * TODO(@sjg20): When supported, figure out the chipsel value from
-	 * the config parameter
-	 */
-	chipsel = 0;
-	emul = spi_emul_find(dev, chipsel);
+	emul = spi_emul_find(dev, config->slave);
 	if (!emul) {
 		return -EIO;
 	}
@@ -110,7 +104,7 @@ int spi_emul_register(const struct device *dev, const char *name,
 
 	sys_slist_append(&data->emuls, &emul->node);
 
-	LOG_INF("Register emulator '%s'\n", name);
+	LOG_INF("Register emulator '%s' at cs %u\n", name, emul->chipsel);
 
 	return 0;
 }

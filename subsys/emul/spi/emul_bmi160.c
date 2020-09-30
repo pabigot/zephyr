@@ -37,6 +37,8 @@ struct bmi160_emul_cfg {
 	struct bmi160_emul_data *data;
 	/** Chip registers */
 	uint8_t *reg;
+	/** Unit address (chip select ordinal) of emulator */
+	uint16_t chipsel;
 };
 
 /* Names for the PMU components */
@@ -240,6 +242,7 @@ static int emul_bosch_bmi160_init(const struct emul *emul,
 	uint8_t *reg = cfg->reg;
 
 	data->emul.api = &bmi160_emul_api;
+	data->emul.chipsel = cfg->chipsel;
 	data->dev = parent;
 	data->cfg = cfg;
 	data->pmu_status = 0;
@@ -258,6 +261,7 @@ static int emul_bosch_bmi160_init(const struct emul *emul,
 		.spi_label = DT_INST_BUS_LABEL(n), \
 		.data = &bmi160_emul_data_##n, \
 		.reg = bmi160_emul_reg_##n, \
+		.chipsel = DT_INST_REG_ADDR(n)	\
 	}; \
 	EMUL_DEFINE(emul_bosch_bmi160_init, DT_DRV_INST(n), \
 		&bmi160_emul_cfg_##n)
