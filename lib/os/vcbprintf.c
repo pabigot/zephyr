@@ -20,7 +20,7 @@
 #define EOF  -1
 #endif
 
-#ifdef CONFIG_MINIMAL_LIBC_LL_PRINTF
+#ifdef CONFIG_VCBPRINTF_LL_LENGTH
 #define VALTYPE long long
 #else
 #define VALTYPE long
@@ -531,7 +531,7 @@ int sys_vcbprintf(sys_vcbprintf_cb func, void *dest, const char *format, va_list
 			if (strchr("hlz", c) != NULL) {
 				i = c;
 				c = *format++;
-				if (IS_ENABLED(CONFIG_MINIMAL_LIBC_LL_PRINTF) &&
+				if (IS_ENABLED(CONFIG_VCBPRINTF_LL_LENGTH) &&
 				    i == 'l' && c == 'l') {
 					i = 'L';
 					c = *format++;
@@ -558,7 +558,7 @@ int sys_vcbprintf(sys_vcbprintf_cb func, void *dest, const char *format, va_list
 				case 'l':
 					val = va_arg(vargs, long);
 					break;
-#ifdef CONFIG_MINIMAL_LIBC_LL_PRINTF
+#ifdef CONFIG_VCBPRINTF_LL_LENGTH
 				case 'L':
 					val = va_arg(vargs, long long);
 					break;
@@ -622,7 +622,7 @@ int sys_vcbprintf(sys_vcbprintf_cb func, void *dest, const char *format, va_list
 				case 'l':
 					*va_arg(vargs, long *) = count;
 					break;
-#ifdef CONFIG_MINIMAL_LIBC_LL_PRINTF
+#ifdef CONFIG_VCBPRINTF_LL_LENGTH
 				case 'L':
 					*va_arg(vargs, long long *) = count;
 					break;
@@ -664,7 +664,7 @@ int sys_vcbprintf(sys_vcbprintf_cb func, void *dest, const char *format, va_list
 				case 'l':
 					val = va_arg(vargs, unsigned long);
 					break;
-#ifdef CONFIG_MINIMAL_LIBC_LL_PRINTF
+#ifdef CONFIG_VCBPRINTF_LL_LENGTH
 				case 'L':
 					val = va_arg(vargs, unsigned long long);
 					break;
