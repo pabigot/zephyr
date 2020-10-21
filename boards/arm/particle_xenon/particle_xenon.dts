@@ -21,7 +21,9 @@
 
 	vbatt {
 		compatible = "voltage-divider";
-		io-channels = <&adc 3>;
+		//io-channels = <&{/gpio-ain} &gpio0 5>;
+		io-channels = <&gpio_ain 5>;
+		//io-channels = <&adc 3>;
 		output-ohms = <2100000>;
 		full-ohms = <(2100000 + 806000)>;
 	};

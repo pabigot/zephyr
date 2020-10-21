@@ -2313,6 +2313,7 @@ def _phandle_val_list(prop, n_cells_name):
             _err("bad phandle in " + repr(prop))
 
         if full_n_cells_name not in node.props:
+            # herepab
             _err("{!r} lacks {}".format(node, full_n_cells_name))
 
         n_cells = node.props[full_n_cells_name].to_num()
