@@ -15,6 +15,11 @@ properties:
       description: Timer instance to use for generating the PWM output signals
       required: false
 
+    generator:
+      type: phandle
+      description: Reference to timer or RTC instance for PWM output
+      required: false
+
     channel-count:
       type: int
       description: |

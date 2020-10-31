@@ -15,24 +15,32 @@
 #include <logging/log.h>
 LOG_MODULE_REGISTER(pwm_nrf5_sw);
 
-BUILD_ASSERT(DT_INST_NODE_HAS_PROP(0, rtc_instance) !=
-	     DT_INST_NODE_HAS_PROP(0, timer_instance),
-	     "Either rtc-instance or timer-instance needs to be configured");
+#define GENERATOR_NODE DT_PHANDLE_BY_IDX(DT_DRV_INST(0), generator, 0)
 
-#if DT_INST_NODE_HAS_PROP(0, rtc_instance)
+#if DT_NODE_HAS_COMPAT(GENERATOR_NODE, nordic_nrf_rtc)
 #define USE_RTC		1
-#define PERIPH_TO_USE	_CONCAT(RTC, DT_INST_PROP(0, rtc_instance))
+#define PERIPH_TO_USE	((NRF_RTC_Type*)DT_REG_ADDR(GENERATOR_NODE))
 BUILD_ASSERT(DT_INST_PROP(0, clock_prescaler) == 0,
 	     "Only clock-prescaler = <0> is supported when used with rtc-instance");
-#endif
-
-#if DT_INST_NODE_HAS_PROP(0, timer_instance)
+#elif DT_NODE_HAS_COMPAT(GENERATOR_NODE, nordic_nrf_timer)
+#define USE_RTC		0
+#define PERIPH_TO_USE	((NRF_TIMER_Type*)DT_REG_ADDR(GENERATOR_NODE))
+#elif DT_INST_NODE_HAS_PROP(0, rtc_instance)
+#define USE_RTC		1
+#define PERIPH_TO_USE	_CONCAT(RTC, DT_INST_PROP(0, rtc_instance))
+#define PERIPH_CC_NUM	_CONCAT(PERIPH_TO_USE, _CC_NUM)
+#elif DT_INST_NODE_HAS_PROP(0, timer_instance)
 #define USE_RTC		0
 #define PERIPH_TO_USE	_CONCAT(TIMER, DT_INST_PROP(0, timer_instance))
+#define PERIPH_CC_NUM	_CONCAT(PERIPH_TO_USE, _CC_NUM)
+#else
+BUILD_ASSERT(0,
+	     "Either rtc-instance or timer-instance needs to be configured");
 #endif
 
 /* One compare channel is needed to set the PWM period, hence +1. */
-#if (DT_INST_PROP(0, channel_count) + 1) > (_CONCAT(PERIPH_TO_USE, _CC_NUM))
+#if defined(PERIPH_CC_NUM)					\
+	&& ((DT_INST_PROP(0, channel_count) + 1) > PERIPH_CC_NUM)
 #error "Invalid number of PWM channels configured."
 #endif
 
@@ -329,6 +337,8 @@ static int pwm_nrf5_sw_init(const struct device *dev)
 	NRF_TIMER_Type *timer = pwm_config_timer(config);
 	NRF_RTC_Type *rtc = pwm_config_rtc(config);
 
+	printk("periphs %p %p\n", timer, rtc);
+
 	if (USE_RTC) {
 		/* setup RTC */
 		rtc->PRESCALER = 0;
@@ -359,12 +369,7 @@ static int pwm_nrf5_sw_init(const struct device *dev)
 }
 
 static const struct pwm_config pwm_nrf5_sw_0_config = {
-#if DT_INST_NODE_HAS_PROP(0, rtc_instance)
-	.rtc = _CONCAT(NRF_RTC, DT_INST_PROP(0, rtc_instance)),
-#endif
-#if DT_INST_NODE_HAS_PROP(0, timer_instance)
-	.timer = _CONCAT(NRF_TIMER, DT_INST_PROP(0, timer_instance)),
-#endif
+	COND_CODE_1(USE_RTC,(.rtc),(.timer)) = PERIPH_TO_USE,
 	.ppi_base = DT_INST_PROP(0, ppi_base),
 	.gpiote_base = DT_INST_PROP(0, gpiote_base),
 	.map_size = PWM_0_MAP_SIZE,

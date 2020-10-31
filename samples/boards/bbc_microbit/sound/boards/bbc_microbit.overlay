@@ -1,0 +1,5 @@
+&sw_pwm {
+  /delete-property/ timer-instance;
+  generator = <&timer1>;
+//  generator = <&rtc0>;
+};
