@@ -9,12 +9,12 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include <stdarg.h>
 #include <string.h>
 #include <ctype.h>
 #include <limits.h>
 #include <sys/types.h>
 #include <sys/util.h>
+#include <sys/vcbprintf.h>
 
 #ifndef EOF
 #define EOF  -1
@@ -433,7 +433,7 @@ static int _atoi(const char **sptr)
 	return i;
 }
 
-int z_prf(int (*func)(), void *dest, const char *format, va_list vargs)
+int sys_vcbprintf(sys_vcbprintf_cb func, void *dest, const char *format, va_list vargs)
 {
 	/*
 	 * The work buffer has to accommodate for the largest data length.
@@ -801,4 +801,10 @@ int z_prf(int (*func)(), void *dest, const char *format, va_list vargs)
 	return count;
 
 #undef PUTC
+}
+
+/* Wrapper providing the old API. */
+int z_prf(int (*func)(), void *dest, const char *format, va_list vargs)
+{
+	return sys_vcbprintf(func, dest, format, vargs);
 }

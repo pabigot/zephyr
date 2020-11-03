@@ -18,13 +18,11 @@ zephyr_sources(
   sem.c
   thread_entry.c
   timeutil.c
+  vcbprintf.c
   work_q.c
   heap.c
   heap-validate.c
   )
-
-zephyr_sources_ifdef(CONFIG_MINIMAL_LIBC prf.c)
-zephyr_sources_ifdef(CONFIG_SHELL prf.c)
 
 zephyr_sources_ifdef(CONFIG_JSON_LIBRARY json.c)
 
