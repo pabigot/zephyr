@@ -8,6 +8,7 @@
 #include <logging/log_ctrl.h>
 #include <logging/log.h>
 #include <sys/__assert.h>
+#include <sys/vcbprintf.h>
 #include <ctype.h>
 #include <time.h>
 #include <stdio.h>
@@ -46,7 +47,6 @@ static uint32_t timestamp_div;
 
 typedef int (*out_func_t)(int c, void *ctx);
 
-extern int z_prf(int (*func)(), void *dest, char *format, va_list vargs);
 extern void z_vprintk(out_func_t out, void *log_output,
 		     const char *fmt, va_list ap);
 extern void log_output_msg_syst_process(const struct log_output *log_output,
@@ -131,7 +131,7 @@ static int print_formatted(const struct log_output *log_output,
 	va_start(args, fmt);
 #if !defined(CONFIG_NEWLIB_LIBC) && !defined(CONFIG_ARCH_POSIX) && \
     defined(CONFIG_LOG_ENABLE_FANCY_OUTPUT_FORMATTING)
-	length = z_prf(out_func, (void *)log_output, (char *)fmt, args);
+	length = sys_vcbprintf(out_func, (void *)log_output, (char *)fmt, args);
 #else
 	z_vprintk(out_func, (void *)log_output, fmt, args);
 #endif
@@ -593,7 +593,7 @@ void log_output_string(const struct log_output *log_output,
 
 #if !defined(CONFIG_NEWLIB_LIBC) && !defined(CONFIG_ARCH_POSIX) && \
     defined(CONFIG_LOG_ENABLE_FANCY_OUTPUT_FORMATTING)
-	length = z_prf(out_func, (void *)log_output, (char *)fmt, ap);
+	length = sys_vcbprintf(out_func, (void *)log_output, (char *)fmt, ap);
 #else
 	z_vprintk(out_func, (void *)log_output, fmt, ap);
 #endif
