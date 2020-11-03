@@ -8,3 +8,10 @@ config VCBPRINTF_LL_LENGTH
 	  Build the sys_vcbprintf utility function with support for
 	  the ll length in format specifiers.  This will increase code
 	  size on systems with 32-bit long integers.
+
+config VCBPRINTF_FLOAT_SUPPORT
+	bool "Enable floating point formatting in sys_vcbprintf"
+	default y if SHELL
+	help
+	  Build the sys_vcbprintf utility function with support for
+	  floating point format specifiers.

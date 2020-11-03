@@ -576,8 +576,6 @@ int sys_vcbprintf(sys_vcbprintf_cb func, void *dest, const char *format, va_list
 			case 'g':
 			case 'G':
 			{
-				uint64_t double_val;
-
 				/* standard platforms which supports double */
 				union {
 					double d;
@@ -585,9 +583,15 @@ int sys_vcbprintf(sys_vcbprintf_cb func, void *dest, const char *format, va_list
 				} u;
 
 				u.d = va_arg(vargs, double);
-				double_val = u.i;
+				if (!IS_ENABLED(CONFIG_VCBPRINTF_FLOAT_SUPPORT)) {
+					PUTC('%');
+					PUTC(c);
+					clen = 0;
+					count += 2;
+					continue;
+				}
 
-				clen = _to_float(buf, double_val, c, falt,
+				clen = _to_float(buf, u.i, c, falt,
 						 fplus, fspace, precision,
 						 &zero);
 				if (fplus || fspace || (buf[0] == '-')) {
