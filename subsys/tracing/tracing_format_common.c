@@ -33,7 +33,7 @@ bool tracing_format_string_put(const char *str, va_list args)
 	tracing_ctx_t str_ctx = {0};
 
 #if !defined(CONFIG_NEWLIB_LIBC) && !defined(CONFIG_ARCH_POSIX)
-	(void)z_prf(str_put, (void *)&str_ctx, (char *)str, args);
+	(void)sys_vcbprintf(str_put, (void *)&str_ctx, (char *)str, args);
 #else
 	z_vprintk(str_put, (void *)&str_ctx, str, args);
 #endif

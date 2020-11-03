@@ -9,6 +9,7 @@
 
 #include <stdarg.h>
 #include <sys/printk.h>
+#include <sys/vcbprintf.h>
 #include <tracing/tracing_format.h>
 
 #ifdef __cplusplus
@@ -27,8 +28,6 @@ typedef struct {
 typedef int (*str_put_func_t)(int c, void *ctx);
 extern void z_vprintk(str_put_func_t out, void *ctx,
 		      const char *fmt, va_list ap);
-#else
-extern int z_prf(int (*func)(), void *dest, char *format, va_list vargs);
 #endif
 
 /**
