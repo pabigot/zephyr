@@ -26,22 +26,16 @@
 #define VALTYPE long
 #endif
 
-static void _uc(char *buf)
-{
-	do {
-		if (*buf >= 'a' && *buf <= 'z') {
-			*buf += 'A' - 'a';
-		}
-	} while (*buf++);
-}
-
 /*
  * Writes the specified number into the buffer in the given base,
  * using the digit characters 0-9a-z (i.e. base>36 will start writing
- * odd bytes).
+ * odd bytes).  Base larger than 16 will overrun buffer.
  */
-static int _to_x(char *buf, unsigned VALTYPE n, unsigned int base)
+static int _to_x(bool uc, char *buf, unsigned VALTYPE n, unsigned int base)
 {
+	static const char lclut[] = "0123456789abcdef";
+	static const char uclut[] = "0123456789ABCDEF";
+	const char *lut = uc ? uclut : lclut;
 	char *start = buf;
 	int len;
 
@@ -49,7 +43,7 @@ static int _to_x(char *buf, unsigned VALTYPE n, unsigned int base)
 		unsigned int d = n % base;
 
 		n /= base;
-		*buf++ = '0' + d + (d > 9 ? ('a' - '0' - 10) : 0);
+		*buf++ = lut[d];
 	} while (n);
 
 	*buf = 0;
@@ -74,10 +68,7 @@ static int _to_hex(char *buf, unsigned VALTYPE value, bool alt_form, char prefix
 		*buf++ = 'x';
 	}
 
-	len = _to_x(buf, value, 16);
-	if (prefix == 'X') {
-		_uc(buf0);
-	}
+	len = _to_x(prefix == 'X', buf, value, 16);
 
 	return len + (buf - buf0);
 }
@@ -94,12 +85,12 @@ static int _to_octal(char *buf, unsigned VALTYPE value, bool alt_form)
 			return 1;
 		}
 	}
-	return (buf - buf0) + _to_x(buf, value, 8);
+	return (buf - buf0) + _to_x(false, buf, value, 8);
 }
 
 static int _to_udec(char *buf, unsigned VALTYPE value)
 {
-	return _to_x(buf, value, 10);
+	return _to_x(false, buf, value, 10);
 }
 
 static int _to_dec(char *buf, VALTYPE value, bool fplus, bool fspace)
