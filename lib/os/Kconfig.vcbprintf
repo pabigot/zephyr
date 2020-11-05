@@ -1,17 +1,36 @@
 # Copyright (c) 2020 Nordic Semiconductor ASA
 # SPDX-License-Identifier: Apache-2.0
 
-config VCBPRINTF_LL_LENGTH
-	bool "Enable long long sys_vcbprintf" if !64BIT
-	default y if 64BIT
+config VCBPRINTF_64BIT
+	bool "Enable 64-bit formatting" if !64BIT
+	default y
 	help
-	  Build the sys_vcbprintf utility function with support for
-	  the ll length in format specifiers.  This will increase code
-	  size on systems with 32-bit long integers.
+	  Build the sys_vcbprintf utility function with support for the 64-bit
+	  formatting.  This will increase code size on systems with 32-bit
+	  long integers.
+
+	  If not selected conversions with the ll length modifier will not be
+	  generated.
 
 config VCBPRINTF_FLOAT_SUPPORT
 	bool "Enable floating point formatting in sys_vcbprintf"
-	default y if SHELL
+	default y # if SHELL
 	help
 	  Build the sys_vcbprintf utility function with support for
 	  floating point format specifiers.
+
+config VCBPRINTF_ALT_FORM
+	bool "Support the alternative form (#) specifier flag"
+	default y
+	help
+	  If selected using %#x will prefix the hex value with 0x; and
+	  other conversions will use their alternative form.
+
+config VCBPRINTF_N_SPECIFIER
+	bool "Support %n specifications"
+	default y
+	help
+	  If selected %n can be used to determine the number of
+	  characters emitted.
+
+#define CONFIG_ 1
