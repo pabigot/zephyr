@@ -857,7 +857,18 @@ static char _get_digit(uint64_t *fr, int *digit_count)
 #define MAXFP1 0xFFFFFFFF
 #define HIGHBIT64 BIT64(63)
 
-struct zero_padding { int predot, postdot, trail; };
+/*
+ * In the case of floats zero padding can occur in two of three
+ * locations:
+ *	xxxxxx<zero.predot>.<zero.postdot>
+ * or:
+ *	x.<zero.postdot>xxxxxx<zero.trail>[e+xx]
+ */
+struct zero_padding {
+	uint8_t predot;
+	uint8_t postdot;
+	uint8_t trail;
+};
 
 static int _to_float(char *buf, uint64_t double_temp, char c,
 		     bool falt, bool fplus, bool fspace, int precision,
@@ -1260,6 +1271,7 @@ int xsys_vcbprintf(sys_vcbprintf_cb func, void *dest, const char *format, va_lis
 				if (fplus || fspace || (buf[0] == '-')) {
 					prefix = 1;
 				}
+
 				clen += zero.predot + zero.postdot + zero.trail;
 				if (!isdigit((int)buf[prefix])) {
 					/* inf or nan: no zero padding */
@@ -1583,7 +1595,8 @@ static char *encode_uint(uintmax_t value,
 
 
 static char *encode_float(double value,
-			  const struct conversion *conv,
+			  struct conversion *conv,
+			  struct zero_padding *zp,
 			  char *bps,
 			  const char **bpe)
 {
@@ -1597,10 +1610,6 @@ static char *encode_float(double value,
 		.dbl = value,
 	};
 	char *buf = bps;
-
-	struct zero_padding zero = { };
-	struct zero_padding *zp = &zero;
-	uint64_t ltemp;
 
 	/* Prepend the sign: '-' if negative, flags control
 	 * non-negative behavior.
@@ -1646,6 +1655,10 @@ static char *encode_float(double value,
 				*buf++ = 'n';
 			}
 		}
+
+		/* No zero-padding with text values */
+		conv->flag_zero = false;
+
 		*bpe = buf;
 		return bps;
 	}
@@ -1748,7 +1761,8 @@ static char *encode_float(double value,
 		exp = 16;
 	}
 
-	ltemp = BIT64(59);
+	uint64_t ltemp = BIT64(59);
+
 	while (exp--) {
 		_ldiv5(&ltemp);
 		_rlrshift(&ltemp);
@@ -1925,6 +1939,7 @@ int sys_vcbprintf(sys_vcbprintf_cb out, void *ctx, const char *fp, va_list ap)
 
 		const char *sp = fp;
 		struct conversion conv;
+		struct zero_padding zero = { 0 };
 		union argument_value value;
 		const char *bps = NULL;
 		const char *bpe = buf + sizeof(buf);
@@ -2044,7 +2059,15 @@ int sys_vcbprintf(sys_vcbprintf_cb out, void *ctx, const char *fp, va_list ap)
 			break;
 
 		case FP_CONV_CASES:
-			bps = encode_float(value.dbl, &conv, buf, &bpe);
+			if (IS_ENABLED(VCBPRINTF_FP_SUPPORT)) {
+				zero = (struct zero_padding){
+					0,
+				};
+				bps = encode_float(value.dbl, &conv, &zero, buf, &bpe);
+
+				if (conv.flag_plus || conv.flag_space || (*bps == '-')) {
+				}
+			}
 			break;
 		}
 
