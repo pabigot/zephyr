@@ -14,9 +14,12 @@
 #include <stdint.h>
 #include <string.h>
 #include <toolchain.h>
+#include <sys/byteorder.h>
 #include <sys/types.h>
 #include <sys/util.h>
 #include <sys/vcbprintf.h>
+
+#define OLD_VERSION 0
 
 #ifndef EOF
 #define EOF  -1
@@ -27,7 +30,7 @@
  * The maximum is for octal formatting, which is unsigned but may have
  * a single byte alternative form prefix.
  */
-#ifdef CONFIG_VCBPRINTF_64BIT
+#ifdef CONFIG_VCBPRINTF_64BIT_SUPPORT
 #define CONVERTED_INT_BUFLEN (1U + (64U + 2U) / 3U)
 #else
 #define CONVERTED_INT_BUFLEN (1U + (32U + 2U) / 3U)
@@ -53,6 +56,7 @@ enum length_mod_enum {
 
 /* Categories of conversion specifiers. */
 enum convspec_cat_enum {
+	/* unrecognized */
 	CONVSPEC_INVALID,
 	/* d, i */
 	CONVSPEC_SINT,
@@ -126,6 +130,9 @@ union argument_value {
 struct conversion {
 	/** Indicates flags are inconsistent */
 	bool invalid: 1;
+
+	/** Indicates flags are valid but not supported */
+	bool unsupported: 1;
 
 	/** Left-justify value in width */
 	bool flag_dash: 1;
@@ -246,7 +253,8 @@ static inline const char *extract_width(struct conversion *conv,
 		conv->width_present = true;
 		conv->width_value = width;
 		if (width != conv->width_value) {
-			conv->invalid = true;
+			/* Lost width data */
+			conv->unsupported = true;
 		}
 	}
 
@@ -274,7 +282,8 @@ static inline const char *extract_prec(struct conversion *conv,
 		conv->prec_present = true;
 		conv->prec_value = prec;
 		if (prec != conv->prec_value) {
-			conv->invalid = true;
+			/* Lost precision data */
+			conv->unsupported = true;
 		}
 	}
 
@@ -346,7 +355,7 @@ static inline const char *extract_convspec(struct conversion *conv,
 			 */
 			if ((conv->convspec == 'c')
 			    && (conv->length_mod != LENGTH_NONE)) {
-				conv->invalid = true;
+				conv->unsupported = true;
 			}
 			break;
 
@@ -356,9 +365,10 @@ static inline const char *extract_convspec(struct conversion *conv,
 			/* Don't support if disabled, or if invalid
 			 * length modifiers are present.
 			 */
-			if ((!IS_ENABLED(CONFIG_VCBPRINTF_FLOAT_SUPPORT))
-			    || ((conv->length_mod != LENGTH_NONE)
-				&& (conv->length_mod != LENGTH_UPPER_L))) {
+			if (!IS_ENABLED(CONFIG_VCBPRINTF_FP_SUPPORT)) {
+				conv->unsupported = true;
+			} else if ((conv->length_mod != LENGTH_NONE)
+				   && (conv->length_mod != LENGTH_UPPER_L)) {
 				conv->invalid = true;
 			}
 
@@ -369,7 +379,7 @@ static inline const char *extract_convspec(struct conversion *conv,
 			conv->convspec_cat = CONVSPEC_PTR;
 			/* Anything except L */
 			if (conv->length_mod == LENGTH_UPPER_L) {
-				conv->invalid = true;
+				conv->unsupported = true;
 			}
 			break;
 
@@ -383,7 +393,7 @@ static inline const char *extract_convspec(struct conversion *conv,
 			 * characters not supported.
 			 */
 			if (conv->length_mod != LENGTH_NONE) {
-				conv->invalid = true;
+				conv->unsupported = true;
 			}
 			break;
 
@@ -399,7 +409,7 @@ static inline const char *extract_conversion(struct conversion *conv,
 					     const char *sp)
 {
 	*conv = (struct conversion) {
-				   .invalid = false,
+	   .invalid = false,
 	};
 
 	/* Skip over the opening %.  If the conversion specifier is %,
@@ -431,6 +441,8 @@ static const char *encode_conversion(const struct conversion *conv)
 
 	if (conv->invalid) {
 		*bp++ = '!';
+	} else if (conv->unsupported) {
+		*bp++ = '?';
 	} else {
 		*bp++ = '%';
 	}
@@ -668,7 +680,7 @@ static void get_argument(const struct conversion *conv,
 	}
 }
 
-#ifdef CONFIG_VCBPRINTF_64BIT
+#ifdef CONFIG_VCBPRINTF_64BIT_SUPPORT
 #define VALTYPE long long
 #else
 #define VALTYPE long
@@ -757,7 +769,8 @@ static int _to_dec(char *buf, VALTYPE value, bool fplus, bool fspace)
 	return (buf + _to_udec(buf, value)) - start;
 }
 
-static	void _rlrshift(uint64_t *v)
+/* Divide by two and round up. */
+static void _rlrshift(uint64_t *v)
 {
 	*v = (*v & 1) + (*v >> 1);
 }
@@ -802,15 +815,15 @@ static void _ldiv5(uint64_t *v)
 	*v = quot;
 }
 
-static	char _get_digit(uint64_t *fr, int *digit_count)
+static char _get_digit(uint64_t *fr, int *digit_count)
 {
 	char rval;
 
 	if (*digit_count > 0) {
-		*digit_count -= 1;
-		*fr = *fr * 10U;
+		--*digit_count;
+		*fr *= 10U;
 		rval = ((*fr >> 60) & 0xF) + '0';
-		*fr &= 0x0FFFFFFFFFFFFFFFull;
+		*fr &= (BIT64(60) - 1U);
 	} else {
 		rval = '0';
 	}
@@ -841,8 +854,8 @@ static	char _get_digit(uint64_t *fr, int *digit_count)
  *	stage (pulling the resulting decimal digits outs).
  */
 
-#define	MAXFP1	0xFFFFFFFF	/* Largest # if first fp format */
-#define HIGHBIT64 (1ull<<63)
+#define MAXFP1 0xFFFFFFFF
+#define HIGHBIT64 BIT64(63)
 
 struct zero_padding { int predot, postdot, trail; };
 
@@ -947,6 +960,8 @@ static int _to_float(char *buf, uint64_t double_temp, char c,
 		precision = 6;		/* Default precision if none given */
 	}
 
+	//printk("Xexp %c %d fract %llx decexp %d prec %d\n", c, exp, fract, decexp, precision);
+
 	prune_zero = false;		/* Assume trailing 0's allowed     */
 	if ((c == 'g') || (c == 'G')) {
 		if (decexp < (-4 + 1) || decexp > precision) {
@@ -976,14 +991,14 @@ static int _to_float(char *buf, uint64_t double_temp, char c,
 		exp = 16;
 	}
 
-	ltemp = 0x0800000000000000;
+	ltemp = BIT64(59);
 	while (exp--) {
 		_ldiv5(&ltemp);
 		_rlrshift(&ltemp);
 	}
 
 	fract += ltemp;
-	if ((fract >> 32) & 0xF0000000) {
+	if ((fract >> 32) & (0x0FU << 28)) {
 		_ldiv5(&fract);
 		_rlrshift(&fract);
 		decexp++;
@@ -1072,8 +1087,7 @@ static int _atoi(const char **sptr)
 	return i;
 }
 
-#if 0
-int osys_vcbprintf(sys_vcbprintf_cb func, void *dest, const char *format, va_list vargs)
+int xsys_vcbprintf(sys_vcbprintf_cb func, void *dest, const char *format, va_list vargs)
 {
 	/*
 	 * The work buffer has to accommodate for the largest data length.
@@ -1232,7 +1246,7 @@ int osys_vcbprintf(sys_vcbprintf_cb func, void *dest, const char *format, va_lis
 				} u;
 
 				u.d = va_arg(vargs, double);
-				if (!IS_ENABLED(CONFIG_VCBPRINTF_FLOAT_SUPPORT)) {
+				if (!IS_ENABLED(CONFIG_VCBPRINTF_FP_SUPPORT)) {
 					PUTC('%');
 					PUTC(c);
 					clen = 0;
@@ -1446,7 +1460,6 @@ int osys_vcbprintf(sys_vcbprintf_cb func, void *dest, const char *format, va_lis
 
 #undef PUTC
 }
-#endif
 
 static size_t outs(sys_vcbprintf_cb out,
 		   void *ctx,
@@ -1545,6 +1558,302 @@ static char *encode_uint(uintmax_t value,
 	return bp;
 }
 
+/*
+ *	_to_float
+ *
+ *	Convert a floating point # to ASCII.
+ *
+ *	Parameters:
+ *		"buf"		Buffer to write result into.
+ *		"double_temp"	# to convert (either IEEE single or double).
+ *		"c"		The conversion type (one of e,E,f,g,G).
+ *		"falt"		TRUE if "#" conversion flag in effect.
+ *		"fplus"		TRUE if "+" conversion flag in effect.
+ *		"fspace"	TRUE if " " conversion flag in effect.
+ *		"precision"	Desired precision (negative if undefined).
+ *		"zeropad"	To store padding info to be inserted later
+ */
+
+/*
+ *	The following two constants define the simulated binary floating
+ *	point limit for the first stage of the conversion (fraction times
+ *	power of two becomes fraction times power of 10), and the second
+ *	stage (pulling the resulting decimal digits outs).
+ */
+
+
+static char *encode_float(double value,
+			  const struct conversion *conv,
+			  char *bps,
+			  const char **bpe)
+{
+	const uint32_t MAX_FP1 = UINT32_MAX;
+	const uint64_t BIT_63 = BIT64(63);
+
+	union {
+		uint64_t u64;
+		double dbl;
+	} u = {
+		.dbl = value,
+	};
+	char *buf = bps;
+
+	struct zero_padding zero = { };
+	struct zero_padding *zp = &zero;
+	uint64_t ltemp;
+
+	/* Prepend the sign: '-' if negative, flags control
+	 * non-negative behavior.
+	 */
+	if ((u.u64 & BIT_63) != 0U) {
+		*buf++ = '-';
+	} else if (conv->flag_plus) {
+		*buf++ = '+';
+	} else if (conv->flag_space) {
+		*buf++ = ' ';
+	}
+
+	/* Extract the non-negative 11-bit offset exponent, and get
+	 * the fraction as a 63-bit value (masking off the upper bit
+	 * left over from the exponent).
+	 */
+	char c = conv->convspec;
+	int exp = u.u64 >> 52 & 0x7ff;
+	uint64_t fract = (u.u64 << 11) & ~BIT_63;
+
+	/* Exponent of all-ones signals infinity or NaN, which are
+	 * text constants.
+	 */
+	if (exp == BIT_MASK(12)) {
+		if (fract == 0) {
+			if (isupper((int)c)) {
+				*buf++ = 'I';
+				*buf++ = 'N';
+				*buf++ = 'F';
+			} else {
+				*buf++ = 'i';
+				*buf++ = 'n';
+				*buf++ = 'f';
+			}
+		} else {
+			if (isupper((int)c)) {
+				*buf++ = 'N';
+				*buf++ = 'A';
+				*buf++ = 'N';
+			} else {
+				*buf++ = 'n';
+				*buf++ = 'a';
+				*buf++ = 'n';
+			}
+		}
+		*bpe = buf;
+		return bps;
+	}
+
+	/* Case of the conversion specifier F is no longer relevant. */
+	if (c == 'F') {
+		c = 'f';
+	}
+
+	/* Non-zero values need normalization. */
+	if ((exp | fract) != 0) {
+		if (exp == 0) {
+			/* Fraction is subnormal.  Normalize it and
+			 * correct the exponent.
+			 */
+			while (((fract <<= 1) & BIT_63) == 0) {
+				exp--;
+			}
+		}
+		/* Adjust the offset exponent to be signed rather than
+		 * offset, and set the implicit 1 bit in the (shifted)
+		 * 53-bit fraction.
+		 */
+		exp -= (1023 - 1);	/* +1 since .1 vs 1. */
+		fract |= BIT_63;
+	}
+
+	/* Magically convert the base-2 exponent to a base-10
+	 * exponent.
+	 */
+	int decexp = 0;
+
+	while (exp <= -3) {
+		while ((fract >> 32) >= (MAX_FP1 / 5)) {
+			_rlrshift(&fract);
+			exp++;
+		}
+		fract *= 5U;
+		exp++;
+		decexp--;
+
+		while ((fract >> 32) <= (MAX_FP1 / 2)) {
+			fract <<= 1;
+			exp--;
+		}
+	}
+
+	while (exp > 0) {
+		_ldiv5(&fract);
+		exp--;
+		decexp++;
+		while ((fract >> 32) <= (MAX_FP1 / 2)) {
+			fract <<= 1;
+			exp--;
+		}
+	}
+
+	while (exp < (0 + 4)) {
+		_rlrshift(&fract);
+		exp++;
+	}
+
+        /* Default precision 6 if none given, and assume trailing
+	 * zeros allowed.
+	 */
+	int precision = conv->prec_present ? conv->prec_value : 6;
+	bool prune_zero = false;
+
+	if ((c == 'g') || (c == 'G')) {
+		/* Use the specified precision and exponent to select
+		 * the representation and correct the precision and
+		 * zero-pruning in accordance with the ISO C rule.
+		 */
+		if (decexp < (-4 + 1) || decexp > precision) {
+			c += 'e' - 'g';  /* e or E */
+			if (precision > 0) {
+				precision--;
+			}
+		} else {
+			c = 'f';
+			precision -= decexp;
+		}
+		if (!conv->flag_hash && (precision > 0)) {
+			prune_zero = true;
+		}
+	}
+
+	if (c == 'f') {
+		exp = precision + decexp;
+		if (exp < 0) {
+			exp = 0;
+		}
+	} else {
+		exp = precision + 1;
+	}
+
+	int digit_count = 16;
+
+	if (exp > 16) {
+		exp = 16;
+	}
+
+	ltemp = BIT64(59);
+	while (exp--) {
+		_ldiv5(&ltemp);
+		_rlrshift(&ltemp);
+	}
+
+	fract += ltemp;
+	if ((fract >> 32) & (0x0FU << 28)) {
+		_ldiv5(&fract);
+		_rlrshift(&fract);
+		decexp++;
+	}
+
+	if (c == 'f') {
+		if (decexp > 0) {
+			/* Emit the digits above the decimal point. */
+			while (decexp > 0 && digit_count > 0) {
+				*buf++ = _get_digit(&fract, &digit_count);
+				decexp--;
+			}
+
+			zp->predot = decexp;
+			decexp = 0;
+		} else {
+			*buf++ = '0';
+		}
+
+		/* Emit the decimal point only if required by the
+		 * alternative format, or if more digits are to
+		 * follow.
+		 */
+		if (conv->flag_hash || (precision > 0)) {
+			*buf++ = '.';
+		}
+
+		if (decexp < 0 && precision > 0) {
+			zp->postdot = -decexp;
+			if (zp->postdot > precision) {
+				zp->postdot = precision;
+			}
+
+			precision -= zp->postdot;
+		}
+	} else { // e or E
+		/* Emit the one digit before the decimal.  If it's not
+		 * zero, this is significant so reduce the base-10
+		 * exponent.
+		 */
+		*buf = _get_digit(&fract, &digit_count);
+		if (*buf++ != '0') {
+			decexp--;
+		}
+
+		/* Emit the decimal point only if required by the
+		 * alternative format, or if more digits are to
+		 * follow.
+		 */
+		if (conv->flag_hash || (precision > 0)) {
+			*buf++ = '.';
+		}
+	}
+
+	while (precision > 0 && digit_count > 0) {
+		*buf++ = _get_digit(&fract, &digit_count);
+		precision--;
+	}
+
+	zp->trail = precision;
+
+	if (prune_zero) {
+		zp->trail = 0;
+		while (*--buf == '0') {
+			;
+		}
+		if (*buf != '.') {
+			buf++;
+		}
+	}
+
+	/* Emit the explicit exponent, if format requires it. */
+	if ((c == 'e') || (c == 'E')) {
+		*buf++ = c;
+		if (decexp < 0) {
+			decexp = -decexp;
+			*buf++ = '-';
+		} else {
+			*buf++ = '+';
+		}
+
+		/* At most 3 digits to the decimal.  Spit them out. */
+		if (decexp >= 100) {
+			*buf++ = (decexp / 100) + '0';
+			decexp %= 100;
+		}
+
+		*buf++ = (decexp / 10) + '0';
+		*buf++ = (decexp % 10) + '0';
+	}
+
+	/* Set the end of the encoded sequence, and return its
+	 * start.
+	 */
+	*bpe = buf;
+	return bps;
+}
+
 static inline void store_count(const struct conversion *conv,
 			       const union argument_value *value,
 			       size_t count)
@@ -1634,7 +1943,7 @@ int sys_vcbprintf(sys_vcbprintf_cb out, void *ctx, const char *fp, va_list ap)
 			}
 			conv.width_value = width;
 			if (conv.width_value != width) {
-				conv.invalid = true;
+				conv.unsupported = true;
 			}
 		}
 
@@ -1647,7 +1956,7 @@ int sys_vcbprintf(sys_vcbprintf_cb out, void *ctx, const char *fp, va_list ap)
 			} else {
 				conv.prec_value = prec;
 				if (conv.prec_value != prec) {
-					conv.invalid = true;
+					conv.unsupported = true;
 				}
 			}
 		}
@@ -1656,10 +1965,11 @@ int sys_vcbprintf(sys_vcbprintf_cb out, void *ctx, const char *fp, va_list ap)
 		get_argument(&conv, &value, &ap);
 
 		/* We've now consumed all arguments related to this
-		 * specification.  If the conversion isn't supported
-		 * then output the original specification and move on.
+		 * specification.  If the conversion is invalid, or is
+		 * something we don't support, then output the
+		 * original specification and move on.
 		 */
-		if (conv.invalid) {
+		if (conv.invalid || conv.unsupported) {
 			count += outs(out, ctx, sp, fp);
 			continue;
 		}
@@ -1731,6 +2041,10 @@ int sys_vcbprintf(sys_vcbprintf_cb out, void *ctx, const char *fp, va_list ap)
 				store_count(&conv, &value, count);
 			}
 
+			break;
+
+		case FP_CONV_CASES:
+			bps = encode_float(value.dbl, &conv, buf, &bpe);
 			break;
 		}
 

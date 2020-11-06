@@ -61,6 +61,9 @@ typedef int (*sys_vcbprintf_cb)(/* int c, void *ctx */);
 int sys_vcbprintf(sys_vcbprintf_cb out, void *ctx, const char *format,
 		  va_list ap);
 
+int xsys_vcbprintf(sys_vcbprintf_cb out, void *ctx, const char *format,
+		   va_list ap);
+
 #ifdef __cplusplus
 }
 #endif

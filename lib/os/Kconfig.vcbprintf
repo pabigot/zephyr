@@ -1,7 +1,7 @@
 # Copyright (c) 2020 Nordic Semiconductor ASA
 # SPDX-License-Identifier: Apache-2.0
 
-config VCBPRINTF_64BIT
+config VCBPRINTF_64BIT_SUPPORT
 	bool "Enable 64-bit formatting" if !64BIT
 	default y
 	help
@@ -12,7 +12,7 @@ config VCBPRINTF_64BIT
 	  If not selected conversions with the ll length modifier will not be
 	  generated.
 
-config VCBPRINTF_FLOAT_SUPPORT
+config VCBPRINTF_FP_SUPPORT
 	bool "Enable floating point formatting in sys_vcbprintf"
 	default y # if SHELL
 	help
