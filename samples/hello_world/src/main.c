@@ -35,6 +35,7 @@ void main(void)
 
 	do_print("Hello World! %s\n", CONFIG_BOARD);
 	do_print("char '%c' '%c' '%c'\n", 'a', 'b', 'c');
+	do_print("str %s %.2s\n", "abcd", "abcd");
 	do_print("octal %o\n", 01234);
 	do_print("dec %u\n", 1234);
 	do_print("hex %x %X%n\n", 0x12ef, 0x12ef, &nw);
@@ -43,4 +44,5 @@ void main(void)
 	do_print("left10 '%-10c' right10 '%10c'\n", 'L', 'R');
 	//      float /1234.567/1.23e+03/1.235e+03/
 	do_print("float /%.3f/%.3g/%.3e/\n", 1234.567, 1234.567, 1234.567);
+	do_print("frac /%.3f/%.3g/%.6e/\n", 0.001234, 0.001234, 0.001234);
 }

@@ -26,6 +26,14 @@ config VCBPRINTF_ALT_FORM
 	  If selected using %#x will prefix the hex value with 0x; and
 	  other conversions will use their alternative form.
 
+config VCBPRINTF_FULL_WIDTH
+	bool "Use full representation for the width and precision lengths"
+	help
+	  The formatting process can require up to six values related
+	  to width and precision of formatted values.  By default it
+	  is assumed that no value will exceed 255.  Select this
+	  option if larger formatted lengths are required.
+
 config VCBPRINTF_N_SPECIFIER
 	bool "Support %n specifications"
 	default y

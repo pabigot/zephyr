@@ -12,12 +12,14 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <toolchain.h>
 #include <sys/byteorder.h>
 #include <sys/types.h>
 #include <sys/util.h>
 #include <sys/vcbprintf.h>
+#include <sys/printk.h>
 
 #define OLD_VERSION 0
 
@@ -39,7 +41,11 @@
 /* The type used to store width and precision values.  65535-character
  * output is a bit much, but it costs nothing over support for
  * 255-character output. */
-typedef uint16_t widthprec_type;
+#ifdef CONFIG_VCBPRINTF_FULL_WIDTH
+typedef unsigned int widthprec_type;
+#else /* CONFIG_VCBPRINTF_FULL_WIDTH */
+typedef uint8_t widthprec_type;
+#endif /* CONFIG_VCBPRINTF_FULL_WIDTH */
 
 /* The allowed types of length modifier. */
 enum length_mod_enum {
@@ -62,10 +68,10 @@ enum convspec_cat_enum {
 	CONVSPEC_SINT,
 	/* c, o, u, x, X */
 	CONVSPEC_UINT,
-	/* a, A, e, E, f, F, g, G */
-	CONVSPEC_FP,
 	/* n, p, s */
 	CONVSPEC_PTR,
+	/* a, A, e, E, f, F, g, G */
+	CONVSPEC_FP,
 };
 
 /* Case label to identify conversions for signed integral values.  The
@@ -126,6 +132,9 @@ union argument_value {
 
 /* Structure capturing all attributes of a conversion
  * specification.
+ *
+ * Initial values come from the specification, but are updated during
+ * the conversion.
  */
 struct conversion {
 	/** Indicates flags are inconsistent */
@@ -178,11 +187,53 @@ struct conversion {
 	/** Conversion specifier character */
 	unsigned int convspec: 7;
 
+	/** If set alternate form requires 0 before octal. */
+	bool altform_0: 1;
+
+	/** If set alternate form requires 0x before hex. */
+	bool altform_0x: 1;
+
+	/** Set for floating point values that have a non-zero
+	 * pad0_pre_dp, pad0_post_dp, or pad0_pre_exp.
+	 */
+	bool pad_fp: 1;
+
 	/** Width value from specification */
 	widthprec_type width_value;
 
 	/** Precision from specification */
 	widthprec_type prec_value;
+
+	/** Number of extra zeroes to be inserted before a formatted
+	 * integer value due to precision and flag_zero.
+	 *
+	 * For example for zero-padded hexadecimal integers this would
+	 * insert where the angle brackets are in: 0x<>hhhh
+	 *
+	 * Value is zero for non-integer conversions.
+	 */
+	widthprec_type pad0_prefix;
+
+	/** Number of extra zeros to be inserted before a decimal
+	 * point due to precision.
+	 *
+	 * Inserts at <> in: VVVV<>.FFFFeEE
+	 */
+	widthprec_type pad0_pre_dp;
+
+	/** Number of extra zeros to be inserted after a decimal
+	 * point due to precision.
+	 *
+	 * Inserts at <> in: VVVV.<>FFFFeEE
+	 */
+	widthprec_type pad0_post_dp;
+
+	/** Number of extra zeros to be inserted after a decimal
+	 * point due to precision.
+	 *
+	 * Inserts at <> in: VVVV.FFFF<>eEE
+	 */
+	widthprec_type pad0_pre_exp;
 };
 
 static size_t extract_decimal(const char **str)
@@ -431,88 +482,6 @@ static inline const char *extract_conversion(struct conversion *conv,
 	return sp;
 }
 
-#if 0
-/* Synthesize a conversion specification from the decoded structure. */
-static const char *encode_conversion(const struct conversion *conv)
-{
-	static char buf[32];
-	char *bp = buf;
-	const char *const bpe = bp + sizeof(buf);
-
-	if (conv->invalid) {
-		*bp++ = '!';
-	} else if (conv->unsupported) {
-		*bp++ = '?';
-	} else {
-		*bp++ = '%';
-	}
-	if (conv->flag_dash) {
-		*bp++ = '-';
-	}
-	if (conv->flag_plus) {
-		*bp++ = '+';
-	}
-	if (conv->flag_space) {
-		*bp++ = ' ';
-	}
-	if (conv->flag_hash) {
-		*bp++ = '#';
-	}
-	if (conv->flag_zero) {
-		*bp++ = '0';
-	}
-	if (conv->width_present) {
-		if (conv->width_star) {
-			*bp++ = '*';
-		} else {
-			bp += snprintf(bp, bpe - bp, "%i", conv->width_value);
-		}
-	}
-	if (conv->prec_present) {
-		*bp++ = '.';
-		if (conv->prec_star) {
-			*bp++ = '*';
-		} else {
-			bp += snprintf(bp, bpe - bp, "%i", conv->prec_value);
-		}
-	}
-
-	switch ((enum length_mod_enum)conv->length_mod) {
-		default:
-		case LENGTH_NONE:
-			break;
-		case LENGTH_HH:
-			*bp++ = 'h';
-			__fallthrough;
-		case LENGTH_H:
-			*bp++ = 'h';
-			break;
-		case LENGTH_LL:
-			*bp++ = 'l';
-			__fallthrough;
-		case LENGTH_L:
-			*bp++ = 'l';
-			break;
-		case LENGTH_J:
-			*bp++ = 'j';
-			break;
-		case LENGTH_Z:
-			*bp++ = 'z';
-			break;
-		case LENGTH_T:
-			*bp++ = 't';
-			break;
-		case LENGTH_UPPER_L:
-			*bp++ = 'L';
-			break;
-	}
-
-	*bp++ = conv->convspec;
-	*bp = 0;
-
-	return buf;
-}
-#endif
 
 /** Get the number of int-sized objects required to provide the
  * arguments for the conversion.
@@ -1516,7 +1485,7 @@ static inline size_t conversion_radix(char convspec)
  * character of the representation.
  */
 static char *encode_uint(uintmax_t value,
-			 const struct conversion *conv,
+			 struct conversion *conv,
 			 char *bps,
 			 const char *bpe)
 {
@@ -1525,8 +1494,6 @@ static char *encode_uint(uintmax_t value,
 	const char *lut = (conv->convspec == 'X') ? uclut : lclut;
 	const unsigned int radix = conversion_radix(conv->convspec);
 	char *bp = bps + (bpe - bps);
-	bool alt_form_hex = conv->flag_hash && ((conv->convspec == 'x')
-						|| (conv->convspec == 'X'));
 
 	do {
 		unsigned int lsv = (unsigned int)(value % radix);
@@ -1535,39 +1502,100 @@ static char *encode_uint(uintmax_t value,
 		value /= radix;
 	} while ((value != 0) && (bps < bp));
 
-	/* Apply precision within limits of available space taking
-	 * into account alternate forms that follow.
+	/* Record required alternate forms.  This can be determined
+	 * from the radix without re-checking convspec.
 	 */
-	if (conv->prec_present) {
-		widthprec_type prec = conv->prec_value;
-		size_t nout = bpe - bp;
-		const char *lbp = bps;
-
-		if (alt_form_hex) {
-			lbp += 2;
-		}
-
-		while ((nout < prec)
-		       && (lbp < bp)) {
-			*--bp = '0';
-			prec--;
-		}
-	}
-
-	/* Apply alternate forms */
 	if (conv->flag_hash) {
-		if ((conv->convspec == 'o')
-		    && (*bp != '0')
-		    && (bps < bp)) {
-			*--bp = '0';
-		} else if (alt_form_hex
-			   && (bps < (bp - 1))) {
-			*--bp = conv->convspec;
-			*--bp = '0';
+		if (radix == 8) {
+			conv->altform_0 = true;
+		} else if (radix == 16) {
+			conv->altform_0x = true;
 		}
 	}
 
 	return bp;
+}
+
+
+/* Synthesize a conversion specification from the decoded structure. */
+static const char *encode_conversion(const struct conversion *conv)
+{
+	static char buf[64];
+	char *bp = buf;
+	const char *const bpe = bp + sizeof(buf);
+
+	if (conv->invalid) {
+		*bp++ = '!';
+	} else if (conv->unsupported) {
+		*bp++ = '?';
+	} else {
+		*bp++ = '%';
+	}
+	if (conv->flag_dash) {
+		*bp++ = '-';
+	}
+	if (conv->flag_plus) {
+		*bp++ = '+';
+	}
+	if (conv->flag_space) {
+		*bp++ = ' ';
+	}
+	if (conv->flag_hash) {
+		*bp++ = '#';
+	}
+	if (conv->flag_zero) {
+		*bp++ = '0';
+	}
+	if (conv->width_present) {
+		if (conv->width_star) {
+			*bp++ = '*';
+		} else {
+			bp += snprintf(bp, bpe - bp, "%i", conv->width_value);
+		}
+	}
+	if (conv->prec_present) {
+		*bp++ = '.';
+		if (conv->prec_star) {
+			*bp++ = '*';
+		} else {
+			bp += snprintf(bp, bpe - bp, "%i", conv->prec_value);
+		}
+	}
+
+	switch ((enum length_mod_enum)conv->length_mod) {
+		default:
+		case LENGTH_NONE:
+			break;
+		case LENGTH_HH:
+			*bp++ = 'h';
+			__fallthrough;
+		case LENGTH_H:
+			*bp++ = 'h';
+			break;
+		case LENGTH_LL:
+			*bp++ = 'l';
+			__fallthrough;
+		case LENGTH_L:
+			*bp++ = 'l';
+			break;
+		case LENGTH_J:
+			*bp++ = 'j';
+			break;
+		case LENGTH_Z:
+			*bp++ = 'z';
+			break;
+		case LENGTH_T:
+			*bp++ = 't';
+			break;
+		case LENGTH_UPPER_L:
+			*bp++ = 'L';
+			break;
+	}
+
+	*bp++ = conv->convspec;
+	*bp = 0;
+
+	return buf;
 }
 
 /*
@@ -1596,7 +1624,7 @@ static char *encode_uint(uintmax_t value,
 
 static char *encode_float(double value,
 			  struct conversion *conv,
-			  struct zero_padding *zp,
+			  int precision,
 			  char *bps,
 			  const char **bpe)
 {
@@ -1721,10 +1749,6 @@ static char *encode_float(double value,
 		exp++;
 	}
 
-        /* Default precision 6 if none given, and assume trailing
-	 * zeros allowed.
-	 */
-	int precision = conv->prec_present ? conv->prec_value : 6;
 	bool prune_zero = false;
 
 	if ((c == 'g') || (c == 'G')) {
@@ -1783,7 +1807,8 @@ static char *encode_float(double value,
 				decexp--;
 			}
 
-			zp->predot = decexp;
+			conv->pad0_pre_dp = decexp;
+
 			decexp = 0;
 		} else {
 			*buf++ = '0';
@@ -1798,12 +1823,12 @@ static char *encode_float(double value,
 		}
 
 		if (decexp < 0 && precision > 0) {
-			zp->postdot = -decexp;
-			if (zp->postdot > precision) {
-				zp->postdot = precision;
+			conv->pad0_post_dp = -decexp;
+			if (conv->pad0_post_dp > precision) {
+				conv->pad0_post_dp = precision;
 			}
 
-			precision -= zp->postdot;
+			precision -= conv->pad0_post_dp;
 		}
 	} else { // e or E
 		/* Emit the one digit before the decimal.  If it's not
@@ -1829,10 +1854,10 @@ static char *encode_float(double value,
 		precision--;
 	}
 
-	zp->trail = precision;
+	conv->pad0_pre_exp = precision;
 
 	if (prune_zero) {
-		zp->trail = 0;
+		conv->pad0_pre_exp = 0;
 		while (*--buf == '0') {
 			;
 		}
@@ -1860,6 +1885,11 @@ static char *encode_float(double value,
 		*buf++ = (decexp / 10) + '0';
 		*buf++ = (decexp % 10) + '0';
 	}
+
+	/* Cache whether there's padding required */
+	conv->pad_fp = (conv->pad0_pre_dp > 0)
+		|| (conv->pad0_post_dp > 0)
+		|| (conv->pad0_pre_exp > 0);
 
 	/* Set the end of the encoded sequence, and return its
 	 * start.
@@ -1939,8 +1969,9 @@ int sys_vcbprintf(sys_vcbprintf_cb out, void *ctx, const char *fp, va_list ap)
 
 		const char *sp = fp;
 		struct conversion conv;
-		struct zero_padding zero = { 0 };
 		union argument_value value;
+		int width = -1;
+		int precision = -1;
 		const char *bps = NULL;
 		const char *bpe = buf + sizeof(buf);
 		char *bp = NULL;
@@ -1948,32 +1979,38 @@ int sys_vcbprintf(sys_vcbprintf_cb out, void *ctx, const char *fp, va_list ap)
 
 		fp = extract_conversion(&conv, sp);
 
-		/* If dynamic width is specified, process it. */
+		/* If dynamic width is specified, process it,
+		 * otherwise set with if present.
+		 */
 		if (conv.width_star) {
-			int width = va_arg(ap, int);
+			width = va_arg(ap, int);
 
 			if (width < 0) {
 				conv.flag_dash = true;
 				width = -width;
 			}
-			conv.width_value = width;
-			if (conv.width_value != width) {
-				conv.unsupported = true;
-			}
+		} else if (conv.width_present) {
+			width = conv.width_value;
 		}
 
-		/* If dynamic precision is specified, process it. */
+		/* If dynamic precision is specified, process it,
+		 * otherwise set precision if present.  For floating
+		 * point where precision is not present use 6.
+		 */
 		if (conv.prec_star) {
-			int prec = va_arg(ap, int);
+			int arg = va_arg(ap, int);
 
-			if (prec < 0) {
+			if (arg < 0) {
 				conv.prec_present = false;
 			} else {
-				conv.prec_value = prec;
-				if (conv.prec_value != prec) {
-					conv.unsupported = true;
-				}
+				precision = arg;
 			}
+		} else if (conv.prec_present) {
+			precision = conv.prec_value;
+		}
+
+		if ((conv.convspec_cat == CONVSPEC_FP) && !conv.prec_present) {
+			precision = 6;
 		}
 
 		/* Get the value to be converted from the args */
@@ -1996,10 +2033,21 @@ int sys_vcbprintf(sys_vcbprintf_cb out, void *ctx, const char *fp, va_list ap)
 		case '%':
 			OUTC('%');
 			break;
-		case 's':
+		case 's': {
 			bps = (const char*)value.ptr;
-			bpe = bps + strlen(bps);
+
+			size_t len = strlen(bps);
+
+			if ((precision >= 0)
+			    && ((size_t)precision < len)) {
+				len = (size_t)precision;
+			}
+
+			bpe = bps + len;
+			precision = -1;
+
 			break;
+		}
 		case 'c':
 			bps = buf;
 			buf[0] = value.uint;
@@ -2030,9 +2078,21 @@ int sys_vcbprintf(sys_vcbprintf_cb out, void *ctx, const char *fp, va_list ap)
 
 			bps = bp;
 
-			/* prec && zero => !zero for integer conversions. */
-			if (conv.prec_present && conv.flag_zero) {
+			/* Update pad0 values based on precision and
+			 * converted length.
+			 */
+			if (precision >= 0) {
+				size_t len = bpe - bps;
+
+				/* Zero-padding flag is ignored for
+				 * integer conversions with precision.
+				 */
 				conv.flag_zero = false;
+
+				/* Set pad0_prefix to satisfy precision */
+				if (len < (size_t)precision) {
+					conv.pad0_prefix = precision - (int)len;
+				}
 			}
 
 			break;
@@ -2059,11 +2119,8 @@ int sys_vcbprintf(sys_vcbprintf_cb out, void *ctx, const char *fp, va_list ap)
 			break;
 
 		case FP_CONV_CASES:
-			if (IS_ENABLED(VCBPRINTF_FP_SUPPORT)) {
-				zero = (struct zero_padding){
-					0,
-				};
-				bps = encode_float(value.dbl, &conv, &zero, buf, &bpe);
+			if (IS_ENABLED(CONFIG_VCBPRINTF_FP_SUPPORT)) {
+				bps = encode_float(value.dbl, &conv, precision, buf, &bpe);
 
 				if (conv.flag_plus || conv.flag_space || (*bps == '-')) {
 				}
@@ -2078,25 +2135,113 @@ int sys_vcbprintf(sys_vcbprintf_cb out, void *ctx, const char *fp, va_list ap)
 			continue;
 		}
 
-		/* The converted value is now stored in [bps, bpe). */
-		size_t nout = (bpe - bps);
+		/* The converted value is now stored in [bps, bpe),
+		 * excluding pad0 padding.
+		 *
+		 * The unjustified output will be:
+		 *
+		 * * any altform prefix
+		 * * any pad0_prefix
+		 * * for floats:
+		 *   * any pre-decimal content from the converted value
+		 *   * any pad0_pre_dp padding
+		 *   * any decimal point in the converted value
+		 *   * any pad0_post_dp padding
+		 *   * any pre-exponent content from the converted value
+		 *   * any pad0_pre_exp padding
+		 *   * any exponent content from the converted value
+		 * * for non-floats:
+		 *   * the converted value
+		 */
+		size_t nj_len = (bpe - bps);
+		int pad_len = 0;
 		char pad = conv.flag_zero ? '0' : ' ';
-		widthprec_type width = conv.width_value;
 
-		if (conv.width_present && !conv.flag_dash) {
-			while (nout < width) {
-				OUTC(pad);
-				--width;
+		if (conv.altform_0x) {
+			nj_len += 2U;
+		} else if (conv.altform_0) {
+			nj_len += 1U;
+		}
+		nj_len += conv.pad0_prefix;
+		if (conv.pad_fp) {
+			nj_len += conv.pad0_pre_dp;
+			nj_len += conv.pad0_post_dp;
+			nj_len += conv.pad0_pre_exp;
+		}
+
+		/* If we have a width, emit padding now for
+		 * right-justified content, otherwise update width to
+		 * hold the padding we need for left-justified
+		 * output.
+		 */
+		if (width > 0) {
+			width -= (int)nj_len;
+
+			if (!conv.flag_dash) {
+				while (width-- > 0) {
+					OUTC(pad);
+				}
 			}
 		}
 
-		count += outs(out, ctx, bps, bpe);
+		if (conv.pad_fp) {
+			const char *cp = bps;
 
-		if (conv.width_present && conv.flag_dash) {
-			while (nout < width) {
-				OUTC(pad);
-				--width;
+			while (isdigit((int)*cp)) {
+				OUTC(*cp++);
 			}
+
+			pad_len = conv.pad0_pre_dp;
+			if (pad_len) {
+				OUTC('<');
+			}
+			while (pad_len-- > 0) {
+				OUTC('0');
+			}
+
+			if (*cp == '.') {
+				OUTC(*cp++);
+				pad_len = conv.pad0_post_dp;
+			if (pad_len) {
+				OUTC('@');
+			}
+				while (pad_len-- > 0) {
+					OUTC('0');
+				}
+			}
+			while (isdigit((int)*cp)) {
+				OUTC(*cp++);
+			}
+
+			pad_len = conv.pad0_pre_exp;
+			if (pad_len) {
+				OUTC('>');
+			}
+			while (pad_len-- > 0) {
+				OUTC('0');
+			}
+
+			count += outs(out, ctx, cp, bpe);
+		} else {
+			if (conv.altform_0x | conv.altform_0) {
+				OUTC('0');
+			}
+
+			if (conv.altform_0x) {
+				OUTC(conv.convspec);
+			}
+
+			pad_len = conv.pad0_prefix;
+			while (pad_len-- > 0) {
+				OUTC('0');
+			}
+
+			count += outs(out, ctx, bps, bpe);
+		}
+
+		while (width > 0) {
+			OUTC(' ');
+			--width;
 		}
 
 	}
