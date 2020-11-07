@@ -2,43 +2,47 @@
 # SPDX-License-Identifier: Apache-2.0
 
 config VCBPRINTF_64BIT_SUPPORT
-	bool "Enable 64-bit formatting" if !64BIT
+	bool "Enable 64-bit formatting"
 	default y
 	help
 	  Build the sys_vcbprintf utility function with support for the 64-bit
-	  formatting.  This will increase code size on systems with 32-bit
-	  long integers.
+	  formatting.  This will increase stack size requirements slightly on
+	  systems with 32-bit long integers.  It has no significant impact on
+	  code size.
 
-	  If not selected conversions with the ll length modifier will not be
-	  generated.
+	  If not selected conversions with the ll or j length modifiers will
+	  not be generated.  It has no effect on the z or t length modifiers,
+	  though those values, as well as pointer values, may be truncated if
+	  they do not fit in 32 bits.
 
 config VCBPRINTF_FP_SUPPORT
 	bool "Enable floating point formatting in sys_vcbprintf"
 	default y # if SHELL
 	help
-	  Build the sys_vcbprintf utility function with support for
-	  floating point format specifiers.
 
-config VCBPRINTF_ALT_FORM
-	bool "Support the alternative form (#) specifier flag"
-	default y
-	help
-	  If selected using %#x will prefix the hex value with 0x; and
-	  other conversions will use their alternative form.
+	  Build the sys_vcbprintf utility function with support for floating
+	  point format specifiers.  Selecting this increases stack size
+	  requirements slightly, but increases code size significantly.
 
 config VCBPRINTF_FULL_WIDTH
 	bool "Use full representation for the width and precision lengths"
 	help
-	  The formatting process can require up to six values related
-	  to width and precision of formatted values.  By default it
-	  is assumed that no value will exceed 255.  Select this
-	  option if larger formatted lengths are required.
+	  The formatting process can require storing up to six values related
+	  to width and precision of formatted values.  By default it is
+	  assumed that no value will exceed 255, which reduces stack space in
+	  the formatter.  Select this option if longer formatted lengths are
+	  required.
 
 config VCBPRINTF_N_SPECIFIER
 	bool "Support %n specifications"
 	default y
 	help
-	  If selected %n can be used to determine the number of
-	  characters emitted.
+	  If selected %n can be used to determine the number of characters
+	  emitted.  If disabled there is a small reduction in code size.
 
-#define CONFIG_ 1
+config VCBPRINTF_NULL_AS_NIL
+	bool "Emit null pointers a nil instead of numeric"
+	default n
+	help
+	  If selected a null pointer formatted with %p will be converted to
+	  the string "nil" rather to a zero hexadecimal string.

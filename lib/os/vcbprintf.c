@@ -30,17 +30,40 @@
 /* The maximum number of characters required to emit an integer value.
  *
  * The maximum is for octal formatting, which is unsigned but may have
- * a single byte alternative form prefix.
+ * a single byte alternative form prefix.  The buffer span does not
+ * include EOS.
  */
 #ifdef CONFIG_VCBPRINTF_64BIT_SUPPORT
-#define CONVERTED_INT_BUFLEN (1U + (64U + 2U) / 3U)
+/* The maximum defined standard integer type is 64 bits, so we assume
+ * that's the number of bits in uintmax_t.  Some toolchains might
+ * allow more, in which case the inconsistency needs to be
+ * resolved.
+ */
+typedef intmax_t sint_value_type;
+typedef uintmax_t uint_value_type;
+#define CONVERTED_INT_BUFLEN ((64U + 2U) / 3U)
 #else
-#define CONVERTED_INT_BUFLEN (1U + (32U + 2U) / 3U)
+typedef int32_t sint_value_type;
+typedef uint32_t uint_value_type;
+#define CONVERTED_INT_BUFLEN ((32U + 2U) / 3U)
 #endif
 
-/* The type used to store width and precision values.  65535-character
- * output is a bit much, but it costs nothing over support for
- * 255-character output. */
+/* The float code may extract up to 16 digits, plus a prefix, a
+ * leading 0, a dot, and an exponent in the form e+xxx for a total of
+ * 24. Add a trailing NULL so the buffer length required is 25.
+ */
+#define CONVERTED_FP_BUFLEN 25U
+
+#ifdef CONFIG_VCBPRINTF_FP_SUPPORT
+#define CONVERTED_BUFLEN CONVERTED_FP_BUFLEN
+#else
+#define CONVERTED_BUFLEN CONVERTED_INT_BUFLEN
+#endif
+
+/* The type used to store valid width and precision values.  255
+ * characters is enough for reasonable padding, but some applications
+ * may want the full range of an int.
+ */
 #ifdef CONFIG_VCBPRINTF_FULL_WIDTH
 typedef unsigned int widthprec_type;
 #else /* CONFIG_VCBPRINTF_FULL_WIDTH */
@@ -119,9 +142,9 @@ enum convspec_cat_enum {
 /* Storage for an argument value. */
 union argument_value {
 	/* For SINT conversions */
-	intmax_t sint;
+	sint_value_type sint;
 	/* For UINT conversions */
-	uintmax_t uint;
+	uint_value_type uint;
 	/* For FP conversions without L length */
 	double dbl;
 	/* For FP conversions with L length */
@@ -404,8 +427,16 @@ static inline const char *extract_convspec(struct conversion *conv,
 			/* For c LENGTH_NONE and LENGTH_L would be ok,
 			 * but we don't support wide characters.
 			 */
-			if ((conv->convspec == 'c')
-			    && (conv->length_mod != LENGTH_NONE)) {
+			if (conv->convspec == 'c') {
+				conv->unsupported |= (conv->length_mod != LENGTH_NONE);
+			}
+
+			/* Disable conversion of j and ll length if we
+			 * don't support 64-bit conversions.
+			 */
+			if (!IS_ENABLED(CONFIG_VCBPRINTF_64BIT_SUPPORT)
+				&& ((conv->length_mod == LENGTH_LL)
+				    || (conv->length_mod == LENGTH_J))) {
 				conv->unsupported = true;
 			}
 			break;
@@ -590,10 +621,10 @@ static void get_argument(const struct conversion *conv,
 				value->sint = va_arg(*app, long);
 				break;
 			case LENGTH_LL:
-				value->sint = va_arg(*app, long long);
+				value->sint = (sint_value_type)va_arg(*app, long long);
 				break;
 			case LENGTH_J:
-				value->sint = va_arg(*app, intmax_t);
+				value->sint = (sint_value_type)va_arg(*app, intmax_t);
 				break;
 			case LENGTH_Z:		/* size_t */
 			case LENGTH_T:		/* ptrdiff_t */
@@ -603,7 +634,7 @@ static void get_argument(const struct conversion *conv,
 				 * equivalents of each other.  This can be checked in
 				 * a platform test.
 				 */
-				value->sint = va_arg(*app, ptrdiff_t);
+				value->sint = (sint_value_type)va_arg(*app, ptrdiff_t);
 				break;
 		}
 		if (length_mod == LENGTH_HH) {
@@ -623,14 +654,14 @@ static void get_argument(const struct conversion *conv,
 				value->uint = va_arg(*app, unsigned long);
 				break;
 			case LENGTH_LL:
-				value->uint = va_arg(*app, unsigned long long);
+				value->uint = (uint_value_type)va_arg(*app, unsigned long long);
 				break;
 			case LENGTH_J:
-				value->uint = va_arg(*app, uintmax_t);
+				value->uint = (uint_value_type)va_arg(*app, uintmax_t);
 				break;
 			case LENGTH_Z:		/* size_t */
 			case LENGTH_T:		/* ptrdiff_t */
-				value->uint = va_arg(*app, size_t);
+				value->uint = (uint_value_type)va_arg(*app, size_t);
 				break;
 		}
 		if (length_mod == LENGTH_HH) {
@@ -940,8 +971,6 @@ static int _to_float(char *buf, uint64_t double_temp, char c,
 		precision = 6;		/* Default precision if none given */
 	}
 
-	//printk("Xexp %c %d fract %llx decexp %d prec %d\n", c, exp, fract, decexp, precision);
-
 	prune_zero = false;		/* Assume trailing 0's allowed     */
 	if ((c == 'g') || (c == 'G')) {
 		if (decexp < (-4 + 1) || decexp > precision) {
@@ -1165,7 +1194,7 @@ int xsys_vcbprintf(sys_vcbprintf_cb func, void *dest, const char *format, va_lis
 			if (strchr("hlz", c) != NULL) {
 				i = c;
 				c = *format++;
-				if (IS_ENABLED(CONFIG_VCBPRINTF_LL_LENGTH) &&
+				if (IS_ENABLED(CONFIG_VCBPRINTF_64BIT_SUPPORT) &&
 				    i == 'l' && c == 'l') {
 					i = 'L';
 					c = *format++;
@@ -1192,7 +1221,7 @@ int xsys_vcbprintf(sys_vcbprintf_cb func, void *dest, const char *format, va_lis
 				case 'l':
 					val = va_arg(vargs, long);
 					break;
-#ifdef CONFIG_VCBPRINTF_LL_LENGTH
+#ifdef CONFIG_VCBPRINTF_64BIT_SUPPORT
 				case 'L':
 					val = va_arg(vargs, long long);
 					break;
@@ -1261,7 +1290,7 @@ int xsys_vcbprintf(sys_vcbprintf_cb func, void *dest, const char *format, va_lis
 				case 'l':
 					*va_arg(vargs, long *) = count;
 					break;
-#ifdef CONFIG_VCBPRINTF_LL_LENGTH
+#ifdef CONFIG_VCBPRINTF_64BIT_SUPPORT
 				case 'L':
 					*va_arg(vargs, long long *) = count;
 					break;
@@ -1303,7 +1332,7 @@ int xsys_vcbprintf(sys_vcbprintf_cb func, void *dest, const char *format, va_lis
 				case 'l':
 					val = va_arg(vargs, unsigned long);
 					break;
-#ifdef CONFIG_VCBPRINTF_LL_LENGTH
+#ifdef CONFIG_VCBPRINTF_64BIT_SUPPORT
 				case 'L':
 					val = va_arg(vargs, unsigned long long);
 					break;
@@ -1484,7 +1513,7 @@ static inline size_t conversion_radix(char convspec)
  * generated representation.  The returned pointer is to the first
  * character of the representation.
  */
-static char *encode_uint(uintmax_t value,
+static char *encode_uint(uint_value_type value,
 			 struct conversion *conv,
 			 char *bps,
 			 const char *bpe)
@@ -1891,10 +1920,13 @@ static char *encode_float(double value,
 		|| (conv->pad0_post_dp > 0)
 		|| (conv->pad0_pre_exp > 0);
 
-	/* Set the end of the encoded sequence, and return its
-	 * start.
+	/* Set the end of the encoded sequence, and return its start.
+	 * Also store EOS as a non-digit/non-decimal value so we don't
+	 * have to check against bpe when iterating in multiple
+	 * places.
 	 */
 	*bpe = buf;
+	*buf = 0;
 	return bps;
 }
 
@@ -1936,21 +1968,7 @@ static inline void store_count(const struct conversion *conv,
 
 int sys_vcbprintf(sys_vcbprintf_cb out, void *ctx, const char *fp, va_list ap)
 {
-	/*
-	 * The work buffer has to accommodate for the largest data
-	 * length.
-	 *
-	 * For integral values the maximum space required is from
-	 * octal values:
-	 *
-	 * The max range octal length is one prefix + 3 bits per digit
-	 * meaning 12 bytes on 32-bit and 23 bytes on 64-bit.
-	 *
-	 * The float code may extract up to 16 digits, plus a prefix,
-	 * a leading 0, a dot, and an exponent in the form e+xxx for
-	 * a total of 24. Add a trailing NULL so it is 25.
-	 */
-	char buf[25];
+	char buf[CONVERTED_BUFLEN];
 	size_t count = 0;
 
 /* NB: c is evaluated once so side-effects are OK*/
@@ -2098,13 +2116,22 @@ int sys_vcbprintf(sys_vcbprintf_cb out, void *ctx, const char *fp, va_list ap)
 			break;
 		case 'p':
 			/* Implementation-defined: null is "nil",
-			 * non-null has 0x prefix. */
+			 * non-null has 0x prefix and pad0 to full
+			 * address range. */
 			value.uint = (uintptr_t)value.ptr;
-			if (value.ptr != NULL) {
+
+			if ((value.ptr != NULL)
+			    || !IS_ENABLED(CONFIG_VCBPRINTF_NULL_AS_NIL)) {
 				bp = encode_uint((uintptr_t)value.ptr, &conv, buf, bpe);
-				*--bp = 'x';
-				*--bp = '0';
 				bps = bp;
+				precision = 2 * sizeof(void *);
+
+				/* Use 0x prefix */
+				conv.altform_0x = true;
+				conv.convspec = 'x';
+
+				/* Zero-pad to address length */
+				conv.pad0_prefix = (2 * sizeof(void*)) - (bpe - bps);
 			} else {
 				bps = "nil";
 				bpe = bps + 3;
@@ -2184,7 +2211,7 @@ int sys_vcbprintf(sys_vcbprintf_cb out, void *ctx, const char *fp, va_list ap)
 			}
 		}
 
-		if (conv.pad_fp) {
+		if (IS_ENABLED(CONFIG_VCBPRINTF_FP_SUPPORT) && conv.pad_fp) {
 			const char *cp = bps;
 
 			while (isdigit((int)*cp)) {
@@ -2192,9 +2219,6 @@ int sys_vcbprintf(sys_vcbprintf_cb out, void *ctx, const char *fp, va_list ap)
 			}
 
 			pad_len = conv.pad0_pre_dp;
-			if (pad_len) {
-				OUTC('<');
-			}
 			while (pad_len-- > 0) {
 				OUTC('0');
 			}
@@ -2202,9 +2226,6 @@ int sys_vcbprintf(sys_vcbprintf_cb out, void *ctx, const char *fp, va_list ap)
 			if (*cp == '.') {
 				OUTC(*cp++);
 				pad_len = conv.pad0_post_dp;
-			if (pad_len) {
-				OUTC('@');
-			}
 				while (pad_len-- > 0) {
 					OUTC('0');
 				}
@@ -2214,9 +2235,6 @@ int sys_vcbprintf(sys_vcbprintf_cb out, void *ctx, const char *fp, va_list ap)
 			}
 
 			pad_len = conv.pad0_pre_exp;
-			if (pad_len) {
-				OUTC('>');
-			}
 			while (pad_len-- > 0) {
 				OUTC('0');
 			}
