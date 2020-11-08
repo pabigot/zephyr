@@ -214,7 +214,7 @@ struct conversion {
 	bool altform_0: 1;
 
 	/** If set alternate form requires 0x before hex. */
-	bool altform_0x: 1;
+	bool altform_0c: 1;
 
 	/** Set for floating point values that have a non-zero
 	 * pad0_pre_dp, pad0_post_dp, or pad0_pre_exp.
@@ -1471,19 +1471,23 @@ int xsys_vcbprintf(sys_vcbprintf_cb func, void *dest, const char *format, va_lis
 #undef PUTC
 }
 
-static size_t outs(sys_vcbprintf_cb out,
-		   void *ctx,
-		   const char *sp,
-		   const char *ep)
+static int outs(sys_vcbprintf_cb out,
+		void *ctx,
+		const char *sp,
+		const char *ep)
 {
 	size_t count = 0;
 
 	while ((sp < ep) || ((ep == NULL) && *sp)) {
-		out((int)*sp++, ctx);
-		count += 1;
+		int rc = out((int)*sp++, ctx);
+
+		if (rc < 0) {
+			return rc;
+		}
+		++count;
 	}
 
-	return count;
+	return (int)count;
 }
 
 static inline size_t conversion_radix(char convspec)
@@ -1538,7 +1542,7 @@ static char *encode_uint(uint_value_type value,
 		if (radix == 8) {
 			conv->altform_0 = true;
 		} else if (radix == 16) {
-			conv->altform_0x = true;
+			conv->altform_0c = true;
 		}
 	}
 
@@ -1642,14 +1646,6 @@ static const char *encode_conversion(const struct conversion *conv)
  *		"precision"	Desired precision (negative if undefined).
  *		"zeropad"	To store padding info to be inserted later
  */
-
-/*
- *	The following two constants define the simulated binary floating
- *	point limit for the first stage of the conversion (fraction times
- *	power of two becomes fraction times power of 10), and the second
- *	stage (pulling the resulting decimal digits outs).
- */
-
 
 static char *encode_float(double value,
 			  struct conversion *conv,
@@ -1971,12 +1967,28 @@ int sys_vcbprintf(sys_vcbprintf_cb out, void *ctx, const char *fp, va_list ap)
 	char buf[CONVERTED_BUFLEN];
 	size_t count = 0;
 
-/* NB: c is evaluated once so side-effects are OK*/
-#define OUTC(c)	do { \
-	if ((*out)((int)(c), ctx) == EOF) { \
+/* Output character, returning EOF if output failed, otherwise
+ * updating count.
+ *
+ * NB: c is evaluated exactly once: side-effects are OK */
+#define OUTC(c) do { \
+	if ((*out)((int)(c), ctx) < 0) { \
 		return EOF; \
 	} \
 	++count; \
+} while (false)
+
+/* Output sequence of characters, returning EOF if output failed.
+ *
+ * NB: c is evaluated exactly once: side-effects are OK */
+
+#define OUTS(_sp, _ep) do { \
+	int rc = outs(out, ctx, _sp, _ep); \
+	\
+	if (rc == EOF) { \
+		return EOF; \
+	} \
+	count += rc; \
 } while (false)
 
 	while (*fp != 0) {
@@ -2040,7 +2052,7 @@ int sys_vcbprintf(sys_vcbprintf_cb out, void *ctx, const char *fp, va_list ap)
 		 * original specification and move on.
 		 */
 		if (conv.invalid || conv.unsupported) {
-			count += outs(out, ctx, sp, fp);
+			OUTS(sp, fp);
 			continue;
 		}
 
@@ -2127,7 +2139,7 @@ int sys_vcbprintf(sys_vcbprintf_cb out, void *ctx, const char *fp, va_list ap)
 				precision = 2 * sizeof(void *);
 
 				/* Use 0x prefix */
-				conv.altform_0x = true;
+				conv.altform_0c = true;
 				conv.convspec = 'x';
 
 				/* Zero-pad to address length */
@@ -2184,7 +2196,7 @@ int sys_vcbprintf(sys_vcbprintf_cb out, void *ctx, const char *fp, va_list ap)
 		int pad_len = 0;
 		char pad = conv.flag_zero ? '0' : ' ';
 
-		if (conv.altform_0x) {
+		if (conv.altform_0c) {
 			nj_len += 2U;
 		} else if (conv.altform_0) {
 			nj_len += 1U;
@@ -2239,13 +2251,13 @@ int sys_vcbprintf(sys_vcbprintf_cb out, void *ctx, const char *fp, va_list ap)
 				OUTC('0');
 			}
 
-			count += outs(out, ctx, cp, bpe);
+			OUTS(cp, bpe);
 		} else {
-			if (conv.altform_0x | conv.altform_0) {
+			if (conv.altform_0c | conv.altform_0) {
 				OUTC('0');
 			}
 
-			if (conv.altform_0x) {
+			if (conv.altform_0c) {
 				OUTC(conv.convspec);
 			}
 
@@ -2254,7 +2266,7 @@ int sys_vcbprintf(sys_vcbprintf_cb out, void *ctx, const char *fp, va_list ap)
 				OUTC('0');
 			}
 
-			count += outs(out, ctx, bps, bpe);
+			OUTS(bps, bpe);
 		}
 
 		while (width > 0) {
@@ -2265,6 +2277,7 @@ int sys_vcbprintf(sys_vcbprintf_cb out, void *ctx, const char *fp, va_list ap)
 	}
 
 	return count;
+#undef OUTS
 #undef OUTC
 }
 
