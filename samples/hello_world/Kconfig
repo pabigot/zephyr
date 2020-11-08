@@ -1,0 +1,20 @@
+# Copyright (c) 2020 Nordic Semiconductor ASA
+# SPDX-License-Identifier: Apache-2.0
+
+config APP_USE_K
+	bool "Use printk to emit text"
+	default y
+
+config APP_USE_C
+	bool "Use cbprintf to emit text"
+	default y
+
+config APP_USE_Z
+	bool "Use z_prf to emit text"
+	default y
+
+config APP_USE_S
+	bool "Use libc's snprintf to emit text"
+	default y if !MINIMAL_LIBC
+
+source "Kconfig.zephyr"

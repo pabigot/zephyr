@@ -1,14 +1,16 @@
 /*
- * Copyright (c) 2012-2014 Wind River Systems, Inc.
+ * Copyright (c) 2020 Nordic Semiconductor ASA
  *
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include <zephyr.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/printk.h>
 #include <sys/vcbprintf.h>
 
+extern void z_vprintk(sys_vcbprintf_cb out, void *ctx, const char *fmt, va_list ap);
 
 int out(int c, void *ctx)
 {
@@ -16,29 +18,49 @@ int out(int c, void *ctx)
 	return c;
 }
 
-int do_print(const char* fmt, ...)
+int do_print(const char* fmt_arg, ...)
 {
-	extern void z_vprintk(sys_vcbprintf_cb out, void *ctx, const char *fmt, va_list ap);
-
+	static char fmt[40];
+	char *cfp = fmt;
+	int rc;
 	va_list ap;
 
-	if (true) {
-		va_start(ap, fmt);
+	*cfp++ = '?';
+	*cfp++ = ':';
+	(void)strncpy(cfp, fmt_arg, sizeof(fmt) - (cfp - fmt));
+
+	if (IS_ENABLED(CONFIG_APP_USE_K)) {
+		fmt[0] = 'K';
+		va_start(ap, fmt_arg);
 		z_vprintk(out, NULL, fmt, ap);
 		va_end(ap);
 	}
 
-	if (true) {
-		va_start(ap, fmt);
-		xsys_vcbprintf(out, NULL, fmt, ap);
+	if (IS_ENABLED(CONFIG_APP_USE_Z)) {
+		fmt[0] = 'Z';
+		va_start(ap, fmt_arg);
+		rc = xsys_vcbprintf(out, NULL, fmt, ap);
 		va_end(ap);
 	}
 
-	if (true) {
-		va_start(ap, fmt);
-		sys_vcbprintf(out, NULL, fmt, ap);
+	if (IS_ENABLED(CONFIG_APP_USE_C)) {
+		fmt[0] = 'C';
+		va_start(ap, fmt_arg);
+		rc = sys_vcbprintf(out, NULL, fmt, ap);
 		va_end(ap);
 	}
+
+	if (IS_ENABLED(CONFIG_APP_USE_S)) {
+		static char buf[256];
+
+		fmt[0] = 'S';
+		va_start(ap, fmt_arg);
+		rc = snprintf(buf, sizeof(buf), fmt, ap);
+		va_end(ap);
+
+		printk("%s", buf);
+	}
+	printk("\n");
 
 	return 0;
 }
@@ -60,6 +82,6 @@ void main(void)
 	do_print("hex %#15.8x\n", 0x123);
 	do_print("left10 '%-10c' right10 '%10c'\n", 'L', 'R');
 	//      float /1234.567/1.23e+03/1.235e+03/
-	//do_print("float /%.3f/%.3g/%.3e/\n", 1234.567, 1234.567, 1234.567);
+	do_print("float /%.3f/%.3g/%.3e/\n", 1234.567, 1234.567, 1234.567);
 	do_print("frac /%.3f/%.3g/%.6e/ %x\n", 0.001234, 0.001234, 0.001234, 0xcafe);
 }
