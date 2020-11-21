@@ -23,7 +23,6 @@ list(APPEND kernel_files
   thread.c
   thread_abort.c
   version.c
-  work_q.c
   smp.c
   banner.c
   )
@@ -43,6 +42,8 @@ set_target_properties(
   COMPILE_DEFINITIONS
   __ZEPHYR_SUPERVISOR__
   )
+
+target_sources_ifdef(CONFIG_KERNEL_WORK1          kernel PRIVATE work_q.c)
 
 target_sources_ifdef(CONFIG_STACK_CANARIES        kernel PRIVATE compiler_stack_protect.c)
 target_sources_ifdef(CONFIG_SYS_CLOCK_EXISTS      kernel PRIVATE timeout.c timer.c)
