@@ -1688,10 +1688,15 @@ int net_tcp_queue_data(struct net_context *context, struct net_pkt *pkt)
 
 	if (tcp_window_full(conn)) {
 		/* Trigger resend if the timer is not active */
+#ifdef CONFIG_KERNEL_WORK1
 		if (!k_delayed_work_remaining_get(&conn->send_data_timer)) {
 			NET_DBG("Window full, trigger resend");
 			tcp_resend_data(&conn->send_data_timer.work);
 		}
+#else
+		/* HACK: use new API with legacy wrapper. */
+		(void)k_work_schedule(&conn->send_data_timer.work, K_NO_WAIT);
+#endif
 
 		ret = -EAGAIN;
 		goto out;
