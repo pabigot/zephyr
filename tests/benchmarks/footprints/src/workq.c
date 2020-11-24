@@ -10,12 +10,15 @@
 
 #include "footprint.h"
 
+#define WITH_USER_WORKQUEUE (defined(CONFIG_USERSPACE)	\
+			     && defined(CONFIG_KERNEL_USERSPACE_WORK_SUPPORT))
+
 static struct k_work_q workq;
 static K_THREAD_STACK_DEFINE(workq_stack, STACK_SIZE);
 
 struct k_sem sync_sema;
 
-#ifdef CONFIG_USERSPACE
+#if WITH_USER_WORKQUEUE
 static struct k_work_q user_workq;
 static K_THREAD_STACK_DEFINE(user_workq_stack, STACK_SIZE);
 
@@ -59,7 +62,7 @@ void delayed_workq_thread(void *arg1, void *arg2, void *arg3)
 	k_sem_take(&sync_sema, K_FOREVER);
 }
 
-#ifdef CONFIG_USERSPACE
+#if WITH_USER_WORKQUEUE
 void simple_user_workq_thread(void *arg1, void *arg2, void *arg3)
 {
 	ARG_UNUSED(arg1);
@@ -98,7 +101,7 @@ void run_workq(void)
 
 	k_thread_join(tid, K_FOREVER);
 
-#ifdef CONFIG_USERSPACE
+#if WITH_USER_WORKQUEUE
 	k_work_q_user_start(&user_workq, user_workq_stack,
 			    K_THREAD_STACK_SIZEOF(user_workq_stack),
 			    CONFIG_MAIN_THREAD_PRIORITY);
