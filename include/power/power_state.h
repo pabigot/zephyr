@@ -104,6 +104,14 @@ enum pm_state {
 };
 
 /**
+ * Information about a power management state
+ */
+struct pm_state_info {
+	enum pm_state state;
+	int32_t min_residency_us;
+};
+
+/**
  * @}
  */
 
