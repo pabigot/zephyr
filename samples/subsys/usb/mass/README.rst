@@ -160,7 +160,7 @@ First determine the local device name from the system log, e.g.:
 
     Apr 25 08:10:25 tirzah kernel: [570310.921039] scsi 17:0:0:0: Direct-Access     ZEPHYR   ZEPHYR USB DISK  0.01 PQ: 0 ANSI: 0 CCS
     Apr 25 08:10:25 tirzah kernel: [570310.921550] sd 17:0:0:0: Attached scsi generic sg4 type 0
-    Apr 25 08:10:25 tirzah kernel: [570310.922277] sd 17:0:0:0: [sdd] 128 512-byte logical blocks: (65.5 kB/64.0 KiB)
+    Apr 25 08:10:25 tirzah kernel: [570310.922277] sd 17:0:0:0: [sdd] 256 512-byte logical blocks: (131 kB/128 KiB)
     Apr 25 08:10:25 tirzah kernel: [570310.922696] sd 17:0:0:0: [sdd] Write Protect is off
 
 This shows that the block device associated with the USB drive is
@@ -181,12 +181,12 @@ This can be mounted as a file system with the following commands:
           --read_size=16 \
           --prog_size=16 \
           --block_size=4096 \
-          --block_count=16 \
+          --block_count=32 \
           --cache_size=64 \
           --lookahead_size=32 \
           /dev/sdd /tmp/lfs
 
-which produces this output:
+which produces output like this (disk contents will vary):
 
 .. code-block:: none
 
