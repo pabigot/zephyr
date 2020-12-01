@@ -15,7 +15,7 @@
 #include <wait_q.h>
 #include <spinlock.h>
 #include <errno.h>
-#include <ksched.h>
+#include <sys/scheduler.h>
 #include <sys/printk.h>
 
 /* Lock to protect the internal state of all work items, and
@@ -182,15 +182,9 @@ static inline void queue_remove(struct k_work_q *queue,
 static inline bool _notify_queue(struct k_work_q *queue)
 {
 	bool rv = false;
-	struct k_thread *waiter;
 
 	if (queue != NULL) {
-		waiter = z_unpend_first_thread(&queue->notifyq);
-		if (waiter) {
-			rv = true;
-			arch_thread_return_value_set(waiter, 0);
-			z_ready_thread(waiter);
-		}
+		rv = k_sched_wake(&queue->notifyq, 0, NULL);
 	}
 
 	return rv;
@@ -599,8 +593,6 @@ static void work_queue_main(void *workq_ptr, void *p2, void *p3)
 			work = CONTAINER_OF(node, struct k_work, node);
 		} else if (atomic_test_and_clear_bit(&queue->flags,
 						     K_WORK_QUEUE_DRAIN_BIT)) {
-			struct k_thread *waiter;
-
 			/* Not busy and draining: move threads waiting for
 			 * drain to ready state.  The held spinlock inhibits
 			 * reschedule; released threads get their chance when
@@ -611,13 +603,7 @@ static void work_queue_main(void *workq_ptr, void *p2, void *p3)
 			 * here doesn't mean that the queue will allow new
 			 * submissions.
 			 */
-			do {
-				waiter = z_unpend_first_thread(&queue->drainq);
-				if (waiter) {
-					arch_thread_return_value_set(waiter, 1);
-					z_ready_thread(waiter);
-				}
-			} while (waiter != NULL);
+			(void)k_sched_wake_all(&queue->drainq, 1, NULL);
 		}
 
 		if (work == NULL) {
@@ -628,7 +614,8 @@ static void work_queue_main(void *workq_ptr, void *p2, void *p3)
 			 * check again.
 			 */
 
-			(void)z_pend_curr(&queue->lock, key, &queue->notifyq, K_FOREVER);
+			(void)k_sched_wait(&queue->lock, key, &queue->notifyq,
+					   K_FOREVER, NULL);
 			continue;
 		}
 
@@ -706,7 +693,8 @@ int k_work_queue_drain(struct k_work_q *queue,
 		}
 
 		_notify_queue(queue);
-		ret = z_pend_curr(&queue->lock, key, &queue->drainq, K_FOREVER);
+		ret = k_sched_wait(&queue->lock, key, &queue->drainq,
+				   K_FOREVER, NULL);
 	} else {
 		k_spin_unlock(&queue->lock, key);
 	}
