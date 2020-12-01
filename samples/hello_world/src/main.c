@@ -27,11 +27,12 @@ static struct k_thread thr;
 static atomic_t ctr;
 static struct k_queue workq;
 
-#define FLAG_PENDING 0x01
+#define FLAG_PENDING_BIT 0
+#define FLAG_PENDING BIT(0)
 
 struct work_item {
 	void *_node;		/* Used by k_queue */
-	unsigned int volatile flags;
+	atomic_t flags;
 	int in_ctr;
 };
 
@@ -44,7 +45,7 @@ static void thread_main(void *p1, void *p2, void *p3)
 		struct work_item *work = k_queue_get(queue, K_FOREVER);
 
 		work->in_ctr = atomic_inc(&ctr);
-		work->flags &= ~FLAG_PENDING;
+		atomic_clear_bit(&work->flags, FLAG_PENDING_BIT);
 	}
 }
 
@@ -65,14 +66,14 @@ void main(void)
 		atomic_val_t last = atomic_get(&ctr);
 		size_t spins = 0;
 
-		work.flags |= FLAG_PENDING;
+		atomic_set_bit(&work.flags, FLAG_PENDING_BIT);
 		k_queue_append(&workq, &work);
 
 		if (!IS_ENABLED(CONFIG_SMP)) {
 			k_yield();
 		}
 
-		while (work.flags == FLAG_PENDING) {
+		while (atomic_test_bit(&work.flags, FLAG_PENDING_BIT)) {
 			++spins;
 		}
 		if ((work.flags != 0) || (work.in_ctr != last)) {
