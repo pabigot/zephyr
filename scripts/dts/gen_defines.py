@@ -423,6 +423,9 @@ def write_vanilla_props(node):
         if prop.enum_index is not None:
             # DT_N_<node-id>_P_<prop-id>_ENUM_IDX
             macro2val[macro + "_ENUM_IDX"] = prop.enum_index
+            if isinstance(prop.val, str) and prop.val.isidentifier():
+                # DT_N_<node-id>_P_<prop-id>_ENUM_TOKEN
+                macro2val[macro + "_ENUM_TOKEN"] = prop.val
 
         if "phandle" in prop.type:
             macro2val.update(phandle_macros(prop, macro))

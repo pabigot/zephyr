@@ -49,6 +49,8 @@
  * are missing from this list, please add them. It should be complete.
  *
  * _ENUM_IDX: property's value as an index into bindings enum
+ * _ENUM_TOKEN: property's value as a token into bindings enum (string
+ *              enum values are identifiers)
  * _EXISTS: property is defined
  * _IDX_<i>: logical index into property
  * _IDX_<i>_EXISTS: logical index into property is defined
@@ -545,6 +547,39 @@
 #define DT_ENUM_IDX_OR(node_id, prop, default_idx_value) \
 	COND_CODE_1(DT_NODE_HAS_PROP(node_id, prop), \
 		    (DT_ENUM_IDX(node_id, prop)), (default_idx_value))
+
+/**
+ * @brief Get an enumeration property value as a token.
+ *
+ * This is only available for string enum values which are identifiers: the
+ * value contains only alphanumeric letters (a-z) and (0-9), or underscores
+ * (_), and does not start with a number.
+ *
+ * Example devicetree fragment:
+ *
+ *     state0: state0 {
+ *             pm-state = "ACTIVE";
+ *     };
+ *
+ * Example bindings fragment:
+ *
+ *     properties:
+ *       pm-state:
+ *         type: string
+ *         enum:
+ *            - "ACTIVE"
+ *            - "RUNTIME_IDLE"
+ *            - "STANDBY"
+ *
+ * Example usage:
+ *
+ *     DT_ENUM_TOKEN((DT_NODELABEL(state2), pm-state) // ACTIVE
+ *
+ * @param node_id node identifier
+ * @param prop lowercase-and-underscores property name
+ * @return the token
+ */
+#define DT_ENUM_TOKEN(node_id, prop) DT_PROP(node_id, prop##_ENUM_TOKEN)
 
 /*
  * phandle properties
