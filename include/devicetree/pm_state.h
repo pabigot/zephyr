@@ -17,6 +17,10 @@ extern "C" {
  * @{
  */
 
+/* to be documented */
+#define DT_PM_STATE(node_id) _CONCAT(PM_STATE_, DT_ENUM_TOKEN(node_id, pm_state))
+
+
 /**
  * @brief Construct a pm_state_info from 'pm_states' property at index 'i'
  *
@@ -26,8 +30,7 @@ extern "C" {
  */
 #define DT_PM_STATE_INFO_ITEM_BY_IDX(node_id, i)                    \
 	{                                                           \
-		.state = DT_ENUM_IDX(DT_PHANDLE_BY_IDX(node_id,     \
-					pm_states, i), pm_state),    \
+		.state = DT_PM_STATE(DT_PHANDLE_BY_IDX(node_id, pm_states, i)), \
 		.min_residency_us = DT_PROP_BY_PHANDLE_IDX_OR(node_id, \
 				pm_states, i, min_residency_us, -1),   \
 	},

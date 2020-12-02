@@ -11,13 +11,14 @@ properties:
         required: true
         description: indicates a power state
         enum:
-            - "PM_STATE_ACTIVE"
-            - "PM_STATE_RUNTIME_IDLE"
-            - "PM_STATE_SUSPEND_TO_IDLE"
-            - "PM_STATE_STANDBY"
-            - "PM_STATE_SUSPEND_TO_RAM"
-            - "PM_STATE_SUSPEND_TO_DISK"
-            - "PM_STATE_SOFT_OFF"
+            - "ACTIVE"
+            - "RUNTIME_IDLE"
+            - "SUSPEND_TO_IDLE"
+            - "STANDBY"
+            - "SUSPEND_TO_RAM"
+            - "SUSPEND_TO_DISK"
+            - "SOFT_OFF"
+
     min-residency-us:
         type: int
         required: false

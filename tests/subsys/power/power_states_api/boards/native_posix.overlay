@@ -12,18 +12,18 @@
 
 	state0: state0 {
 		compatible = "pm-state";
-		pm-state = "PM_STATE_SUSPEND_TO_IDLE";
+		pm-state = "SUSPEND_TO_IDLE";
 		min-residency-us = <1>;
 	};
 
 	state1: state1 {
 		compatible = "pm-state";
-		pm-state = "PM_STATE_SUSPEND_TO_RAM";
+		pm-state = "SUSPEND_TO_RAM";
 		min-residency-us = <5>;
 	};
 
 	state2: state2 {
 		compatible = "pm-state";
-		pm-state = "PM_STATE_STANDBY";
+		pm-state = "STANDBY";
 	};
 };
