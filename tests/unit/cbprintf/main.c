@@ -13,7 +13,6 @@
 #include <wctype.h>
 #include <stddef.h>
 #include <string.h>
-#include <sys/cbprintf.h>
 #include <sys/util.h>
 
 /* Unit testing doesn't use Kconfig, so if we're not building from
@@ -87,6 +86,7 @@
 
 #endif /* VIA_SANITYCHECK */
 
+#include <sys/cbprintf.h>
 #include "../../../lib/os/cbprintf.c"
 
 #if defined(CONFIG_CBPRINTF_COMPLETE)
@@ -1068,7 +1068,7 @@ void test_main(void)
 	printf("sizeof: int = %zu ; long = %zu ; ptr = %zu\n",
 	       sizeof(int), sizeof(long), sizeof(void *));
 #ifdef CONFIG_CBPRINTF_COMPLETE
-	printf("sizeof(conversion) = %zu\n", sizeof(struct conversion));
+	printf("sizeof(conversion) = %zu\n", sizeof(struct cbprintf_conversion));
 #endif
 
 	ztest_test_suite(test_prf,

@@ -19,21 +19,10 @@
 #include <sys/util.h>
 #include <sys/cbprintf.h>
 
-/* Provide typedefs used for signed and unsigned integral types
- * capable of holding all convertable integral values.
- */
-#ifdef CONFIG_CBPRINTF_FULL_INTEGRAL
-typedef intmax_t sint_value_type;
-typedef uintmax_t uint_value_type;
-#else
-typedef int32_t sint_value_type;
-typedef uint32_t uint_value_type;
-#endif
-
 /* The maximum buffer size required is for octal formatting: one character for
  * every 3 bits.  Neither EOS nor alternate forms are required.
  */
-#define CONVERTED_INT_BUFLEN ((CHAR_BIT * sizeof(uint_value_type) + 2) / 3)
+#define CONVERTED_INT_BUFLEN ((CHAR_BIT * sizeof(cbprintf_uint_value_type) + 2) / 3)
 
 /* The float code may extract up to 16 digits, plus a prefix, a
  * leading 0, a dot, and an exponent in the form e+xxx for a total of
@@ -47,36 +36,9 @@ typedef uint32_t uint_value_type;
 #define CONVERTED_BUFLEN CONVERTED_INT_BUFLEN
 #endif
 
-/* The allowed types of length modifier. */
-enum length_mod_enum {
-	LENGTH_NONE,
-	LENGTH_HH,
-	LENGTH_H,
-	LENGTH_L,
-	LENGTH_LL,
-	LENGTH_J,
-	LENGTH_Z,
-	LENGTH_T,
-	LENGTH_UPPER_L,
-};
-
-/* Categories of conversion specifiers. */
-enum specifier_cat_enum {
-	/* unrecognized */
-	SPECIFIER_INVALID,
-	/* d, i */
-	SPECIFIER_SINT,
-	/* c, o, u, x, X */
-	SPECIFIER_UINT,
-	/* n, p, s */
-	SPECIFIER_PTR,
-	/* a, A, e, E, f, F, g, G */
-	SPECIFIER_FP,
-};
-
 /* Case label to identify conversions for signed integral values.  The
  * corresponding argument_value tag is sint and category is
- * SPECIFIER_SINT.
+ * CBPRINTF_SPECIFIER_SINT.
  */
 #define SINT_CONV_CASES				\
 	'd':					\
@@ -84,7 +46,7 @@ enum specifier_cat_enum {
 
 /* Case label to identify conversions for signed integral arguments.
  * The corresponding argument_value tag is uint and category is
- * SPECIFIER_UINT.
+ * CBPRINTF_SPECIFIER_UINT.
  */
 #define UINT_CONV_CASES				\
 	'c':					\
@@ -95,7 +57,8 @@ enum specifier_cat_enum {
 
 /* Case label to identify conversions for floating point arguments.
  * The corresponding argument_value tag is either dbl or ldbl,
- * depending on length modifier, and the category is SPECIFIER_FP.
+ * depending on length modifier, and the category is
+ * CBPRINTF_SPECIFIER_FP.
  */
 #define FP_CONV_CASES				\
 	'a':					\
@@ -109,157 +72,12 @@ enum specifier_cat_enum {
 
 /* Case label to identify conversions for pointer arguments.  The
  * corresponding argument_value tag is ptr and the category is
- * SPECIFIER_PTR.
+ * CBPRINTF_SPECIFIER_PTR.
  */
 #define PTR_CONV_CASES				\
 	'n':					\
 	case 'p':				\
 	case 's'
-
-/* Storage for an argument value. */
-union argument_value {
-	/* For SINT conversions */
-	sint_value_type sint;
-
-	/* For UINT conversions */
-	uint_value_type uint;
-
-	/* For FP conversions without L length */
-	double dbl;
-
-	/* For FP conversions with L length */
-	long double ldbl;
-
-	/* For PTR conversions */
-	void *ptr;
-};
-
-/* Structure capturing all attributes of a conversion
- * specification.
- *
- * Initial values come from the specification, but are updated during
- * the conversion.
- */
-struct conversion {
-	/** Indicates flags are inconsistent */
-	bool invalid: 1;
-
-	/** Indicates flags are valid but not supported */
-	bool unsupported: 1;
-
-	/** Left-justify value in width */
-	bool flag_dash: 1;
-
-	/** Explicit sign */
-	bool flag_plus: 1;
-
-	/** Space for non-negative sign */
-	bool flag_space: 1;
-
-	/** Alternative form */
-	bool flag_hash: 1;
-
-	/** Pad with leading zeroes */
-	bool flag_zero: 1;
-
-	/** Width field present */
-	bool width_present: 1;
-
-	/** Width value from int argument
-	 *
-	 * width_value is set to the absolute value of the argument.
-	 * If the argument is negative flag_dash is also set.
-	 */
-	bool width_star: 1;
-
-	/** Precision field present */
-	bool prec_present: 1;
-
-	/** Precision from int argument
-	 *
-	 * prec_value is set to the value of a non-negative argument.
-	 * If the argument is negative prec_present is cleared.
-	 */
-	bool prec_star: 1;
-
-	/** Length modifier (value from length_mod_enum) */
-	unsigned int length_mod: 4;
-
-	/** Indicates an a or A conversion specifier.
-	 *
-	 * This affects how precision is handled.
-	 */
-	bool specifier_a: 1;
-
-	/** Conversion specifier category (value from specifier_cat_enum) */
-	unsigned int specifier_cat: 3;
-
-	/** If set alternate form requires 0 before octal. */
-	bool altform_0: 1;
-
-	/** If set alternate form requires 0x before hex. */
-	bool altform_0c: 1;
-
-	/** Set when pad0_value zeroes are to be to be inserted after
-	 * the decimal point in a floating point conversion.
-	 */
-	bool pad_postdp: 1;
-
-	/** Set for floating point values that have a non-zero
-	 * pad0_prefix or pad0_pre_exp.
-	 */
-	bool pad_fp: 1;
-
-	/** Conversion specifier character */
-	char specifier;
-
-	union {
-		/** Width value from specification.
-		 *
-		 * Valid until conversion begins.
-		 */
-		int width_value;
-
-		/** Number of extra zeroes to be inserted around a
-		 * formatted value:
-		 *
-		 * * before a formatted integer value due to precision
-		 *   and flag_zero; or
-		 * * before a floating point mantissa decimal point
-		 *   due to precision; or
-		 * * after a floating point mantissa decimal point due
-		 *   to precision.
-		 *
-		 * For example for zero-padded hexadecimal integers
-		 * this would insert where the angle brackets are in:
-		 * 0x<>hhhh.
-		 *
-		 * For floating point numbers this would insert at
-		 * either <1> or <2> depending on #pad_postdp:
-		 * VVV<1>.<2>FFFFeEEE
-		 *
-		 * Valid after conversion begins.
-		 */
-		int pad0_value;
-	};
-
-	union {
-		/** Precision from specification.
-		 *
-		 * Valid until conversion begins.
-		 */
-		int prec_value;
-
-		/** Number of extra zeros to be inserted after a decimal
-		 * point due to precision.
-		 *
-		 * Inserts at <> in: VVVV.FFFF<>eEE
-		 *
-		 * Valid after conversion begins.
-		 */
-		int pad0_pre_exp;
-	};
-};
 
 /** Get a size represented as a sequence of decimal digits.
  *
@@ -290,7 +108,7 @@ static size_t extract_decimal(const char **str)
  *
  * @return a pointer the first character that follows the flags.
  */
-static inline const char *extract_flags(struct conversion *conv,
+static inline const char *extract_flags(struct cbprintf_conversion *conv,
 					const char *sp)
 {
 	bool loop = true;
@@ -339,7 +157,7 @@ static inline const char *extract_flags(struct conversion *conv,
  *
  * @return a pointer the first character that follows the width.
  */
-static inline const char *extract_width(struct conversion *conv,
+static inline const char *extract_width(struct cbprintf_conversion *conv,
 					const char *sp)
 {
 	if (*sp == '*') {
@@ -372,7 +190,7 @@ static inline const char *extract_width(struct conversion *conv,
  *
  * @return a pointer the first character that follows the precision.
  */
-static inline const char *extract_prec(struct conversion *conv,
+static inline const char *extract_prec(struct cbprintf_conversion *conv,
 				       const char *sp)
 {
 	if (*sp != '.') {
@@ -410,40 +228,40 @@ static inline const char *extract_prec(struct conversion *conv,
  *
  * @return a pointer the first character that follows the precision.
  */
-static inline const char *extract_length(struct conversion *conv,
+static inline const char *extract_length(struct cbprintf_conversion *conv,
 					 const char *sp)
 {
 	switch (*sp) {
 	case 'h':
 		if (*++sp == 'h') {
-			conv->length_mod = LENGTH_HH;
+			conv->length_mod = CBPRINTF_LENGTH_HH;
 			++sp;
 		} else {
-			conv->length_mod = LENGTH_H;
+			conv->length_mod = CBPRINTF_LENGTH_H;
 		}
 		break;
 	case 'l':
 		if (*++sp == 'l') {
-			conv->length_mod = LENGTH_LL;
+			conv->length_mod = CBPRINTF_LENGTH_LL;
 			++sp;
 		} else {
-			conv->length_mod = LENGTH_L;
+			conv->length_mod = CBPRINTF_LENGTH_L;
 		}
 		break;
 	case 'j':
-		conv->length_mod = LENGTH_J;
+		conv->length_mod = CBPRINTF_LENGTH_J;
 		++sp;
 		break;
 	case 'z':
-		conv->length_mod = LENGTH_Z;
+		conv->length_mod = CBPRINTF_LENGTH_Z;
 		++sp;
 		break;
 	case 't':
-		conv->length_mod = LENGTH_T;
+		conv->length_mod = CBPRINTF_LENGTH_T;
 		++sp;
 		break;
 	case 'L':
-		conv->length_mod = LENGTH_UPPER_L;
+		conv->length_mod = CBPRINTF_LENGTH_UPPER_L;
 		++sp;
 
 		/* We recognize and consume these, but can't format
@@ -452,7 +270,7 @@ static inline const char *extract_length(struct conversion *conv,
 		conv->unsupported = true;
 		break;
 	default:
-		conv->length_mod = LENGTH_NONE;
+		conv->length_mod = CBPRINTF_LENGTH_NONE;
 		break;
 	}
 	return sp;
@@ -470,7 +288,7 @@ static inline const char *extract_length(struct conversion *conv,
  *
  * @return a pointer the first character that follows the specifier.
  */
-static inline const char *extract_specifier(struct conversion *conv,
+static inline const char *extract_specifier(struct cbprintf_conversion *conv,
 					    const char *sp)
 {
 	bool unsupported = false;
@@ -479,39 +297,39 @@ static inline const char *extract_specifier(struct conversion *conv,
 
 	switch (conv->specifier) {
 	case SINT_CONV_CASES:
-		conv->specifier_cat = SPECIFIER_SINT;
+		conv->specifier_cat = CBPRINTF_SPECIFIER_SINT;
 		goto int_conv;
 	case UINT_CONV_CASES:
-		conv->specifier_cat = SPECIFIER_UINT;
+		conv->specifier_cat = CBPRINTF_SPECIFIER_UINT;
 int_conv:
 		/* L length specifier not acceptable */
-		if (conv->length_mod == LENGTH_UPPER_L) {
+		if (conv->length_mod == CBPRINTF_LENGTH_UPPER_L) {
 			conv->invalid = true;
 		}
 
-		/* For c LENGTH_NONE and LENGTH_L would be ok,
+		/* For c CBPRINTF_LENGTH_NONE and CBPRINTF_LENGTH_L would be ok,
 		 * but we don't support wide characters.
 		 */
 		if (conv->specifier == 'c') {
-			unsupported = (conv->length_mod != LENGTH_NONE);
+			unsupported = (conv->length_mod != CBPRINTF_LENGTH_NONE);
 		} else if (!IS_ENABLED(CONFIG_CBPRINTF_FULL_INTEGRAL)) {
 			/* Disable conversion that might produce truncated
 			 * results with buffers sized for 32 bits.
 			 */
 			switch (conv->length_mod) {
-			case LENGTH_L:
+			case CBPRINTF_LENGTH_L:
 				unsupported = sizeof(long) > 4;
 				break;
-			case LENGTH_LL:
+			case CBPRINTF_LENGTH_LL:
 				unsupported = sizeof(long long) > 4;
 				break;
-			case LENGTH_J:
+			case CBPRINTF_LENGTH_J:
 				unsupported = sizeof(uintmax_t) > 4;
 				break;
-			case LENGTH_Z:
+			case CBPRINTF_LENGTH_Z:
 				unsupported = sizeof(size_t) > 4;
 				break;
-			case LENGTH_T:
+			case CBPRINTF_LENGTH_T:
 				unsupported = sizeof(ptrdiff_t) > 4;
 				break;
 			default:
@@ -521,7 +339,7 @@ int_conv:
 		break;
 
 	case FP_CONV_CASES:
-		conv->specifier_cat = SPECIFIER_FP;
+		conv->specifier_cat = CBPRINTF_SPECIFIER_FP;
 
 		/* Don't support if disabled */
 		if (!IS_ENABLED(CONFIG_CBPRINTF_FP_SUPPORT)) {
@@ -541,10 +359,10 @@ int_conv:
 		/* The l specifier has no effect.  Otherwise length
 		 * modifiers other than L are invalid.
 		 */
-		if (conv->length_mod == LENGTH_L) {
-			conv->length_mod = LENGTH_NONE;
-		} else if ((conv->length_mod != LENGTH_NONE)
-			   && (conv->length_mod != LENGTH_UPPER_L)) {
+		if (conv->length_mod == CBPRINTF_LENGTH_L) {
+			conv->length_mod = CBPRINTF_LENGTH_NONE;
+		} else if ((conv->length_mod != CBPRINTF_LENGTH_NONE)
+			   && (conv->length_mod != CBPRINTF_LENGTH_UPPER_L)) {
 			conv->invalid = true;
 		}
 
@@ -552,23 +370,23 @@ int_conv:
 
 		/* PTR cases are distinct */
 	case 'n':
-		conv->specifier_cat = SPECIFIER_PTR;
+		conv->specifier_cat = CBPRINTF_SPECIFIER_PTR;
 		/* Anything except L */
-		if (conv->length_mod == LENGTH_UPPER_L) {
+		if (conv->length_mod == CBPRINTF_LENGTH_UPPER_L) {
 			unsupported = true;
 		}
 		break;
 
 	case 's':
 	case 'p':
-		conv->specifier_cat = SPECIFIER_PTR;
+		conv->specifier_cat = CBPRINTF_SPECIFIER_PTR;
 
-		/* p: only LENGTH_NONE
+		/* p: only CBPRINTF_LENGTH_NONE
 		 *
-		 * s: LENGTH_NONE or LENGTH_L but wide
+		 * s: CBPRINTF_LENGTH_NONE or CBPRINTF_LENGTH_L but wide
 		 * characters not supported.
 		 */
-		if (conv->length_mod != LENGTH_NONE) {
+		if (conv->length_mod != CBPRINTF_LENGTH_NONE) {
 			unsupported = true;
 		}
 		break;
@@ -591,10 +409,10 @@ int_conv:
  *
  * @return pointer to the first character that follows the specification.
  */
-static inline const char *extract_conversion(struct conversion *conv,
+static inline const char *extract_conversion(struct cbprintf_conversion *conv,
 					     const char *sp)
 {
-	*conv = (struct conversion) {
+	*conv = (struct cbprintf_conversion) {
 	   .invalid = false,
 	};
 
@@ -627,12 +445,12 @@ static inline const char *extract_conversion(struct conversion *conv,
  * If the conversion specifier is invalid the calculated length may
  * not match what was actually passed as arguments.
  */
-static size_t conversion_arglen(const struct conversion *conv)
+static size_t conversion_arglen(const struct cbprintf_conversion *conv)
 {
-	enum specifier_cat_enum specifier_cat
-		= (enum specifier_cat_enum)conv->specifier_cat;
-	enum length_mod_enum length_mod
-		= (enum length_mod_enum)conv->length_mod;
+	enum cbprintf_specifier_cat_enum specifier_cat
+		= (enum cbprintf_specifier_cat_enum)conv->specifier_cat;
+	enum cbprintf_length_mod_enum length_mod
+		= (enum cbprintf_length_mod_enum)conv->length_mod;
 	size_t words = 0;
 
 	/* If the conversion is invalid behavior is undefined.  What
@@ -653,42 +471,42 @@ static size_t conversion_arglen(const struct conversion *conv)
 		words += sizeof(int) / sizeof(int);
 	}
 
-	if ((specifier_cat == SPECIFIER_SINT)
-	    || (specifier_cat == SPECIFIER_UINT)) {
+	if ((specifier_cat == CBPRINTF_SPECIFIER_SINT)
+	    || (specifier_cat == CBPRINTF_SPECIFIER_UINT)) {
 		/* The size of integral values is the same regardless
 		 * of signedness.
 		 */
 		switch (length_mod) {
-		case LENGTH_NONE:
-		case LENGTH_HH:
-		case LENGTH_H:
+		case CBPRINTF_LENGTH_NONE:
+		case CBPRINTF_LENGTH_HH:
+		case CBPRINTF_LENGTH_H:
 			words += sizeof(int) / sizeof(int);
 			break;
-		case LENGTH_L:
+		case CBPRINTF_LENGTH_L:
 			words += sizeof(long) / sizeof(int);
 			break;
-		case LENGTH_LL:
+		case CBPRINTF_LENGTH_LL:
 			words += sizeof(long long) / sizeof(int);
 			break;
-		case LENGTH_J:
+		case CBPRINTF_LENGTH_J:
 			words += sizeof(intmax_t) / sizeof(int);
 			break;
-		case LENGTH_Z:
+		case CBPRINTF_LENGTH_Z:
 			words += sizeof(size_t) / sizeof(int);
 			break;
-		case LENGTH_T:
+		case CBPRINTF_LENGTH_T:
 			words += sizeof(ptrdiff_t) / sizeof(int);
 			break;
 		default:
 			break;
 		}
-	} else if (specifier_cat == SPECIFIER_FP) {
-		if (length_mod == LENGTH_UPPER_L) {
+	} else if (specifier_cat == CBPRINTF_SPECIFIER_FP) {
+		if (length_mod == CBPRINTF_LENGTH_UPPER_L) {
 			words += sizeof(long double) / sizeof(int);
 		} else {
 			words += sizeof(double) / sizeof(int);
 		}
-	} else if (specifier_cat == SPECIFIER_PTR) {
+	} else if (specifier_cat == CBPRINTF_SPECIFIER_PTR) {
 		words += sizeof(void *) / sizeof(int);
 	}
 
@@ -824,8 +642,8 @@ static inline size_t conversion_radix(char specifier)
  * generated representation.  The returned pointer is to the first
  * character of the representation.
  */
-static char *encode_uint(uint_value_type value,
-			 struct conversion *conv,
+static char *encode_uint(cbprintf_uint_value_type value,
+			 struct cbprintf_conversion *conv,
 			 char *bps,
 			 const char *bpe)
 {
@@ -904,7 +722,7 @@ static char *encode_uint(uint_value_type value,
  * bps but will be consistent with the exit value of *bpe.
  */
 static char *encode_float(double value,
-			  struct conversion *conv,
+			  struct cbprintf_conversion *conv,
 			  int precision,
 			  char *sign,
 			  char *bps,
@@ -1034,7 +852,7 @@ static char *encode_float(double value,
 		/* Get the fractional value as a hexadecimal string, using x
 		 * for a and X for A.
 		 */
-		struct conversion aconv = {
+		struct cbprintf_conversion aconv = {
 			.specifier = isupper((int)c) ? 'X' : 'x',
 		};
 		const char *spe = *bpe;
@@ -1301,33 +1119,33 @@ static char *encode_float(double value,
  *
  * @param count the count to be stored.
  */
-static inline void store_count(const struct conversion *conv,
+static inline void store_count(const struct cbprintf_conversion *conv,
 			       void *dp,
 			       int count)
 {
-	switch ((enum length_mod_enum)conv->length_mod) {
-	case LENGTH_NONE:
+	switch ((enum cbprintf_length_mod_enum)conv->length_mod) {
+	case CBPRINTF_LENGTH_NONE:
 		*(int *)dp = count;
 		break;
-	case LENGTH_HH:
+	case CBPRINTF_LENGTH_HH:
 		*(signed char *)dp = (signed char)count;
 		break;
-	case LENGTH_H:
+	case CBPRINTF_LENGTH_H:
 		*(short *)dp = (short)count;
 		break;
-	case LENGTH_L:
+	case CBPRINTF_LENGTH_L:
 		*(long *)dp = (long)count;
 		break;
-	case LENGTH_LL:
+	case CBPRINTF_LENGTH_LL:
 		*(long long *)dp = (long long)count;
 		break;
-	case LENGTH_J:
+	case CBPRINTF_LENGTH_J:
 		*(intmax_t *)dp = (intmax_t)count;
 		break;
-	case LENGTH_Z:
+	case CBPRINTF_LENGTH_Z:
 		*(size_t *)dp = (size_t)count;
 		break;
-	case LENGTH_T:
+	case CBPRINTF_LENGTH_T:
 		*(ptrdiff_t *)dp = (ptrdiff_t)count;
 		break;
 	default:
@@ -1397,15 +1215,15 @@ int cbvprintf(cbprintf_cb out, void *ctx, const char *fp, va_list ap)
 		 * mitigate LLVM code generation bug.
 		 */
 		struct {
-			union argument_value value;
-			struct conversion conv;
+			union cbprintf_argument_value value;
+			struct cbprintf_conversion conv;
 		} state = {
 			.value = {
 				.uint = 0,
 			},
 		};
-		struct conversion *const conv = &state.conv;
-		union argument_value *const value = &state.value;
+		struct cbprintf_conversion *const conv = &state.conv;
+		union cbprintf_argument_value *const value = &state.value;
 		const char *sp = fp;
 		int width = -1;
 		int precision = -1;
@@ -1453,7 +1271,7 @@ int cbvprintf(cbprintf_cb out, void *ctx, const char *fp, va_list ap)
 
 		/* FP conversion requires knowing the precision. */
 		if (IS_ENABLED(CONFIG_CBPRINTF_FP_SUPPORT)
-		    && (conv->specifier_cat == SPECIFIER_FP)
+		    && (conv->specifier_cat == CBPRINTF_SPECIFIER_FP)
 		    && !conv->prec_present) {
 			if (conv->specifier_a) {
 				precision = FRACTION_HEX;
@@ -1468,37 +1286,37 @@ int cbvprintf(cbprintf_cb out, void *ctx, const char *fp, va_list ap)
 		 * passing a pointer to va_list doesn't work on x86_64.  See
 		 * https://stackoverflow.com/a/8048892.
 		 */
-		enum specifier_cat_enum specifier_cat
-			= (enum specifier_cat_enum)conv->specifier_cat;
-		enum length_mod_enum length_mod
-			= (enum length_mod_enum)conv->length_mod;
+		enum cbprintf_specifier_cat_enum specifier_cat
+			= (enum cbprintf_specifier_cat_enum)conv->specifier_cat;
+		enum cbprintf_length_mod_enum length_mod
+			= (enum cbprintf_length_mod_enum)conv->length_mod;
 
 		/* Extract the value based on the argument category and length.
 		 *
 		 * Note that the length modifier doesn't affect the value of a
 		 * pointer argument.
 		 */
-		if (specifier_cat == SPECIFIER_SINT) {
+		if (specifier_cat == CBPRINTF_SPECIFIER_SINT) {
 			switch (length_mod) {
 			default:
-			case LENGTH_NONE:
-			case LENGTH_HH:
-			case LENGTH_H:
+			case CBPRINTF_LENGTH_NONE:
+			case CBPRINTF_LENGTH_HH:
+			case CBPRINTF_LENGTH_H:
 				value->sint = va_arg(ap, int);
 				break;
-			case LENGTH_L:
+			case CBPRINTF_LENGTH_L:
 				value->sint = va_arg(ap, long);
 				break;
-			case LENGTH_LL:
+			case CBPRINTF_LENGTH_LL:
 				value->sint =
-					(sint_value_type)va_arg(ap, long long);
+					(cbprintf_sint_value_type)va_arg(ap, long long);
 				break;
-			case LENGTH_J:
+			case CBPRINTF_LENGTH_J:
 				value->sint =
-					(sint_value_type)va_arg(ap, intmax_t);
+					(cbprintf_sint_value_type)va_arg(ap, intmax_t);
 				break;
-			case LENGTH_Z:		/* size_t */
-			case LENGTH_T:		/* ptrdiff_t */
+			case CBPRINTF_LENGTH_Z:		/* size_t */
+			case CBPRINTF_LENGTH_T:		/* ptrdiff_t */
 				/* Though ssize_t is the signed equivalent of
 				 * size_t for POSIX, there is no uptrdiff_t.
 				 * Assume that size_t and ptrdiff_t are the
@@ -1507,53 +1325,53 @@ int cbvprintf(cbprintf_cb out, void *ctx, const char *fp, va_list ap)
 				 * test.
 				 */
 				value->sint =
-					(sint_value_type)va_arg(ap, ptrdiff_t);
+					(cbprintf_sint_value_type)va_arg(ap, ptrdiff_t);
 				break;
 			}
-			if (length_mod == LENGTH_HH) {
+			if (length_mod == CBPRINTF_LENGTH_HH) {
 				value->sint = (char)value->sint;
-			} else if (length_mod == LENGTH_H) {
+			} else if (length_mod == CBPRINTF_LENGTH_H) {
 				value->sint = (short)value->sint;
 			}
-		} else if (specifier_cat == SPECIFIER_UINT) {
+		} else if (specifier_cat == CBPRINTF_SPECIFIER_UINT) {
 			switch (length_mod) {
 			default:
-			case LENGTH_NONE:
-			case LENGTH_HH:
-			case LENGTH_H:
+			case CBPRINTF_LENGTH_NONE:
+			case CBPRINTF_LENGTH_HH:
+			case CBPRINTF_LENGTH_H:
 				value->uint = va_arg(ap, unsigned int);
 				break;
-			case LENGTH_L:
+			case CBPRINTF_LENGTH_L:
 				value->uint = va_arg(ap, unsigned long);
 				break;
-			case LENGTH_LL:
+			case CBPRINTF_LENGTH_LL:
 				value->uint =
-					(uint_value_type)va_arg(ap,
+					(cbprintf_uint_value_type)va_arg(ap,
 						unsigned long long);
 				break;
-			case LENGTH_J:
+			case CBPRINTF_LENGTH_J:
 				value->uint =
-					(uint_value_type)va_arg(ap,
+					(cbprintf_uint_value_type)va_arg(ap,
 								uintmax_t);
 				break;
-			case LENGTH_Z:		/* size_t */
-			case LENGTH_T:		/* ptrdiff_t */
+			case CBPRINTF_LENGTH_Z:		/* size_t */
+			case CBPRINTF_LENGTH_T:		/* ptrdiff_t */
 				value->uint =
-					(uint_value_type)va_arg(ap, size_t);
+					(cbprintf_uint_value_type)va_arg(ap, size_t);
 				break;
 			}
-			if (length_mod == LENGTH_HH) {
+			if (length_mod == CBPRINTF_LENGTH_HH) {
 				value->uint = (unsigned char)value->uint;
-			} else if (length_mod == LENGTH_H) {
+			} else if (length_mod == CBPRINTF_LENGTH_H) {
 				value->uint = (unsigned short)value->uint;
 			}
-		} else if (specifier_cat == SPECIFIER_FP) {
-			if (length_mod == LENGTH_UPPER_L) {
+		} else if (specifier_cat == CBPRINTF_SPECIFIER_FP) {
+			if (length_mod == CBPRINTF_LENGTH_UPPER_L) {
 				value->ldbl = va_arg(ap, long double);
 			} else {
 				value->dbl = va_arg(ap, double);
 			}
-		} else if (specifier_cat == SPECIFIER_PTR) {
+		} else if (specifier_cat == CBPRINTF_SPECIFIER_PTR) {
 			value->ptr = va_arg(ap, void *);
 		}
 
@@ -1604,9 +1422,9 @@ int cbvprintf(cbprintf_cb out, void *ctx, const char *fp, va_list ap)
 
 			if (value->sint < 0) {
 				sign = '-';
-				value->uint = (uint_value_type)-value->sint;
+				value->uint = (cbprintf_uint_value_type)-value->sint;
 			} else {
-				value->uint = (uint_value_type)value->sint;
+				value->uint = (cbprintf_uint_value_type)value->sint;
 			}
 
 			__fallthrough;
@@ -1825,7 +1643,7 @@ int cbvprintf(cbprintf_cb out, void *ctx, const char *fp, va_list ap)
 size_t cbprintf_arglen(const char *format)
 {
 	size_t rv = 0;
-	struct conversion conv;
+	struct cbprintf_conversion conv;
 
 	while (*format) {
 		if (*format == '%') {
