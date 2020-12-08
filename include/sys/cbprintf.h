@@ -218,6 +218,85 @@ struct cbprintf_conversion {
 	};
 };
 
+/** @brief Storage for packed arguments.
+ *
+ * The cbprintf API allows transfer of arguments from va_alist to a
+ * packed representation that can be decoded in another call context.
+ * The representation is internal to the library.
+ */
+struct cbprintf_packed_args {
+	/** Pointer to packed arguments. */
+	uint8_t *args;
+
+	/** Maximum number of bytes available at args. */
+	size_t max_len;
+};
+
+/** @brief Signature for an argument processing callback.
+ *
+ * @param conv pointer to the details of an conversion required by a
+ * format specifier.
+ *
+ * @param arg pointer to the value of the corresponding argument.  The
+ * function may change the value, but must continue to use the tag
+ * specified by @p conv.
+ *
+ * @param ctx context provided through the API that invokes this
+ * callback.
+ *
+ * @return A non-negative value if processing should continue, or a
+ * negative value if it should be aborted.
+ */
+typedef int (*cbprintf_arg_cb)(const struct cbprintf_conversion *conv,
+			       union cbprintf_argument_value *arg,
+			       void *ctx);
+
+/** @brief Function to extract conversion specifiers and arguments.
+ *
+ * @param walk optional function to inspect the value of an argument
+ * before packing it.
+ *
+ * @param ctx optional context to be passed to @p walk.
+ *
+ * @param fmt the format specifier string that identifies argument types
+ *
+ * @param ap the stack-encapsulated arguments to be transferred
+ *
+ * @return the number of bytes used to pack the arguments, or a
+ * negative error returned by @p walk.
+ */
+int cbprintf_walk(cbprintf_arg_cb walk, void *ctx,
+		  const char *fmt, va_list ap);
+
+/** @brief Function to transfer arguments from a va_list to a packed
+ * sequence.
+ *
+ * @param pack pointer to storage for the packed sequence.  Pass a
+ * null pointer to calculate the required space without packing
+ * anything.
+ *
+ * @param argspace_len the number of bytes available at @p argspace.
+ * Ignored if @p argspace is null.
+ *
+ * @param fmt the format specifier string that identifies argument types
+ *
+ * @param ap the stack-encapsulated arguments to be transferred
+ *
+ * @param walk optional function to mutate the value of an argument
+ * before packing it.  For example pointers to strings may include
+ * making a copy into temporary storage and updating the passed value
+ * to point to the copy.  If null the argument from @p ap is packed.
+ *
+ * @param ctx optional context to be passed to @p walk.
+ *
+ * @return the number of bytes used to pack the arguments, or a
+ * negative error returned by @p walk.
+ */
+int cbprintf_pack(struct cbprintf_packed_args pack,
+		  const char *fmt,
+		  va_list ap,
+		  cbprintf_arg_cb walk, void *ctx);
+
 /** @brief Signature for a cbprintf callback function.
  *
  * This function expects two parameters:
@@ -293,9 +372,6 @@ size_t cbprintf_arglen(const char *format);
  * formatting text of unbounded length without incurring the cost of a
  * temporary buffer.
  *
- * @note This function is available only when `CONFIG_CBPRINTF_LIBC_SUBSTS` is
- * selected.
- *
  * @note The functionality of this function is significantly reduced when
  * `CONFIG_CBPRINTF_NANO` is selected.
  *
@@ -312,6 +388,25 @@ size_t cbprintf_arglen(const char *format);
  * returned from invoking @p out.
  */
 int cbvprintf(cbprintf_cb out, void *ctx, const char *format, va_list ap);
+
+/** @brief *printf-like output using packed arguments.
+ *
+ * @param out the function used to emit each generated character.
+ *
+ * @param ctx context provided when invoking out
+ *
+ * @param format a standard ISO C format string with characters and conversion
+ * specifications.
+ *
+ * @param pack pointer to the arguments to use for formatting, as
+ * constructed by a call to cbprintf_pack().
+ *
+ * @return the number of characters generated, or a negative error value
+ * returned from invoking @p out.
+ */
+int cbpprintf(cbprintf_cb out, void *ctx,
+	      const char *format,
+	      const struct cbprintf_packed_args *pack);
 
 /** @brief snprintf using Zephyrs cbprintf infrastructure.
  *

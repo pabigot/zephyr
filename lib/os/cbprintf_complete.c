@@ -1173,6 +1173,124 @@ static int outs(cbprintf_cb out,
 	return (int)count;
 }
 
+/* Extract a value from a va_list based on the conversion specifier.
+ *
+ * This can't be extracted to a helper function va_list objects are
+ * mutated by va_arg, and passing a pointer to va_list doesn't work on
+ * x86_64.  See https://stackoverflow.com/a/8048892.
+ *
+ * @param _conv a reference to a pointer to a struct
+ * cbprintf_conversion identifying the characteristics of the expected
+ * argument.
+ *
+ * @param _ap a reference to a va_list object
+ *
+ * @param _value a reference to a pointer to a union
+ * cbprintf_argument_value into which the argument will be stored.
+ */
+#define EXTRACT_ARGUMENT(_conv, _ap, _value) do { \
+	enum cbprintf_specifier_cat_enum specifier_cat \
+		= (enum cbprintf_specifier_cat_enum)(_conv)->specifier_cat; \
+	enum cbprintf_length_mod_enum length_mod \
+		= (enum cbprintf_length_mod_enum)(_conv)->length_mod; \
+ \
+	if (specifier_cat == CBPRINTF_SPECIFIER_SINT) { \
+		switch (length_mod) { \
+		default: \
+		case CBPRINTF_LENGTH_NONE: \
+		case CBPRINTF_LENGTH_HH: \
+		case CBPRINTF_LENGTH_H: \
+			(_value)->sint = va_arg((_ap), int); \
+			break; \
+		case CBPRINTF_LENGTH_L: \
+			(_value)->sint = va_arg((_ap), long); \
+			break; \
+		case CBPRINTF_LENGTH_LL: \
+			(_value)->sint = \
+				(cbprintf_sint_value_type)va_arg((_ap), long long); \
+			break; \
+		case CBPRINTF_LENGTH_J: \
+			(_value)->sint = \
+				(cbprintf_sint_value_type)va_arg((_ap), intmax_t); \
+			break; \
+		case CBPRINTF_LENGTH_Z:		/* size_t */ \
+		case CBPRINTF_LENGTH_T:		/* ptrdiff_t */ \
+			(_value)->sint = \
+				(cbprintf_sint_value_type)va_arg((_ap), ptrdiff_t); \
+			break; \
+		} \
+		if (length_mod == CBPRINTF_LENGTH_HH) { \
+			(_value)->sint = (char)(_value)->sint; \
+		} else if (length_mod == CBPRINTF_LENGTH_H) { \
+			(_value)->sint = (short)(_value)->sint; \
+		} \
+	} else if (specifier_cat == CBPRINTF_SPECIFIER_UINT) { \
+		switch (length_mod) { \
+		default: \
+		case CBPRINTF_LENGTH_NONE: \
+		case CBPRINTF_LENGTH_HH: \
+		case CBPRINTF_LENGTH_H: \
+			(_value)->uint = va_arg((_ap), unsigned int); \
+			break; \
+		case CBPRINTF_LENGTH_L: \
+			(_value)->uint = va_arg((_ap), unsigned long); \
+			break; \
+		case CBPRINTF_LENGTH_LL: \
+			(_value)->uint = \
+				(cbprintf_uint_value_type)va_arg((_ap), \
+								 unsigned long long); \
+			break; \
+		case CBPRINTF_LENGTH_J: \
+			(_value)->uint = \
+				(cbprintf_uint_value_type)va_arg((_ap), \
+								 uintmax_t); \
+			break; \
+		case CBPRINTF_LENGTH_Z:		/* size_t */ \
+		case CBPRINTF_LENGTH_T:		/* ptrdiff_t */ \
+			(_value)->uint = \
+				(cbprintf_uint_value_type)va_arg((_ap), size_t); \
+			break; \
+		} \
+		if (length_mod == CBPRINTF_LENGTH_HH) { \
+			(_value)->uint = (unsigned char)(_value)->uint; \
+		} else if (length_mod == CBPRINTF_LENGTH_H) { \
+			(_value)->uint = (unsigned short)(_value)->uint; \
+		} \
+	} else if (specifier_cat == CBPRINTF_SPECIFIER_FP) { \
+		if (length_mod == CBPRINTF_LENGTH_UPPER_L) { \
+			(_value)->ldbl = va_arg((_ap), long double); \
+		} else { \
+			(_value)->dbl = va_arg((_ap), double); \
+		} \
+	} else if (specifier_cat == CBPRINTF_SPECIFIER_PTR) { \
+		(_value)->ptr = va_arg((_ap), void *); \
+	} \
+} while (false)
+
+int cbprintf_walk(cbprintf_arg_cb walk, void *ctx,
+		  const char *fmt, va_list ap)
+{
+	if (walk == NULL) {
+		return -EINVAL;
+	}
+
+	int rv = 0;
+	const char *fp = fmt;
+
+	while (*fp != 0) {
+		if (*fp != '%') {
+			++fp;
+			continue;
+		}
+
+		// Here we'd have to replicate all the argument
+		// abstraction of cbvprintf().  Just the
+		// EXTRACT_ARGUMENT macro isn't enough: it has to do
+		// width extraction too.
+	}
+}
+#endif
+
 int cbvprintf(cbprintf_cb out, void *ctx, const char *fp, va_list ap)
 {
 	char buf[CONVERTED_BUFLEN];
@@ -1195,7 +1313,6 @@ int cbvprintf(cbprintf_cb out, void *ctx, const char *fp, va_list ap)
 /* Output sequence of characters, returning a negative error if output
  * failed.
  */
-
 #define OUTS(_sp, _ep) do { \
 	int rc = outs(out, ctx, _sp, _ep); \
 	\
@@ -1280,100 +1397,8 @@ int cbvprintf(cbprintf_cb out, void *ctx, const char *fp, va_list ap)
 			}
 		}
 
-		/* Get the value to be converted from the args.
-		 *
-		 * This can't be extracted to a helper function because
-		 * passing a pointer to va_list doesn't work on x86_64.  See
-		 * https://stackoverflow.com/a/8048892.
-		 */
-		enum cbprintf_specifier_cat_enum specifier_cat
-			= (enum cbprintf_specifier_cat_enum)conv->specifier_cat;
-		enum cbprintf_length_mod_enum length_mod
-			= (enum cbprintf_length_mod_enum)conv->length_mod;
-
-		/* Extract the value based on the argument category and length.
-		 *
-		 * Note that the length modifier doesn't affect the value of a
-		 * pointer argument.
-		 */
-		if (specifier_cat == CBPRINTF_SPECIFIER_SINT) {
-			switch (length_mod) {
-			default:
-			case CBPRINTF_LENGTH_NONE:
-			case CBPRINTF_LENGTH_HH:
-			case CBPRINTF_LENGTH_H:
-				value->sint = va_arg(ap, int);
-				break;
-			case CBPRINTF_LENGTH_L:
-				value->sint = va_arg(ap, long);
-				break;
-			case CBPRINTF_LENGTH_LL:
-				value->sint =
-					(cbprintf_sint_value_type)va_arg(ap, long long);
-				break;
-			case CBPRINTF_LENGTH_J:
-				value->sint =
-					(cbprintf_sint_value_type)va_arg(ap, intmax_t);
-				break;
-			case CBPRINTF_LENGTH_Z:		/* size_t */
-			case CBPRINTF_LENGTH_T:		/* ptrdiff_t */
-				/* Though ssize_t is the signed equivalent of
-				 * size_t for POSIX, there is no uptrdiff_t.
-				 * Assume that size_t and ptrdiff_t are the
-				 * unsigned and signed equivalents of each
-				 * other.  This can be checked in a platform
-				 * test.
-				 */
-				value->sint =
-					(cbprintf_sint_value_type)va_arg(ap, ptrdiff_t);
-				break;
-			}
-			if (length_mod == CBPRINTF_LENGTH_HH) {
-				value->sint = (char)value->sint;
-			} else if (length_mod == CBPRINTF_LENGTH_H) {
-				value->sint = (short)value->sint;
-			}
-		} else if (specifier_cat == CBPRINTF_SPECIFIER_UINT) {
-			switch (length_mod) {
-			default:
-			case CBPRINTF_LENGTH_NONE:
-			case CBPRINTF_LENGTH_HH:
-			case CBPRINTF_LENGTH_H:
-				value->uint = va_arg(ap, unsigned int);
-				break;
-			case CBPRINTF_LENGTH_L:
-				value->uint = va_arg(ap, unsigned long);
-				break;
-			case CBPRINTF_LENGTH_LL:
-				value->uint =
-					(cbprintf_uint_value_type)va_arg(ap,
-						unsigned long long);
-				break;
-			case CBPRINTF_LENGTH_J:
-				value->uint =
-					(cbprintf_uint_value_type)va_arg(ap,
-								uintmax_t);
-				break;
-			case CBPRINTF_LENGTH_Z:		/* size_t */
-			case CBPRINTF_LENGTH_T:		/* ptrdiff_t */
-				value->uint =
-					(cbprintf_uint_value_type)va_arg(ap, size_t);
-				break;
-			}
-			if (length_mod == CBPRINTF_LENGTH_HH) {
-				value->uint = (unsigned char)value->uint;
-			} else if (length_mod == CBPRINTF_LENGTH_H) {
-				value->uint = (unsigned short)value->uint;
-			}
-		} else if (specifier_cat == CBPRINTF_SPECIFIER_FP) {
-			if (length_mod == CBPRINTF_LENGTH_UPPER_L) {
-				value->ldbl = va_arg(ap, long double);
-			} else {
-				value->dbl = va_arg(ap, double);
-			}
-		} else if (specifier_cat == CBPRINTF_SPECIFIER_PTR) {
-			value->ptr = va_arg(ap, void *);
-		}
+		/* Get the value to be converted from the args. */
+		EXTRACT_ARGUMENT(conv, ap, value);
 
 		/* We've now consumed all arguments related to this
 		 * specification.  If the conversion is invalid, or is
