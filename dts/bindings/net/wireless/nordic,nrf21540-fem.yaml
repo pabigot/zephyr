@@ -38,7 +38,9 @@ properties:
         type: phandle
         required: false
         description: >
-            Reference to the SPI bus interface of the nRF21540
+            Reference to the nordic,nrf21540-fem-spi SPI bus interface.
+
+            This must be present to support SPI control of the FEM.
     tx-en-settle-time-us:
         type: int
         default: 11
