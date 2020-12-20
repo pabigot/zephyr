@@ -103,7 +103,7 @@ static void _finalize_cancel_and_unlock(struct k_work *work,
 	k_spin_unlock(&lock, key);
 }
 
-void k_work_init(struct k_work *work,
+void k_work_init_base(struct k_work *work,
 		  k_work_handler_t handler)
 {
 	__ASSERT_NO_MSG(work != NULL);

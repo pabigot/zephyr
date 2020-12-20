@@ -150,7 +150,7 @@ static void test_delayable_init(void)
 	struct k_work_delayable stack;
 	static K_WORK_DELAYABLE_DEFINE(fnstat, counter_handler);
 
-	k_work_init_delayable(&stack, counter_handler);
+	k_work_init(&stack, counter_handler);
 	zassert_mem_equal(&stack, &fnstat, sizeof(stack),
 			  NULL);
 }
@@ -426,7 +426,7 @@ static void test_1cpu_delayed_flush(void)
 
 	/* Reset state and use non-blocking handler */
 	reset_counters();
-	k_work_init_delayable(&dwork, counter_handler);
+	k_work_init(&dwork, counter_handler);
 
 	/* Unscheduled completes immediately. */
 	zassert_false(k_work_flush_delayable(&dwork, &sync), NULL);
@@ -503,7 +503,7 @@ static void test_1cpu_delayed_cancel(void)
 
 	/* Reset state and use the blocking handler */
 	reset_counters();
-	k_work_init_delayable(&dwork, rel_handler);
+	k_work_init(&dwork, rel_handler);
 
 	/* Submit to the cooperative queue. */
 	rc = k_work_schedule_for_queue(&coop_queue, &dwork, K_MSEC(DELAY_MS));
@@ -526,7 +526,7 @@ static void test_1cpu_delayed_cancel_sync(void)
 
 	/* Reset state and use the blocking handler */
 	reset_counters();
-	k_work_init_delayable(&dwork, rel_handler);
+	k_work_init(&dwork, rel_handler);
 
 	/* Submit to the cooperative queue. */
 	rc = k_work_schedule_for_queue(&coop_queue, &dwork, K_MSEC(DELAY_MS));
@@ -842,7 +842,7 @@ static void test_1cpu_basic_schedule(void)
 
 	/* Reset state and use non-blocking handler */
 	reset_counters();
-	k_work_init_delayable(&dwork, counter_handler);
+	k_work_init(&dwork, counter_handler);
 
 	/* Verify that work is idle and marked delayable. */
 	zassert_equal(k_work_busy(wp), 0, NULL);
@@ -887,7 +887,7 @@ static void test_1cpu_immed_schedule(void)
 
 	/* Reset state and use the non-blocking handler */
 	reset_counters();
-	k_work_init_delayable(&dwork, counter_handler);
+	k_work_init(&dwork, counter_handler);
 	zassert_equal(k_work_busy(wp), 0, NULL);
 
 	/* Submit to the cooperative queue */
@@ -929,7 +929,7 @@ static void test_1cpu_basic_reschedule(void)
 
 	/* Reset state and use non-blocking handler */
 	reset_counters();
-	k_work_init_delayable(&dwork, counter_handler);
+	k_work_init(&dwork, counter_handler);
 
 	/* Verify that work is idle and marked delayable. */
 	zassert_equal(k_work_busy(wp), 0, NULL);
@@ -980,7 +980,7 @@ static void test_1cpu_immed_reschedule(void)
 
 	/* Reset state and use the delay handler */
 	reset_counters();
-	k_work_init_delayable(&dwork, delay_handler);
+	k_work_init(&dwork, delay_handler);
 	zassert_equal(k_work_busy(wp), 0, NULL);
 
 	/* Schedule immediately to the cooperative queue */
@@ -1099,7 +1099,7 @@ static void test_1cpu_system_schedule(void)
 
 	/* Reset state and use non-blocking handler */
 	reset_counters();
-	k_work_init_delayable(&dwork, counter_handler);
+	k_work_init(&dwork, counter_handler);
 
 	/* Verify that work is idle and marked delayable. */
 	zassert_equal(k_work_busy(wp), 0, NULL);
@@ -1144,7 +1144,7 @@ static void test_1cpu_system_reschedule(void)
 
 	/* Reset state and use non-blocking handler */
 	reset_counters();
-	k_work_init_delayable(&dwork, counter_handler);
+	k_work_init(&dwork, counter_handler);
 
 	/* Verify that work is idle and marked delayable. */
 	zassert_equal(k_work_busy(wp), 0, NULL);

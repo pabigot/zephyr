@@ -3049,6 +3049,18 @@ struct k_work_sync;
  */
 typedef void (*k_work_handler_t)(struct k_work *work);
 
+/** Hide internal prototypes used by _Generic infrastructure
+ * @cond INTERNAL_HIDDEN
+ */
+void k_work_init_base(struct k_work *work,
+		      k_work_handler_t handler);
+void k_work_init_delayable(struct k_work_delayable *dwork,
+			   k_work_handler_t handler);
+
+/**
+1 * INTERNAL_HIDDEN @endcond
+ */
+
 /** @brief Initialize a (non-delayable) work structure.
  *
  * This must be invoked before submitting a work structure for the first time.
@@ -3062,8 +3074,10 @@ typedef void (*k_work_handler_t)(struct k_work *work);
  *
  * @param handler the handler to be invoked by the work item.
  */
-void k_work_init(struct k_work *work,
-		  k_work_handler_t handler);
+#define k_work_init(work, handler) _Generic((work), \
+		struct k_work_delayable*: k_work_init_delayable, \
+                default: k_work_init_base \
+		)(work, handler)
 
 /** @brief Busy state flags from the work item.
  *
@@ -3262,22 +3276,6 @@ int k_work_queue_drain(struct k_work_q *queue, bool plug);
  * @retval -EALREADY if the work queue was not plugged.
  */
 int k_work_queue_unplug(struct k_work_q *queue);
-
-/** @brief Initialize a delayable work structure.
- *
- * This must be invoked before scheduling a delayable work structure for the
- * first time.  It need not be invoked again on the same work structure.  It
- * can be re-invoked to change the associated handler, but this must be done
- * when the work item is idle.
- *
- * @note Safe to invoke from ISRs.
- *
- * @param dwork the delayable work structure to be initialized.
- *
- * @param handler the handler to be invoked by the work item.
- */
-void k_work_init_delayable(struct k_work_delayable *dwork,
-			   k_work_handler_t handler);
 
 /**
  * @brief Get the parent delayable work structure from a work pointer.
