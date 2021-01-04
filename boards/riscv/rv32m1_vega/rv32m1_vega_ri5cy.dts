@@ -54,7 +54,3 @@
 		};
 	};
 };
-
-#ifdef DTS_INCLUDE_FIXTURES
-#include "fixtures_ri5cy.dtsi"
-#endif /* DTS_INCLUDE_FIXTURES */

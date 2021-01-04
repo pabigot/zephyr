@@ -102,7 +102,3 @@
 		};
 	};
 };
-
-#ifdef DTS_INCLUDE_FIXTURES
-#include "fixtures.dtsi"
-#endif /* DTS_INCLUDE_FIXTURES */
