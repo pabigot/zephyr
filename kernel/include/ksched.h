@@ -348,17 +348,14 @@ typedef void (*z_sched_wake_cb_t)(struct k_thread *thread, void *obj,
  * - Set the thread's swap return values to swap_retval and swap_data
  * - un-pend and ready the thread, but do not invoke the scheduler.
  *
- * It is up to the caller to implement locking such that the return value of
- * this function (whether a thread was woken up or not) does not immediately
- * become stale.
- *
  * Repeated calls to this function until it returns false is a suitable
  * way to wake all threads on the queue.
  *
  * It is up to the caller to implement locking such that the return value of
- * this function does not immediately become stale. Calls to wait and wake on
- * the same wait_q object must have synchronization. Calling this without
- * holding any spinlock is a sign that this API is not being used properly.
+ * this function (whether a thread was woken up or not) does not immediately
+ * become stale. Calls to wait and wake on the same wait_q object must have
+ * synchronization. Calling this without holding any spinlock is a sign that
+ * this API is not being used properly.
  *
  * @param wait_q Wait queue to wake up the highest prio thread
  * @param swap_retval Swap return value for woken thread
