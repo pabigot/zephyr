@@ -598,6 +598,15 @@ void test_strtok_r(void)
 	test_strtok_r_do("1|2|3,4|5",           "| ", 5, tc01, false);
 }
 
+void test_div(void)
+{
+	/* test example from man */
+	div_t q = div(-5, 3);
+
+	zassert_equal(q.quot, -1, "div error");
+	zassert_equal(q.rem, -2, "div error");
+}
+
 void test_main(void)
 {
 	ztest_test_suite(test_c_lib,
@@ -621,7 +630,8 @@ void test_main(void)
 			 ztest_unit_test(test_memstr),
 			 ztest_unit_test(test_str_operate),
 			 ztest_unit_test(test_tolower_toupper),
-			 ztest_unit_test(test_strtok_r)
+			 ztest_unit_test(test_strtok_r),
+			 ztest_unit_test(test_div)
 			 );
 	ztest_run_test_suite(test_c_lib);
 }
