@@ -14,6 +14,7 @@
 void test_main(void)
 {
 	ztest_test_suite(littlefs_test,
+#if 0
 			 ztest_unit_test(test_util_path_init_base),
 			 ztest_unit_test(test_util_path_init_overrun),
 			 ztest_unit_test(test_util_path_init_extended),
@@ -25,6 +26,8 @@ void test_main(void)
 			 ztest_unit_test(test_lfs_perf),
 			 ztest_unit_test(test_fs_open_flags_lfs),
 			 ztest_unit_test(test_fs_mount_flags)
+#endif
+			 ztest_unit_test(test_lfs_basic)
 			 );
 	ztest_run_test_suite(littlefs_test);
 }

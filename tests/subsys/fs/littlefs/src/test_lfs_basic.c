@@ -625,6 +625,8 @@ void test_lfs_basic(void)
 	zassert_equal(fs_unmount(mp), -EINVAL,
 		      "unmount unmounted failed");
 
+#if 0
+
 	zassert_equal(mount(mp), TC_PASS,
 		      "remount failed");
 
@@ -633,11 +635,11 @@ void test_lfs_basic(void)
 
 	zassert_equal(fs_unmount(mp), 0,
 		      "unmount2 small failed");
-
 	zassert_equal(check_medium(), TC_PASS,
 		      "check medium failed");
 
 	zassert_equal(check_large(), TC_PASS,
 		      "check large failed");
+#endif
 
 }
