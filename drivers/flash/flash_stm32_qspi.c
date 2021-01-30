@@ -227,6 +227,12 @@ static int qspi_read_sfdp(const struct device *dev, off_t addr, uint8_t *data,
 	return qspi_read_access(dev, &cmd, data, size);
 }
 
+static int qspi_sfdp_read(const struct device *dev, off_t addr, void *data,
+			  size_t size)
+{
+	return qspi_read_sfdp(dev, addr, (uint8_t*)data, size);
+}
+
 static bool qspi_address_is_valid(const struct device *dev, off_t addr,
 				  size_t size)
 {
@@ -579,6 +585,9 @@ static const struct flash_driver_api flash_stm32_qspi_driver_api = {
 #if defined(CONFIG_FLASH_PAGE_LAYOUT)
 	.page_layout = flash_stm32_qspi_pages_layout,
 #endif
+#if defined(CONFIG_FLASH_JESD216_API)
+	.sfdp_read = qspi_sfdp_read,
+#endif /* CONFIG_FLASH_JESD216_API */
 };
 
 #if defined(CONFIG_FLASH_PAGE_LAYOUT)
