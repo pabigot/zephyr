@@ -29,14 +29,27 @@ properties:
     interrupts:
       required: true
 
+    has-802154:
+      type: boolean
+      description: |
+        Indicates whether the radio has 802.15.4 protocol support.
+
+    has-dfe:
+      type: boolean
+      description: |
+        Indicates whether the radio supports the BLE Direction Finding
+        Extension.
+
     dfe-ant-num:
       type: int
-      required: true
+      required: false
       description: |
         Number of available antennas.
 
         Value zero means no antenna available. If provided value different than
         zero, it must be greater or equal to two.
+
+        This property must be present if and only if has-dfe is true.
 
     dfegpio0-gpios:
       type: phandle-array
@@ -47,6 +60,8 @@ properties:
         Flags cell in the property is not used for GPIO pin initialization
         and should be set to zero.
 
+        This property must be absent if has-dfe is false.
+
     dfegpio1-gpios:
       type: phandle-array
       required: false
@@ -55,6 +70,8 @@ properties:
 
         Flags cell in the property is not used for GPIO pin initialization
         and should be set to zero.
+
+        This property must be absent if has-dfe is false.
 
     dfegpio2-gpios:
       type: phandle-array
@@ -65,6 +82,8 @@ properties:
         Flags cell in the property is not used for GPIO pin initialization
         and should be set to zero.
 
+        This property must be absent if has-dfe is false.
+
     dfegpio3-gpios:
       type: phandle-array
       required: false
@@ -73,6 +92,8 @@ properties:
 
         Flags cell in the property is not used for GPIO pin initialization
         and should be set to zero.
+
+        This property must be absent if has-dfe is false.
 
     dfegpio4-gpios:
       type: phandle-array
@@ -83,6 +104,8 @@ properties:
         Flags cell in the property is not used for GPIO pin initialization
         and should be set to zero.
 
+        This property must be absent if has-dfe is false.
+
     dfegpio5-gpios:
       type: phandle-array
       required: false
@@ -91,6 +114,8 @@ properties:
 
         Flags cell in the property is not used for GPIO pin initialization
         and should be set to zero.
+
+        This property must be absent if has-dfe is false.
 
     dfegpio6-gpios:
       type: phandle-array
@@ -101,6 +126,8 @@ properties:
         Flags cell in the property is not used for GPIO pin initialization
         and should be set to zero.
 
+        This property must be absent if has-dfe is false.
+
     dfegpio7-gpios:
       type: phandle-array
       required: false
@@ -109,3 +136,5 @@ properties:
 
         Flags cell in the property is not used for GPIO pin initialization
         and should be set to zero.
+
+        This property must be absent if has-dfe is false.
