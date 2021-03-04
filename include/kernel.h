@@ -901,7 +901,7 @@ extern void k_sched_time_slice_set(int32_t slice, int prio);
  * This routine allows the caller to customize its actions, depending on
  * whether it is a thread or an ISR.
  *
- * @note Can be called by ISRs.
+ * @funcprops \isr_ok \async
  *
  * @return false if invoked by a thread.
  * @return true if invoked by an ISR.
