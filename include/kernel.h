@@ -901,7 +901,7 @@ extern void k_sched_time_slice_set(int32_t slice, int prio);
  * This routine allows the caller to customize its actions, depending on
  * whether it is a thread or an ISR.
  *
- * @funcprops \isr_ok \async
+ * @funcprops \isr_ok
  *
  * @return false if invoked by a thread.
  * @return true if invoked by an ISR.
@@ -919,7 +919,7 @@ extern bool k_is_in_isr(void);
  * - The thread's priority is in the preemptible range.
  * - The thread has not locked the scheduler.
  *
- * @note Can be called by ISRs.
+ * @funcprops \isr_ok
  *
  * @return 0 if invoked by an ISR or by a cooperative thread.
  * @return Non-zero if invoked by a preemptible thread.
@@ -2558,6 +2558,8 @@ struct k_mutex {
  *
  * Upon completion, the mutex is available and does not have an owner.
  *
+ * @funcprops \no_wait \isr_ok
+ *
  * @param mutex Address of the mutex.
  *
  * @retval 0 Mutex object created
@@ -2577,6 +2579,8 @@ __syscall int k_mutex_init(struct k_mutex *mutex);
  * completes immediately and the lock count is increased by 1.
  *
  * Mutexes may not be locked in ISRs.
+ *
+ * @funcprops \reschedule \sleep \no_wait
  *
  * @param mutex Address of the mutex.
  * @param timeout Waiting period to lock the mutex,
@@ -2602,6 +2606,8 @@ __syscall int k_mutex_lock(struct k_mutex *mutex, k_timeout_t timeout);
  * Mutexes may not be unlocked in ISRs, as mutexes must only be manipulated
  * in thread context due to ownership and priority inheritance semantics.
  *
+ * @funcprops \reschedule \no_wait
+ *
  * @param mutex Address of the mutex.
  *
  * @retval 0 Mutex unlocked.
@@ -2609,7 +2615,7 @@ __syscall int k_mutex_lock(struct k_mutex *mutex, k_timeout_t timeout);
  * @retval -EINVAL The mutex is not locked
  *
  */
-__syscall int k_mutex_unlock(struct k_mutex *mutex);
+q__syscall int k_mutex_unlock(struct k_mutex *mutex);
 
 /**
  * @}
@@ -4602,6 +4608,8 @@ struct k_pipe {
  *
  * This routine initializes a pipe object, prior to its first use.
  *
+ * @funcprops \no_wait \isr_ok
+ *
  * @param pipe Address of the pipe.
  * @param buffer Address of the pipe's ring buffer, or NULL if no ring buffer
  *               is used.
@@ -4619,6 +4627,8 @@ void k_pipe_init(struct k_pipe *pipe, unsigned char *buffer, size_t size);
  * k_pipe_alloc_init(), this will free it. This function does nothing
  * if the buffer wasn't dynamically allocated.
  *
+ * @funcprops \no_wait \isr_ok
+ *
  * @param pipe Address of the pipe.
  * @retval 0 on success
  * @retval -EAGAIN nothing to cleanup
@@ -4634,6 +4644,8 @@ int k_pipe_cleanup(struct k_pipe *pipe);
  *
  * This function should only be called on uninitialized pipe objects.
  *
+ * @funcprops \no_wait \isr_ok
+ *
  * @param pipe Address of the pipe.
  * @param size Size of the pipe's ring buffer (in bytes), or zero if no ring
  *             buffer is used.
@@ -4646,6 +4658,8 @@ __syscall int k_pipe_alloc_init(struct k_pipe *pipe, size_t size);
  * @brief Write data to a pipe.
  *
  * This routine writes up to @a bytes_to_write bytes of data to @a pipe.
+ *
+ * @funcprops \reschedule \sleep \no_wait \isr_ok
  *
  * @param pipe Address of the pipe.
  * @param data Address of data to write.
@@ -4668,6 +4682,8 @@ __syscall int k_pipe_put(struct k_pipe *pipe, void *data,
  * @brief Read data from a pipe.
  *
  * This routine reads up to @a bytes_to_read bytes of data from @a pipe.
+ *
+ * @funcprops \reschedule \sleep \no_wait \isr_ok
  *
  * @param pipe Address of the pipe.
  * @param data Address to place the data read from pipe.
@@ -4694,6 +4710,8 @@ __syscall int k_pipe_get(struct k_pipe *pipe, void *data,
  * Once all of the data in the block has been written to the pipe, it will
  * free the memory block @a block and give the semaphore @a sem (if specified).
  *
+ * @funcprops \reschedule \sleep \async
+ *
  * @param pipe Address of the pipe.
  * @param block Memory block containing data to send
  * @param size Number of data bytes in memory block to send
@@ -4707,6 +4725,8 @@ extern void k_pipe_block_put(struct k_pipe *pipe, struct k_mem_block *block,
 /**
  * @brief Query the number of bytes that may be read from @a pipe.
  *
+ * @funcprops \reschedule \sleep
+ *
  * @param pipe Address of the pipe.
  *
  * @retval a number n such that 0 <= n <= @ref k_pipe.size; the
@@ -4716,6 +4736,8 @@ __syscall size_t k_pipe_read_avail(struct k_pipe *pipe);
 
 /**
  * @brief Query the number of bytes that may be written to @a pipe
+ *
+ * @funcprops \reschedule \sleep
  *
  * @param pipe Address of the pipe.
  *
