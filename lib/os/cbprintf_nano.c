@@ -204,6 +204,8 @@ start:
 			} else if (special == '+') {
 				prefix = "+";
 				min_width--;
+			} else {
+				; /* Final statement (see coding guideline 15.7) */
 			}
 			data_len = convert_value(d, 10, 0, buf + sizeof(buf));
 			data = buf + sizeof(buf) - data_len;

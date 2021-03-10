@@ -557,6 +557,8 @@ int_conv:
 			default:
 				break;
 			}
+		} else {
+			; /* Final statement (see coding guideline 15.7) */
 		}
 		break;
 
@@ -586,6 +588,8 @@ int_conv:
 		} else if ((conv->length_mod != LENGTH_NONE)
 			   && (conv->length_mod != LENGTH_UPPER_L)) {
 			conv->invalid = true;
+		} else {
+			; /* Final statement (see coding guideline 15.7) */
 		}
 
 		break;
@@ -802,6 +806,8 @@ static char *encode_uint(uint_value_type value,
 			conv->altform_0 = true;
 		} else if (radix == 16) {
 			conv->altform_0c = true;
+		} else {
+			; /* Final statement (see coding guideline 15.7) */
 		}
 	}
 
@@ -878,6 +884,8 @@ static char *encode_float(double value,
 		*sign = '+';
 	} else if (conv->flag_space) {
 		*sign = ' ';
+	} else {
+		; /* Final statement (see coding guideline 15.7) */
 	}
 
 	/* Extract the non-negative offset exponent and fraction.  Record
@@ -1383,14 +1391,16 @@ int cbvprintf(cbprintf_cb out, void *ctx, const char *fp, va_list ap)
 		/* If dynamic width is specified, process it,
 		 * otherwise set with if present.
 		 */
-		if (conv->width_star) {
-			width = va_arg(ap, int);
+		if (conv->width_present) {
 
-			if (width < 0) {
-				conv->flag_dash = true;
-				width = -width;
+			if (conv->width_star) {
+				width = va_arg(ap, int);
+
+				if (width < 0) {
+					conv->flag_dash = true;
+					width = -width;
+				}
 			}
-		} else if (conv->width_present) {
 			width = conv->width_value;
 		}
 
@@ -1398,15 +1408,17 @@ int cbvprintf(cbprintf_cb out, void *ctx, const char *fp, va_list ap)
 		 * set precision if present.  For floating point where
 		 * precision is not present use 6.
 		 */
-		if (conv->prec_star) {
-			int arg = va_arg(ap, int);
+		if (conv->prec_present) {
 
-			if (arg < 0) {
-				conv->prec_present = false;
-			} else {
-				precision = arg;
+			if (conv->prec_star) {
+				int arg = va_arg(ap, int);
+
+				if (arg < 0) {
+					conv->prec_present = false;
+				} else {
+					precision = arg;
+				}
 			}
-		} else if (conv->prec_present) {
 			precision = conv->prec_value;
 		}
 
