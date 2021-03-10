@@ -395,7 +395,8 @@ static int bus_fault(z_arch_esf_t *esf, int from_hard_fault, bool *recoverable)
 #if !defined(CONFIG_ARMV7_M_ARMV8_M_FP)
 	}
 #else
-	} else if (SCB->CFSR & SCB_CFSR_LSPERR_Msk) {
+	}
+	if (SCB->CFSR & SCB_CFSR_LSPERR_Msk) {
 		PR_FAULT_INFO("  Floating-point lazy state preservation error");
 	}
 #endif /* !defined(CONFIG_ARMV7_M_ARMV8_M_FP) */
@@ -675,7 +676,8 @@ static uint32_t hard_fault(z_arch_esf_t *esf, bool *recoverable)
 
 	if ((SCB->HFSR & SCB_HFSR_VECTTBL_Msk) != 0) {
 		PR_EXC("  Bus fault on vector table read");
-	} else if ((SCB->HFSR & SCB_HFSR_FORCED_Msk) != 0) {
+	}
+	if ((SCB->HFSR & SCB_HFSR_FORCED_Msk) != 0) {
 		PR_EXC("  Fault escalation (see below)");
 		if (SCB_MMFSR != 0) {
 			reason = mem_manage_fault(esf, 1, recoverable);
@@ -687,6 +689,8 @@ static uint32_t hard_fault(z_arch_esf_t *esf, bool *recoverable)
 		} else if (SAU->SFSR != 0) {
 			secure_fault(esf);
 #endif /* CONFIG_ARM_SECURE_FIRMWARE */
+		} else {
+			__ASSERT(false, "Unknown configuration");
 		}
 	}
 #else
