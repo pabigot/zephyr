@@ -13,6 +13,11 @@
 #include <device.h>
 #include <drivers/gpio.h>
 
+#ifdef CONFIG_USB
+#include <usb/usb_device.h>
+#include <drivers/uart.h>
+#endif /* CONFIG_USB */
+
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/mesh.h>
 
@@ -388,6 +393,22 @@ static void bt_ready(int err)
 
 void main(void)
 {
+#ifdef CONFIG_UART_CONSOLE_ON_DEV_NAME
+	const struct device *dev = device_get_binding(
+			CONFIG_UART_CONSOLE_ON_DEV_NAME);
+	uint32_t dtr = 0;
+
+	if (usb_enable(NULL)) {
+		return;
+	}
+
+	/* Poll if the DTR flag was set, optional */
+	while (!dtr) {
+		uart_line_ctrl_get(dev, UART_LINE_CTRL_DTR, &dtr);
+	}
+
+#endif
+
 	static struct k_work button_work;
 	int err;
 
