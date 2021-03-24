@@ -12,6 +12,7 @@
 #include <devicetree.h>
 #include <device.h>
 #include <drivers/gpio.h>
+#include <drivers/hwinfo.h>
 
 #ifdef CONFIG_USB
 #include <usb/usb_device.h>
@@ -284,7 +285,7 @@ static void prov_reset(void)
 	bt_mesh_prov_enable(BT_MESH_PROV_ADV | BT_MESH_PROV_GATT);
 }
 
-static const uint8_t dev_uuid[16] = { 0xdd, 0xdd };
+static uint8_t dev_uuid[16];
 
 static const struct bt_mesh_prov prov = {
 	.uuid = dev_uuid,
@@ -409,8 +410,17 @@ void main(void)
 
 #endif
 
+	int err = -1;
+
+	if (IS_ENABLED(CONFIG_HWINFO)) {
+		err = hwinfo_get_device_id(dev_uuid, sizeof(dev_uuid));
+	}
+	if (err < 0) {
+		dev_uuid[0] = 0xdd;
+		dev_uuid[1] = 0xdd;
+	}
+
 	static struct k_work button_work;
-	int err;
 
 	printk("Waiting for ACM\n");
 	k_sleep(K_SECONDS(3));
