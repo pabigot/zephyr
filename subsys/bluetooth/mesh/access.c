@@ -150,7 +150,7 @@ static void publish_sent(int err, void *user_data)
 
 	if (delay) {
 		BT_DBG("Publishing next time in %dms", delay);
-		k_delayed_work_submit(&mod->pub->timer, K_MSEC(delay));
+		k_work_reschedule(&mod->pub->timer, K_MSEC(delay));
 	}
 }
 
@@ -301,7 +301,7 @@ static void mod_init(struct bt_mesh_model *mod, struct bt_mesh_elem *elem,
 
 	if (mod->pub) {
 		mod->pub->mod = mod;
-		k_delayed_work_init(&mod->pub->timer, mod_publish);
+		k_work_init_delayable(&mod->pub->timer, mod_publish);
 	}
 
 	for (i = 0; i < ARRAY_SIZE(mod->keys); i++) {

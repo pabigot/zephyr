@@ -201,7 +201,8 @@ static uint8_t _mod_pub_set(struct bt_mesh_model *model, uint16_t pub_addr,
 		model->pub->count = 0U;
 
 		if (model->pub->update) {
-			k_delayed_work_cancel(&model->pub->timer);
+			/* TBD: This may fail.  If it does, what happens? */
+			(void)k_work_cancel_delayable(&model->pub->timer);
 		}
 
 		if (IS_ENABLED(CONFIG_BT_SETTINGS) && store) {
@@ -239,10 +240,11 @@ static uint8_t _mod_pub_set(struct bt_mesh_model *model, uint16_t pub_addr,
 		BT_DBG("period %u ms", period_ms);
 
 		if (period_ms > 0) {
-			k_delayed_work_submit(&model->pub->timer,
-					      K_MSEC(period_ms));
+			k_work_reschedule(&model->pub->timer,
+					  K_MSEC(period_ms));
 		} else {
-			k_delayed_work_cancel(&model->pub->timer);
+			/* TBD This may fail.  If it does, what happens? */
+			(void)k_work_cancel_delayable(&model->pub->timer);
 		}
 	}
 
