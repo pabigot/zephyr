@@ -38,7 +38,7 @@
 /* 1 transmission, 20ms interval */
 #define PROV_XMIT                  BT_MESH_TRANSMIT(0, 20)
 
-static struct k_delayed_work beacon_timer;
+static struct k_work_delayable beacon_timer;
 
 static int cache_check(struct bt_mesh_subnet *sub, void *beacon_data)
 {
@@ -234,7 +234,16 @@ static void beacon_send(struct k_work *work)
 {
 	/* Don't send anything if we have an active provisioning link */
 	if (IS_ENABLED(CONFIG_BT_MESH_PB_ADV) && bt_mesh_prov_active()) {
-		k_delayed_work_submit(&beacon_timer, K_SECONDS(CONFIG_BT_MESH_UNPROV_BEACON_INT));
+		/* TBD This use assumes no race condition can cause the work
+		 * to be rescheduled while it's being run.  Such an assumption
+		 * is not likely to be valid in SMP cases.
+		 *
+		 * k_work_reschedule() would avoid that, but in that case
+		 * there's a race condition due to the fact that this
+		 * unilaterally replaces the presumably shorter deadline for
+		 * whatever configured this.
+		 */
+		k_work_schedule(&beacon_timer, K_SECONDS(CONFIG_BT_MESH_UNPROV_BEACON_INT));
 		return;
 	}
 
@@ -247,8 +256,12 @@ static void beacon_send(struct k_work *work)
 		/* Only resubmit if beaconing is still enabled */
 		if (bt_mesh_beacon_enabled() ||
 		    atomic_test_bit(bt_mesh.flags, BT_MESH_IVU_INITIATOR)) {
-			k_delayed_work_submit(&beacon_timer,
-					      PROVISIONED_INTERVAL);
+			/* TBD The check above is not thread safe in an SMP
+			 * environment.
+			 *
+			 * schedule/reschedule is also an issue here.
+			 */
+			k_work_schedule(&beacon_timer, PROVISIONED_INTERVAL);
 		}
 
 		return;
@@ -256,7 +269,9 @@ static void beacon_send(struct k_work *work)
 
 	if (IS_ENABLED(CONFIG_BT_MESH_PB_ADV)) {
 		unprovisioned_beacon_send();
-		k_delayed_work_submit(&beacon_timer, K_SECONDS(CONFIG_BT_MESH_UNPROV_BEACON_INT));
+
+		/* TBD schedule/reschedule is also an issue here. */
+		k_work_schedule(&beacon_timer, K_SECONDS(CONFIG_BT_MESH_UNPROV_BEACON_INT));
 	}
 }
 
@@ -358,6 +373,9 @@ static void secure_beacon_recv(struct net_buf_simple *buf)
 	BT_DBG("net_idx 0x%04x iv_index 0x%08x, current iv_index 0x%08x",
 	       sub->net_idx, params.iv_index, bt_mesh.iv_index);
 
+	/* This use of atomic_test_bit is not thread safe in an SMP
+	 * environment.
+	 */
 	if (atomic_test_bit(bt_mesh.flags, BT_MESH_IVU_INITIATOR) &&
 	    (atomic_test_bit(bt_mesh.flags, BT_MESH_IVU_IN_PROGRESS) ==
 	     BT_MESH_IV_UPDATE(params.flags))) {
@@ -430,7 +448,7 @@ BT_MESH_SUBNET_CB_DEFINE(subnet_evt);
 
 void bt_mesh_beacon_init(void)
 {
-	k_delayed_work_init(&beacon_timer, beacon_send);
+	k_work_init_delayable(&beacon_timer, beacon_send);
 }
 
 void bt_mesh_beacon_ivu_initiator(bool enable)
@@ -438,9 +456,12 @@ void bt_mesh_beacon_ivu_initiator(bool enable)
 	atomic_set_bit_to(bt_mesh.flags, BT_MESH_IVU_INITIATOR, enable);
 
 	if (enable) {
-		k_delayed_work_submit(&beacon_timer, K_NO_WAIT);
+		k_work_reschedule(&beacon_timer, K_NO_WAIT);
 	} else if (!bt_mesh_beacon_enabled()) {
-		k_delayed_work_cancel(&beacon_timer);
+		/* TBD this may fail.  What happens if the beacon work handler
+		 * is called when the beacon is not enabled?
+		 */
+		k_work_cancel_delayable(&beacon_timer);
 	}
 }
 
@@ -455,18 +476,22 @@ static void subnet_beacon_enable(struct bt_mesh_subnet *sub)
 void bt_mesh_beacon_enable(void)
 {
 	if (!bt_mesh_is_provisioned()) {
-		k_delayed_work_submit(&beacon_timer, K_NO_WAIT);
+		/* TBD schedule or reschedule? */
+		k_work_reschedule(&beacon_timer, K_NO_WAIT);
 		return;
 	}
 
 	bt_mesh_subnet_foreach(subnet_beacon_enable);
 
-	k_delayed_work_submit(&beacon_timer, K_NO_WAIT);
+	/* TBD schedule or reschedule? */
+	k_work_reschedule(&beacon_timer, K_NO_WAIT);
 }
 
 void bt_mesh_beacon_disable(void)
 {
+	/* Not a safe use of atomics in SMP. */
 	if (!atomic_test_bit(bt_mesh.flags, BT_MESH_IVU_INITIATOR)) {
-		k_delayed_work_cancel(&beacon_timer);
+		/* TBD What happens if this fails? */
+		k_work_cancel_delayable(&beacon_timer);
 	}
 }
