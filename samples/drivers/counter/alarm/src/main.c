@@ -1,22 +1,16 @@
-/*
- * Copyright (c) 2019 Linaro Limited
- *
- * SPDX-License-Identifier: Apache-2.0
- */
-
 #include <zephyr.h>
 
 #include <device.h>
 #include <drivers/counter.h>
 #include <sys/printk.h>
 
-#define DELAY 2000000
+#define DELAY 1000
 #define ALARM_CHANNEL_ID 0
-
-struct counter_alarm_cfg alarm_cfg;
 
 #if defined(CONFIG_BOARD_ATSAMD20_XPRO)
 #define TIMER DT_LABEL(DT_NODELABEL(tc4))
+#elif defined(CONFIG_COUNTER_SAM_TC)
+#define TIMER DT_LABEL(DT_NODELABEL(tc0))
 #elif defined(CONFIG_COUNTER_RTC0)
 #define TIMER DT_LABEL(DT_NODELABEL(rtc0))
 #elif defined(CONFIG_COUNTER_RTC_STM32)
@@ -29,47 +23,56 @@ struct counter_alarm_cfg alarm_cfg;
 #define TIMER DT_LABEL(DT_NODELABEL(timer0))
 #endif
 
+K_KERNEL_STACK_DEFINE(my_stack, 1024);
+
+struct k_work_q my_work_q;
+
+struct my_data {
+	struct k_work work;
+	uint32_t timestamp;
+};
+
+K_MEM_SLAB_DEFINE(rx_mem_slab, sizeof(struct my_data), 10, 32);
+
+static void process_my_data(struct k_work *work)
+{
+	struct my_data *rx_block;
+
+	rx_block = CONTAINER_OF(work, struct my_data, work);
+
+	uint32_t now = k_cycle_get_32();
+	uint32_t dcycles = now - rx_block->timestamp;
+	uint32_t dtime = k_cyc_to_us_near32(dcycles);
+
+	if (dtime > 600)
+		printk("d %u\n", dtime);
+
+	k_mem_slab_free(&rx_mem_slab, (void **)&rx_block);
+}
+
 static void test_counter_interrupt_fn(const struct device *counter_dev,
-				      uint8_t chan_id, uint32_t ticks,
 				      void *user_data)
 {
-	struct counter_alarm_cfg *config = user_data;
-	uint32_t now_ticks;
-	uint64_t now_usec;
-	int now_sec;
-	int err;
+	int ret;
+	struct my_data *rx_block;
 
-	err = counter_get_value(counter_dev, &now_ticks);
-	if (err) {
-		printk("Failed to read counter value (err %d)", err);
+	ret = k_mem_slab_alloc(&rx_mem_slab, (void **)&rx_block, K_NO_WAIT);
+	if (ret < 0) {
+		printk("Failed to allocate rx_block\n");
 		return;
 	}
 
-	now_usec = counter_ticks_to_us(counter_dev, now_ticks);
-	now_sec = (int)(now_usec / USEC_PER_SEC);
+	rx_block->timestamp = k_cycle_get_32();
 
-	printk("!!! Alarm !!!\n");
-	printk("Now: %u\n", now_sec);
-
-	/* Set a new alarm with a double length duration */
-	config->ticks = config->ticks * 2U;
-
-	printk("Set alarm in %u sec (%u ticks)\n",
-	       (uint32_t)(counter_ticks_to_us(counter_dev,
-					   config->ticks) / USEC_PER_SEC),
-	       config->ticks);
-
-	err = counter_set_channel_alarm(counter_dev, ALARM_CHANNEL_ID,
-					user_data);
-	if (err != 0) {
-		printk("Alarm could not be set\n");
-	}
+	k_work_init(&rx_block->work, process_my_data);
+	k_work_submit_to_queue(&my_work_q, &rx_block->work);
 }
 
 void main(void)
 {
 	const struct device *counter_dev;
-	int err;
+	struct counter_top_cfg top_alarm_cfg;
+	int ret;
 
 	printk("Counter alarm sample\n\n");
 	counter_dev = device_get_binding(TIMER);
@@ -78,29 +81,35 @@ void main(void)
 		return;
 	}
 
-	counter_start(counter_dev);
+	top_alarm_cfg = (struct counter_top_cfg){
+		.flags = 0,
+		.ticks = counter_us_to_ticks(counter_dev, DELAY),
+		.callback = test_counter_interrupt_fn,
+		.user_data = NULL,
+	};
 
-	alarm_cfg.flags = 0;
-	alarm_cfg.ticks = counter_us_to_ticks(counter_dev, DELAY);
-	alarm_cfg.callback = test_counter_interrupt_fn;
-	alarm_cfg.user_data = &alarm_cfg;
+	ret = counter_set_top_value(counter_dev, &top_alarm_cfg);
 
-	err = counter_set_channel_alarm(counter_dev, ALARM_CHANNEL_ID,
-					&alarm_cfg);
-	printk("Set alarm in %u sec (%u ticks)\n",
+	printk("Set alarm in %u usec (%u ticks)\n",
 	       (uint32_t)(counter_ticks_to_us(counter_dev,
-					   alarm_cfg.ticks) / USEC_PER_SEC),
-	       alarm_cfg.ticks);
+					      top_alarm_cfg.ticks)),
+	       top_alarm_cfg.ticks);
 
-	if (-EINVAL == err) {
+	if (-EINVAL == ret) {
 		printk("Alarm settings invalid\n");
-	} else if (-ENOTSUP == err) {
+	} else if (-ENOTSUP == ret) {
 		printk("Alarm setting request not supported\n");
-	} else if (err != 0) {
+	} else if (ret != 0) {
 		printk("Error\n");
 	}
 
+	k_work_queue_start(&my_work_q, my_stack,
+			   K_THREAD_STACK_SIZEOF(my_stack), K_PRIO_COOP(15),
+			   NULL);
+
+	counter_start(counter_dev);
+
 	while (1) {
-		k_sleep(K_FOREVER);
+		k_sleep(K_MSEC(1));
 	}
 }
